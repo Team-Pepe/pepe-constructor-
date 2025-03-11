@@ -1,1 +1,0 @@
-este apartado es para el back
