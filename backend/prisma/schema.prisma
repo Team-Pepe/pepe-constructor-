@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+model User {
+  id             Int          @id @default(autoincrement())
+  email          String       @unique
+  username       String?
+  attendances    Attendance[]
+  requests       Request[]
+  supervisedZones WorkZone[]
+  assignedTasks  Task[]
+  sentMessages    Message[]   @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  roleName    String   @map("role_name") @db.VarChar(50)
+  permissions String   @db.Text
+
+  @@map("roles")
+}
+
+model Attendance {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  checkIn   DateTime  @map("check_in")
+  checkOut  DateTime? @map("check_out")
+  // Mantenemos location como String pero usaremos raw queries para operaciones geoespaciales
+  location  String    @db.Text // Almacenará la representación WKT del punto
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("attendance")
+}
+
+model Material {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?   @db.Text
+  quantity    Int
+  requests    Request[]
+
+  @@map("materials")
+}
+
+model Request {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  materialId  Int       @map("material_id")
+  requestDate DateTime  @map("request_date")
+  status      String    @db.VarChar(50)
+  user        User      @relation(fields: [userId], references: [id])
+  material    Material  @relation(fields: [materialId], references: [id])
+
+  @@map("requests")
+}
+
+model WorkZone {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(100)
+  description   String?   @db.Text
+  supervisorId  Int       @map("supervisor_id")
+  supervisor    User      @relation(fields: [supervisorId], references: [id])
+  tasks         Task[]
+  metrics       Metric[]
+
+  @@map("work_zones")
+}
+
+model Task {
+  id             Int       @id @default(autoincrement())
+  workZoneId     Int       @map("work_zone_id")
+  assignedToId   Int       @map("assigned_to")
+  description    String    @db.Text
+  status         String    @db.VarChar(50)
+  completionDate DateTime? @map("completion_date")
+  evidenceUrl    String?   @map("evidence_url") @db.VarChar(255)
+  workZone       WorkZone  @relation(fields: [workZoneId], references: [id])
+  assignedTo     User      @relation(fields: [assignedToId], references: [id])
+
+  @@map("tasks")
+}
+
+model Metric {
+  id          Int       @id @default(autoincrement())
+  workZoneId  Int       @map("work_zone_id")
+  metricType  String    @map("metric_type") @db.VarChar(50)
+  value       Float
+  recordedAt  DateTime  @map("recorded_at")
+  workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
+
+  @@map("metrics")
+}
+
+model Message {
+  id          Int       @id @default(autoincrement())
+  senderId    Int       @map("sender_id")
+  receiverId  Int       @map("receiver_id")
+  message     String    @db.Text
+  sentAt      DateTime  @map("sent_at")
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}

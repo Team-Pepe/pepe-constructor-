@@ -1,15 +1,24 @@
-const { Pool } = require('pg');
+const { PrismaClient } = require('@prisma/client');
 
-const pool = new Pool({
-  user: 'your-username', // Reemplaza con tu usuario de PostgreSQL
-  host: 'your-host', // Reemplaza con tu host de PostgreSQL
-  database: 'your-database', // Reemplaza con tu nombre de base de datos
-  password: 'your-password', // Reemplaza con tu contraseña de PostgreSQL
-  port: 5432, // Puerto por defecto de PostgreSQL
+// Instancia del cliente Prisma con opciones de logging
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
 });
 
-pool.on('connect', () => {
-  console.log('Connected to the PostgreSQL database');
-});
+// Función para verificar la conexión a la base de datos
+async function testConnection() {
+  try {
+    await prisma.$connect();
+    console.log('✅ Conexión a la base de datos establecida correctamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Error al conectar con la base de datos:', error);
+    return false;
+  }
+}
 
-module.exports = pool;
+// Exportamos el cliente y la función de prueba
+module.exports = {
+  prisma,
+  testConnection,
+};
