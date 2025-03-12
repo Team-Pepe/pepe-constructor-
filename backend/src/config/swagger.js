@@ -96,10 +96,8 @@ const options = {
             userId: { type: 'integer' },
             checkIn: { type: 'string', format: 'date-time' },
             checkOut: { type: 'string', format: 'date-time' },
-            location: { 
-              type: 'string',
-              description: 'Ubicación en formato WKT (Well-Known Text)' 
-            },
+            latitud: { type: 'number', format: 'float' },
+            longitud: { type: 'number', format: 'float' },
           },
         },
         GeoPoint: {

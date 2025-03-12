@@ -6,12 +6,12 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  extensions = [postgis]
 }
 
 model User {
@@ -41,8 +41,8 @@ model Attendance {
   userId    Int       @map("user_id")
   checkIn   DateTime  @map("check_in")
   checkOut  DateTime? @map("check_out")
-  // Mantenemos location como String pero usaremos raw queries para operaciones geoespaciales
-  location  String    @db.Text // Almacenará la representación WKT del punto
+  latitud   Float?
+  longitud  Float?
   user      User      @relation(fields: [userId], references: [id])
 
   @@map("attendance")
