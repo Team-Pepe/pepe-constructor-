@@ -24,7 +24,7 @@ module.exports = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(25, 95%, 53%)", // Construction orange
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -51,6 +51,29 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Construction theme colors
+        construction: {
+          orange: {
+            DEFAULT: "#FF6B35",
+            light: "#FF9E6B",
+            dark: "#CC4A1B",
+          },
+          yellow: {
+            DEFAULT: "#FFBC42",
+            light: "#FFD580",
+            dark: "#D99C1B",
+          },
+          brown: {
+            DEFAULT: "#8C5E3B",
+            light: "#B38867",
+            dark: "#5F3F28",
+          },
+          gray: {
+            DEFAULT: "#4A4A4A",
+            light: "#7A7A7A",
+            dark: "#2A2A2A",
+          },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -66,10 +89,20 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "spin-slower": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(-360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "spin-slow": "spin-slow 3s linear infinite",
+        "spin-slower": "spin-slower 6s linear infinite",
       },
     },
   },
