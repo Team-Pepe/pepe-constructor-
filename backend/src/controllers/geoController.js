@@ -1,5 +1,5 @@
 const { prisma } = require('../config/db');
-const { pointToWKT, wktToPoint } = require('../utils/geoUtils');
+const { calculateDistance, isPointWithinRadius } = require('../utils/geoUtils');
 
 /**
  * Controlador para operaciones geoespaciales
@@ -19,15 +19,13 @@ const geoController = {
         });
       }
 
-      // Convertir coordenadas a formato WKT
-      const locationWKT = pointToWKT(parseFloat(lat), parseFloat(lng));
-      
-      // Crear registro de asistencia
+      // Crear registro de asistencia con latitud y longitud
       const attendance = await prisma.Attendance.create({
         data: {
           userId: parseInt(userId),
           checkIn: new Date(),
-          location: locationWKT
+          latitud: parseFloat(lat),
+          longitud: parseFloat(lng)
         }
       });
       
@@ -38,10 +36,8 @@ const geoController = {
           id: attendance.id,
           userId: attendance.userId,
           checkIn: attendance.checkIn,
-          location: {
-            lat: parseFloat(lat),
-            lng: parseFloat(lng)
-          }
+          latitud: attendance.latitud,
+          longitud: attendance.longitud
         }
       });
     } catch (error) {
@@ -58,12 +54,12 @@ const geoController = {
    */
   async checkOut(req, res) {
     try {
-      const { attendanceId } = req.params;
+      const { attendanceId, lat, lng } = req.body;
       
       if (!attendanceId) {
         return res.status(400).json({ 
           status: 'error', 
-          message: 'Se requiere el ID de asistencia' 
+          message: 'Se requiere attendanceId' 
         });
       }
 
@@ -71,14 +67,25 @@ const geoController = {
       const attendance = await prisma.Attendance.update({
         where: { id: parseInt(attendanceId) },
         data: {
-          checkOut: new Date()
+          checkOut: new Date(),
+          ...(lat && lng ? { 
+            latitud: parseFloat(lat), 
+            longitud: parseFloat(lng) 
+          } : {})
         }
       });
       
       res.json({
         status: 'success',
         message: 'Check-out registrado correctamente',
-        data: attendance
+        data: {
+          id: attendance.id,
+          userId: attendance.userId,
+          checkIn: attendance.checkIn,
+          checkOut: attendance.checkOut,
+          latitud: attendance.latitud,
+          longitud: attendance.longitud
+        }
       });
     } catch (error) {
       console.error('Error al registrar check-out:', error);
@@ -99,7 +106,7 @@ const geoController = {
       if (!userId) {
         return res.status(400).json({ 
           status: 'error', 
-          message: 'Se requiere el ID del usuario' 
+          message: 'Se requiere userId' 
         });
       }
 
@@ -108,18 +115,21 @@ const geoController = {
         where: { userId: parseInt(userId) },
         orderBy: { checkIn: 'desc' }
       });
+
+      // Transformar los datos para la respuesta
+      const formattedAttendances = attendances.map(attendance => ({
+        id: attendance.id,
+        userId: attendance.userId,
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        latitud: attendance.latitud,
+        longitud: attendance.longitud
+      }));
       
-      // Transformar las ubicaciones de WKT a coordenadas
-      const formattedAttendances = attendances.map(attendance => {
-        const locationPoint = attendance.location ? wktToPoint(attendance.location) : null;
-        
-        return {
-          ...attendance,
-          location: locationPoint
-        };
+      res.json({
+        status: 'success',
+        data: formattedAttendances
       });
-      
-      res.json(formattedAttendances);
     } catch (error) {
       console.error('Error al obtener registros de asistencia:', error);
       res.status(500).json({ 
@@ -130,8 +140,7 @@ const geoController = {
   },
 
   /**
-   * Obtiene los usuarios que están actualmente en una ubicación específica
-   * dentro de un radio determinado
+   * Obtiene los usuarios cercanos a una ubicación
    */
   async getUsersNearby(req, res) {
     try {
@@ -140,33 +149,53 @@ const geoController = {
       if (!lat || !lng) {
         return res.status(400).json({ 
           status: 'error', 
-          message: 'Se requieren las coordenadas (lat, lng)' 
+          message: 'Se requiere lat y lng' 
         });
       }
 
-      // Convertir coordenadas a formato WKT
-      const centerPoint = pointToWKT(parseFloat(lat), parseFloat(lng));
-      
-      // Ejecutar consulta SQL directa para usar funciones de PostGIS
-      const usersNearby = await prisma.$queryRaw`
-        SELECT a.id, a.user_id, a.check_in, a.check_out, u.email, u.username,
-               ST_AsText(a.location) as location_text,
-               ST_Distance(
-                 a.location::geography, 
-                 ST_GeomFromText(${centerPoint}, 4326)::geography
-               ) as distance
-        FROM attendance a
-        JOIN users u ON a.user_id = u.id
-        WHERE a.check_out IS NULL
-        AND ST_DWithin(
-          a.location::geography,
-          ST_GeomFromText(${centerPoint}, 4326)::geography,
-          ${parseFloat(radius)}
+      // Obtener todos los registros de asistencia activos (sin check-out)
+      const activeAttendances = await prisma.Attendance.findMany({
+        where: {
+          checkOut: null,
+          latitud: { not: null },
+          longitud: { not: null }
+        },
+        include: {
+          user: true
+        }
+      });
+
+      // Filtrar los usuarios que están dentro del radio
+      const nearbyUsers = activeAttendances.filter(attendance => 
+        isPointWithinRadius(
+          parseFloat(lat), 
+          parseFloat(lng), 
+          attendance.latitud, 
+          attendance.longitud, 
+          parseFloat(radius)
         )
-        ORDER BY distance
-      `;
+      ).map(attendance => ({
+        id: attendance.user.id,
+        username: attendance.user.username,
+        email: attendance.user.email,
+        distance: calculateDistance(
+          parseFloat(lat), 
+          parseFloat(lng), 
+          attendance.latitud, 
+          attendance.longitud
+        ),
+        latitud: attendance.latitud,
+        longitud: attendance.longitud,
+        checkIn: attendance.checkIn
+      }));
       
-      res.json(usersNearby);
+      // Ordenar por distancia
+      nearbyUsers.sort((a, b) => a.distance - b.distance);
+      
+      res.json({
+        status: 'success',
+        data: nearbyUsers
+      });
     } catch (error) {
       console.error('Error al obtener usuarios cercanos:', error);
       res.status(500).json({ 

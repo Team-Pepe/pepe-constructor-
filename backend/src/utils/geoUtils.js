@@ -3,78 +3,90 @@
  */
 
 /**
- * Convierte coordenadas de latitud y longitud a un formato WKT (Well-Known Text) para PostGIS
- * @param {number} lat - Latitud
- * @param {number} lng - Longitud
- * @param {number} srid - Sistema de referencia espacial ID (por defecto 4326 para WGS84)
- * @returns {string} - Representación WKT del punto
+ * Calcula la distancia entre dos puntos en metros usando la fórmula de Haversine
+ * @param {number} lat1 - Latitud del primer punto
+ * @param {number} lng1 - Longitud del primer punto
+ * @param {number} lat2 - Latitud del segundo punto
+ * @param {number} lng2 - Longitud del segundo punto
+ * @returns {number} - Distancia en metros
  */
-function pointToWKT(lat, lng, srid = 4326) {
-  return `SRID=${srid};POINT(${lng} ${lat})`;
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3; // Radio de la Tierra en metros
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+
+  return d; // Distancia en metros
 }
 
 /**
- * Extrae coordenadas de latitud y longitud de una representación WKT
- * @param {string} wkt - Representación WKT del punto
- * @returns {Object} - Objeto con propiedades lat y lng
+ * Verifica si un punto está dentro de un radio específico
+ * @param {number} centerLat - Latitud del punto central
+ * @param {number} centerLng - Longitud del punto central
+ * @param {number} pointLat - Latitud del punto a verificar
+ * @param {number} pointLng - Longitud del punto a verificar
+ * @param {number} radiusMeters - Radio en metros
+ * @returns {boolean} - true si el punto está dentro del radio
  */
-function wktToPoint(wkt) {
-  // Ejemplo de formato: "SRID=4326;POINT(-77.042793 -12.046374)"
-  try {
-    // Extraer la parte POINT(lng lat)
-    const pointPart = wkt.split(';')[1] || wkt;
-    // Extraer las coordenadas
-    const coordsMatch = pointPart.match(/POINT\(([^ ]+) ([^)]+)\)/);
-    
-    if (coordsMatch && coordsMatch.length === 3) {
-      return {
-        lng: parseFloat(coordsMatch[1]),
-        lat: parseFloat(coordsMatch[2])
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error al parsear WKT:', error);
-    return null;
-  }
+function isPointWithinRadius(centerLat, centerLng, pointLat, pointLng, radiusMeters) {
+  const distance = calculateDistance(centerLat, centerLng, pointLat, pointLng);
+  return distance <= radiusMeters;
 }
 
 /**
- * Calcula la distancia entre dos puntos en metros
- * Esta función genera una consulta SQL para PostGIS
- * @param {string} point1 - Representación WKT del primer punto
- * @param {string} point2 - Representación WKT del segundo punto
+ * Genera una consulta SQL para calcular la distancia entre dos puntos
+ * @param {number} lat1 - Latitud del primer punto
+ * @param {number} lng1 - Longitud del primer punto
+ * @param {number} lat2 - Latitud del segundo punto
+ * @param {number} lng2 - Longitud del segundo punto
  * @returns {string} - Consulta SQL para calcular la distancia
  */
-function distanceQuery(point1, point2) {
+function distanceQuery(lat1, lng1, lat2, lng2) {
   return `
-    SELECT ST_Distance(
-      ST_GeomFromText('${point1}', 4326)::geography,
-      ST_GeomFromText('${point2}', 4326)::geography
-    ) AS distance_meters
+    SELECT 
+      (
+        6371 * acos(
+          cos(radians(${lat1})) * 
+          cos(radians(latitud)) * 
+          cos(radians(longitud) - radians(${lng1})) + 
+          sin(radians(${lat1})) * 
+          sin(radians(latitud))
+        ) * 1000
+      ) AS distance_meters
   `;
 }
 
 /**
  * Genera una consulta SQL para encontrar puntos dentro de un radio
- * @param {string} centerPoint - Representación WKT del punto central
+ * @param {number} centerLat - Latitud del punto central
+ * @param {number} centerLng - Longitud del punto central
  * @param {number} radiusMeters - Radio en metros
  * @returns {string} - Consulta SQL para encontrar puntos dentro del radio
  */
-function pointsWithinRadiusQuery(centerPoint, radiusMeters) {
+function pointsWithinRadiusQuery(centerLat, centerLng, radiusMeters) {
   return `
-    ST_DWithin(
-      location::geography,
-      ST_GeomFromText('${centerPoint}', 4326)::geography,
-      ${radiusMeters}
-    )
+    (
+      6371 * acos(
+        cos(radians(${centerLat})) * 
+        cos(radians(latitud)) * 
+        cos(radians(longitud) - radians(${centerLng})) + 
+        sin(radians(${centerLat})) * 
+        sin(radians(latitud))
+      ) * 1000
+    ) <= ${radiusMeters}
   `;
 }
 
 module.exports = {
-  pointToWKT,
-  wktToPoint,
+  calculateDistance,
+  isPointWithinRadius,
   distanceQuery,
   pointsWithinRadiusQuery
 }; 

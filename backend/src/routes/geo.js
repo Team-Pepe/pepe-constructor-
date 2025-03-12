@@ -53,41 +53,45 @@ const router = express.Router();
  *                     checkIn:
  *                       type: string
  *                       format: date-time
- *                     location:
- *                       type: object
- *                       properties:
- *                         lat:
- *                           type: number
- *                         lng:
- *                           type: number
+ *                     latitud:
+ *                       type: number
+ *                       format: float
+ *                     longitud:
+ *                       type: number
+ *                       format: float
  *       400:
  *         description: Datos inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 router.post('/check-in', geoController.checkIn);
 
 /**
  * @swagger
- * /api/geo/check-out/{attendanceId}:
- *   put:
+ * /api/geo/check-out:
+ *   post:
  *     summary: Registra la salida de un usuario (check-out)
  *     tags: [Geolocalización]
- *     parameters:
- *       - in: path
- *         name: attendanceId
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID del registro de asistencia
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - attendanceId
+ *             properties:
+ *               attendanceId:
+ *                 type: integer
+ *                 description: ID del registro de asistencia
+ *               lat:
+ *                 type: number
+ *                 format: float
+ *                 description: Latitud (opcional)
+ *               lng:
+ *                 type: number
+ *                 format: float
+ *                 description: Longitud (opcional)
  *     responses:
  *       200:
  *         description: Check-out registrado correctamente
@@ -102,34 +106,43 @@ router.post('/check-in', geoController.checkIn);
  *                 message:
  *                   type: string
  *                 data:
- *                   $ref: '#/components/schemas/Attendance'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     userId:
+ *                       type: integer
+ *                     checkIn:
+ *                       type: string
+ *                       format: date-time
+ *                     checkOut:
+ *                       type: string
+ *                       format: date-time
+ *                     latitud:
+ *                       type: number
+ *                       format: float
+ *                     longitud:
+ *                       type: number
+ *                       format: float
  *       400:
  *         description: Datos inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.put('/check-out/:attendanceId', geoController.checkOut);
+router.post('/check-out', geoController.checkOut);
 
 /**
  * @swagger
- * /api/geo/attendance/{userId}:
+ * /api/geo/user/{userId}/attendance:
  *   get:
  *     summary: Obtiene los registros de asistencia de un usuario
  *     tags: [Geolocalización]
  *     parameters:
  *       - in: path
  *         name: userId
+ *         required: true
  *         schema:
  *           type: integer
- *         required: true
  *         description: ID del usuario
  *     responses:
  *       200:
@@ -137,94 +150,108 @@ router.put('/check-out/:attendanceId', geoController.checkOut);
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Attendance'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       userId:
+ *                         type: integer
+ *                       checkIn:
+ *                         type: string
+ *                         format: date-time
+ *                       checkOut:
+ *                         type: string
+ *                         format: date-time
+ *                       latitud:
+ *                         type: number
+ *                         format: float
+ *                       longitud:
+ *                         type: number
+ *                         format: float
  *       400:
  *         description: Datos inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.get('/attendance/:userId', geoController.getUserAttendance);
+router.get('/user/:userId/attendance', geoController.getUserAttendance);
 
 /**
  * @swagger
- * /api/geo/nearby:
+ * /api/geo/users-nearby:
  *   get:
  *     summary: Obtiene los usuarios cercanos a una ubicación
  *     tags: [Geolocalización]
  *     parameters:
  *       - in: query
  *         name: lat
+ *         required: true
  *         schema:
  *           type: number
  *           format: float
- *         required: true
  *         description: Latitud
  *       - in: query
  *         name: lng
+ *         required: true
  *         schema:
  *           type: number
  *           format: float
- *         required: true
  *         description: Longitud
  *       - in: query
  *         name: radius
+ *         required: false
  *         schema:
  *           type: number
  *           format: float
- *         required: false
- *         description: Radio en metros (por defecto 1000)
+ *           default: 1000
+ *         description: Radio en metros (por defecto 1000m)
  *     responses:
  *       200:
  *         description: Lista de usuarios cercanos
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   user_id:
- *                     type: integer
- *                   email:
- *                     type: string
- *                   username:
- *                     type: string
- *                   check_in:
- *                     type: string
- *                     format: date-time
- *                   check_out:
- *                     type: string
- *                     format: date-time
- *                   location_text:
- *                     type: string
- *                   distance:
- *                     type: number
- *                     description: Distancia en metros
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       username:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       distance:
+ *                         type: number
+ *                         format: float
+ *                         description: Distancia en metros
+ *                       latitud:
+ *                         type: number
+ *                         format: float
+ *                       longitud:
+ *                         type: number
+ *                         format: float
+ *                       checkIn:
+ *                         type: string
+ *                         format: date-time
  *       400:
  *         description: Datos inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.get('/nearby', geoController.getUsersNearby);
+router.get('/users-nearby', geoController.getUsersNearby);
 
 module.exports = router; 

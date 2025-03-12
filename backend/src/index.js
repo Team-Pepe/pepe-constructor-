@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const { prisma, testConnection } = require('./config/db');
 const apiRoutes = require('./routes/api');
@@ -74,38 +76,6 @@ app.use('/api', apiRoutes);
 
 // Usar las rutas geoespaciales
 app.use('/api/geo', geoRoutes);
-
-/**
- * @swagger
- * /users:
- *   get:
- *     summary: Obtiene todos los usuarios (ruta directa)
- *     tags: [Usuarios]
- *     responses:
- *       200:
- *         description: Lista de usuarios
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/User'
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-app.get('/users', async (req, res) => {
-  try {
-    const users = await prisma.User.findMany();
-    res.json(users);
-  } catch (error) {
-    console.error('Error al obtener usuarios:', error);
-    res.status(500).json({ status: 'error', message: 'Error al obtener usuarios' });
-  }
-});
 
 // Iniciar el servidor
 app.listen(PORT, async () => {
