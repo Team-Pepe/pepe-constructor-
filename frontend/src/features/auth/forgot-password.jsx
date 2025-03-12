@@ -1,5 +1,6 @@
+import React from 'react';
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { Building2, Mail, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -73,7 +74,7 @@ export default function ForgotPasswordPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link
-            href="/login"
+            to="/login"
             className="flex items-center text-sm text-primary hover:underline">
             <ArrowLeft className="mr-1 h-4 w-4" />
             Volver al inicio de sesión

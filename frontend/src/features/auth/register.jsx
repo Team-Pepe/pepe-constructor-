@@ -1,6 +1,7 @@
 "use client";
+import React from 'react';
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { Building2, Mail, Lock, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -119,7 +120,7 @@ export default function RegisterPage() {
           </div>
           <div className="text-center text-sm">
             ¿Ya tienes una cuenta?{" "}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link to="/login" className="text-primary hover:underline">
               Iniciar Sesión
             </Link>
           </div>

@@ -1,4 +1,6 @@
+"use client"
 import React, { useState } from "react"
+import { Link } from "react-router-dom"
 import { Building2, Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,8 +29,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
@@ -52,15 +53,16 @@ export default function LoginPage() {
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required />
+                  required
+                />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Contraseña</Label>
-                <a href="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   ¿Olvidaste tu contraseña?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -71,7 +73,8 @@ export default function LoginPage() {
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required />
+                  required
+                />
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
@@ -98,13 +101,14 @@ export default function LoginPage() {
           </div>
           <div className="text-center text-sm">
             ¿No tienes una cuenta?{" "}
-            <a  href="/register" className="text-primary hover:underline">
+            <Link to="/register" className="text-primary hover:underline">
               Regístrate
-            </a>
+            </Link>
           </div>
         </CardFooter>
       </Card>
     </div>
-  );
+  )
 }
+
 
