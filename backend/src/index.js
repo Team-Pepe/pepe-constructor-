@@ -6,6 +6,7 @@ const { PrismaClient } = require('@prisma/client');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const dashboardRoutes = require('./routes/dashboard');
+const apiRoutes = require('./routes/api');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -13,11 +14,6 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Add BigInt serialization support
-BigInt.prototype.toJSON = function() {
-    return Number(this);
-};
 
 // Verificar conexión a la base de datos
 async function testDatabaseConnection() {
@@ -55,6 +51,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // Rutas
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api', apiRoutes);
 
 // Ruta de prueba
 app.get('/health', (req, res) => {

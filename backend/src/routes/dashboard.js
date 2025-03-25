@@ -3,47 +3,26 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Helper function to convert BigInt values to numbers
-function convertBigIntToNumber(data) {
-  if (data === null || data === undefined) {
-    return data;
-  }
-  
-  if (typeof data === 'bigint') {
-    return Number(data);
-  }
-  
-  if (Array.isArray(data)) {
-    return data.map(item => convertBigIntToNumber(item));
-  }
-  
-  if (typeof data === 'object') {
-    const newObj = {};
-    for (const key in data) {
-      newObj[key] = convertBigIntToNumber(data[key]);
-    }
-    return newObj;
-  }
-  
-  return data;
-}
-
 // Obtener métricas generales del dashboard
 router.get('/metrics', async (req, res) => {
     try {
-        // Contar tareas y usuarios
-        const [tasks, users] = await Promise.all([
+        // Contar tareas y usuarios con rol de trabajador
+        const [tasks, workers] = await Promise.all([
             prisma.task.count(),
             prisma.user.count({
                 where: {
-                    role: 'WORKER' // Asumiendo que hay un rol para trabajadores
+                    role: {
+                        is: {
+                            roleName: 'WORKER'
+                        }
+                    }
                 }
             })
         ]);
 
         res.json({
             activeProjects: 0, // No hay tabla projects en la DB actual
-            workers: users,
+            workers,
             tasks
         });
     } catch (error) {
@@ -52,12 +31,18 @@ router.get('/metrics', async (req, res) => {
     }
 });
 
-// Obtener progreso de zonas de trabajo (en lugar de proyectos)
+// Obtener progreso de zonas de trabajo
 router.get('/projects-progress', async (req, res) => {
     try {
         const workZones = await prisma.workZone.findMany({
             include: {
-                supervisor: true,
+                supervisor: {
+                    select: {
+                        id: true,
+                        username: true,
+                        email: true
+                    }
+                },
                 tasks: {
                     where: {
                         status: 'PENDING'
@@ -67,7 +52,7 @@ router.get('/projects-progress', async (req, res) => {
         });
 
         const formattedWorkZones = workZones.map(zone => ({
-            id: Number(zone.id),
+            id: zone.id,
             title: zone.name,
             progress: 0, // Calcular basado en tareas completadas/total
             workers: 0, // No tenemos relación directa worker-workzone
@@ -92,15 +77,36 @@ router.get('/attendance', async (req, res) => {
                 checkIn: {
                     gte: today
                 }
-            },
-            include: {
-                // No tenemos relación directa con users en el schema actual
             }
         });
 
+        // Obtenemos los usuarios en una consulta separada
+        const userIds = attendance.map(record => record.userId);
+        
+        // Solo seleccionamos los campos que existen
+        const users = await prisma.user.findMany({
+            where: {
+                id: {
+                    in: userIds
+                }
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true
+            }
+        });
+        
+        // Creamos un mapa para acceso rápido
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user.id] = user;
+        });
+
         const formattedAttendance = attendance.map(record => ({
-            id: Number(record.id),
-            userId: record.userId ? Number(record.userId) : null,
+            id: record.id,
+            name: userMap[record.userId]?.username || 'Usuario',
+            userId: record.userId,
             status: "PRESENT", // Valor por defecto
             time: record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : null
         }));
@@ -124,7 +130,7 @@ router.get('/materials', async (req, res) => {
         });
 
         const formattedMaterials = materials.map(material => ({
-            id: Number(material.id),
+            id: material.id,
             name: material.name,
             used: 0, // Calcular basado en solicitudes
             total: material.quantity,
@@ -141,52 +147,69 @@ router.get('/materials', async (req, res) => {
 // Obtener actividades recientes
 router.get('/recent-activities', async (req, res) => {
     try {
-        const activities = await Promise.all([
-            // Obtener últimas tareas completadas
-            prisma.task.findMany({
-                where: {
-                    status: 'COMPLETED'
-                },
-                take: 3,
-                orderBy: {
-                    completionDate: 'desc'
-                },
-                include: {
-                    workZone: true,
-                    user: true
-                }
-            }),
-            // Obtener últimas solicitudes de materiales
-            prisma.request.findMany({
-                take: 2,
-                orderBy: {
-                    requestDate: 'desc'
-                },
-                include: {
-                    user: true,
-                    material: true
-                }
-            })
-        ]);
-
-        let [tasks, requests] = activities;
+        // Obtener tareas completadas
+        const tasks = await prisma.task.findMany({
+            where: {
+                status: 'COMPLETED'
+            },
+            take: 3,
+            orderBy: {
+                completionDate: 'desc'
+            },
+            include: {
+                workZone: true
+            }
+        });
         
-        // Convert BigInt to regular numbers
-        tasks = convertBigIntToNumber(tasks);
-        requests = convertBigIntToNumber(requests);
+        // Obtener solicitudes de materiales
+        const requests = await prisma.request.findMany({
+            take: 2,
+            orderBy: {
+                requestDate: 'desc'
+            },
+            include: {
+                material: true
+            }
+        });
+        
+        // Obtener usuarios relacionados
+        const userIds = [
+            ...tasks.map(task => task.assignedTo),
+            ...requests.map(request => request.userId)
+        ];
+        
+        // Solo seleccionamos los campos que existen
+        const users = await prisma.user.findMany({
+            where: {
+                id: {
+                    in: userIds
+                }
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true
+            }
+        });
+        
+        // Crear mapa de usuarios
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user.id] = user;
+        });
 
         const formattedActivities = [
             ...tasks.map(task => ({
                 id: `task-${task.id}`,
                 title: 'Tarea Completada',
-                description: `${task.user ? task.user.username : 'Usuario'} completó: ${task.description}`,
-                location: task.workZone ? task.workZone.name : 'Desconocido',
+                description: `${userMap[task.assignedTo]?.username || 'Usuario'} completó: ${task.description}`,
+                location: task.workZone?.name || 'Zona de trabajo',
                 time: task.completionDate ? new Date(task.completionDate).toLocaleString() : 'Fecha desconocida'
             })),
             ...requests.map(request => ({
                 id: `request-${request.id}`,
                 title: 'Solicitud de Material',
-                description: `${request.user ? request.user.username : 'Usuario'} solicitó ${request.material ? request.material.name : 'material'}`,
+                description: `${userMap[request.userId]?.username || 'Usuario'} solicitó ${request.material?.name || 'material'}`,
                 time: new Date(request.requestDate).toLocaleString()
             }))
         ].sort((a, b) => new Date(b.time) - new Date(a.time));

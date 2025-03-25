@@ -14,35 +14,35 @@ datasource db {
 }
 
 model User {
-  id              BigInt       @id @default(autoincrement())
-  username        String       
-  password        String
-  email           String
-  role            String
-  sentMessages     Message[]    @relation("SenderMessages")
-  receivedMessages Message[]    @relation("ReceiverMessages")
-  assignedTasks   Task[]        @relation("AssignedTasks")
+  id              Int         @id @default(autoincrement())
+  email           String      
+  username        String?
+  roleId          Int         @map("role_id")
+  role            Role        @relation(fields: [roleId], references: [id])
+  sentMessages    Message[]   @relation("SenderMessages")
+  receivedMessages Message[]  @relation("ReceiverMessages")
+  assignedTasks   Task[]      @relation("AssignedTasks")
   requests        Request[]
   supervisedZones WorkZone[]
 
   @@map("users")
 }
 
-
 model Role {
-  id           BigInt   @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   roleName     String   @map("role_name")
   permissions  String
+  users        User[]
 
   @@map("roles")
 }
 
 model WorkZone {
-  id           BigInt    @id @default(autoincrement())
-  name         String
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar
   description  String?
-  supervisorId BigInt?   @map("supervisor_id")
-  supervisor   User?     @relation(fields: [supervisorId], references: [id])
+  supervisorId Int       @map("supervisor_id")
+  supervisor   User      @relation(fields: [supervisorId], references: [id])
   tasks        Task[]
   metrics      Metric[]
 
@@ -50,22 +50,22 @@ model WorkZone {
 }
 
 model Task {
-  id             BigInt      @id @default(autoincrement())
-  workZoneId     BigInt?     @map("work_zone_id")
-  assignedTo     BigInt?     @map("assigned_to")
+  id             Int        @id @default(autoincrement())
+  workZoneId     Int        @map("work_zone_id")
+  assignedTo     Int        @map("assigned_to")
   description    String
-  status         String
-  completionDate DateTime?   @map("completion_date")
-  evidenceUrl    String?     @map("evidence_url")
-  workZone       WorkZone?   @relation(fields: [workZoneId], references: [id])
-  user           User?       @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  status         String     @db.VarChar
+  completionDate DateTime?  @map("completion_date")
+  evidenceUrl    String?    @map("evidence_url") @db.VarChar
+  workZone       WorkZone   @relation(fields: [workZoneId], references: [id])
+  user           User       @relation("AssignedTasks", fields: [assignedTo], references: [id])
 
   @@map("tasks")
 }
 
 model Material {
-  id          BigInt    @id @default(autoincrement())
-  name        String
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar
   description String?
   quantity    Int
   requests    Request[]
@@ -74,20 +74,20 @@ model Material {
 }
 
 model Request {
-  id          BigInt    @id @default(autoincrement())
-  userId      BigInt?   @map("user_id")
-  materialId  BigInt?   @map("material_id")
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  materialId  Int       @map("material_id")
   requestDate DateTime  @map("request_date")
-  status      String
-  user        User?     @relation(fields: [userId], references: [id])
-  material    Material? @relation(fields: [materialId], references: [id])
+  status      String    @db.VarChar
+  user        User      @relation(fields: [userId], references: [id])
+  material    Material  @relation(fields: [materialId], references: [id])
 
   @@map("requests")
 }
 
 model Attendance {
-  id        BigInt    @id @default(autoincrement())
-  userId    BigInt?   @map("user_id")
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
   checkIn   DateTime  @map("check_in")
   checkOut  DateTime? @map("check_out")
   latitud   Float?
@@ -97,24 +97,24 @@ model Attendance {
 }
 
 model Message {
-  id          BigInt    @id @default(autoincrement())
-  senderId    BigInt?   @map("sender_id")
-  receiverId  BigInt?   @map("receiver_id")
+  id          Int       @id @default(autoincrement())
+  senderId    Int       @map("sender_id")
+  receiverId  Int       @map("receiver_id")
   message     String
   sentAt      DateTime  @map("sent_at")
-  sender      User?     @relation("SenderMessages", fields: [senderId], references: [id])
-  receiver    User?     @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  sender      User      @relation("SenderMessages", fields: [senderId], references: [id])
+  receiver    User      @relation("ReceiverMessages", fields: [receiverId], references: [id])
 
   @@map("messages")
 }
 
 model Metric {
-  id          BigInt    @id @default(autoincrement())
-  workZoneId  BigInt?   @map("work_zone_id")
-  metricType  String    @map("metric_type")
-  value       Decimal
+  id          Int       @id @default(autoincrement())
+  workZoneId  Int       @map("work_zone_id")
+  metricType  String    @map("metric_type") @db.VarChar
+  value       Float
   recordedAt  DateTime  @map("recorded_at")
-  workZone    WorkZone? @relation(fields: [workZoneId], references: [id])
+  workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
 
   @@map("metrics")
 }

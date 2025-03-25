@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
     Activity,
-    AlertCircle,
-    BarChart3,
     Calendar,
     ClipboardList,
     FileText,
@@ -22,7 +20,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import PropTypes from 'prop-types';
 
 export default function Dashboard() {
@@ -32,31 +30,39 @@ export default function Dashboard() {
     const [attendance, setAttendance] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [activities, setActivities] = useState([]);
+    const [workers, setWorkers] = useState([]);
+
+    const apiEndpoint = import.meta.env.VITE_API_ENDPOINT;
+    console.log(apiEndpoint);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [metricsRes, projectsRes, attendanceRes, materialsRes, activitiesRes] = await Promise.all([
-                    fetch('http://localhost:3000/api/dashboard/metrics'),
-                    fetch('http://localhost:3000/api/dashboard/projects-progress'),
-                    fetch('http://localhost:3000/api/dashboard/attendance'),
-                    fetch('http://localhost:3000/api/dashboard/materials'),
-                    fetch('http://localhost:3000/api/dashboard/recent-activities')
+                const [metricsRes, projectsRes, attendanceRes, materialsRes, activitiesRes, workersRes] = await Promise.all([
+                    fetch(`${apiEndpoint}/api/dashboard/metrics`),
+                    fetch(`${apiEndpoint}/api/dashboard/projects-progress`),
+                    fetch(`${apiEndpoint}/api/dashboard/attendance`),
+                    fetch(`${apiEndpoint}/api/dashboard/materials`),
+                    fetch(`${apiEndpoint}/api/dashboard/recent-activities`),
+                    fetch(`${apiEndpoint}/api/users`)
                 ]);
 
-                const [metricsData, projectsData, attendanceData, materialsData, activitiesData] = await Promise.all([
+                const [metricsData, projectsData, attendanceData, materialsData, activitiesData, workersData] = await Promise.all([
                     metricsRes.json(),
                     projectsRes.json(),
                     attendanceRes.json(),
                     materialsRes.json(),
-                    activitiesRes.json()
+                    activitiesRes.json(),
+                    workersRes.json()
                 ]);
-
+                console.info("USUARIOS", workersData);
+                
                 setMetrics(metricsData);
                 setProjects(projectsData);
                 setAttendance(attendanceData);
                 setMaterials(materialsData);
                 setActivities(activitiesData);
+                setWorkers(workersData)
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -135,7 +141,7 @@ export default function Dashboard() {
                                 />
                                 <MetricCard
                                     title="Trabajadores"
-                                    value={metrics?.workers || '0'}
+                                    value={workers?.length || '0'}
                                     icon={Users}
                                     color="purple"
                                     detail={`${attendance.filter(a => a.status === 'PRESENT').length} presentes`}
