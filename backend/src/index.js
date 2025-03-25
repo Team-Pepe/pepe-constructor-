@@ -14,6 +14,11 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
 
+// Add BigInt serialization support
+BigInt.prototype.toJSON = function() {
+    return Number(this);
+};
+
 // Verificar conexión a la base de datos
 async function testDatabaseConnection() {
     try {

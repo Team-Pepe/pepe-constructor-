@@ -3,73 +3,80 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper function to convert BigInt values to numbers
+function convertBigIntToNumber(data) {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data === 'bigint') {
+    return Number(data);
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(item => convertBigIntToNumber(item));
+  }
+  
+  if (typeof data === 'object') {
+    const newObj = {};
+    for (const key in data) {
+      newObj[key] = convertBigIntToNumber(data[key]);
+    }
+    return newObj;
+  }
+  
+  return data;
+}
+
 // Obtener métricas generales del dashboard
 router.get('/metrics', async (req, res) => {
     try {
-        const [
-            activeProjects,
-            workers,
-            tasks
-        ] = await Promise.all([
-            // Obtener proyectos activos
-            prisma.project.count({
+        // Contar tareas y usuarios
+        const [tasks, users] = await Promise.all([
+            prisma.task.count(),
+            prisma.user.count({
                 where: {
-                    status: 'ACTIVE'
+                    role: 'WORKER' // Asumiendo que hay un rol para trabajadores
                 }
-            }),
-            // Obtener total de trabajadores
-            prisma.worker.count(),
-            // Obtener total de tareas
-            prisma.task.count()
+            })
         ]);
 
         res.json({
-            activeProjects,
-            workers,
+            activeProjects: 0, // No hay tabla projects en la DB actual
+            workers: users,
             tasks
         });
     } catch (error) {
+        console.error('Error en /metrics:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener progreso de obras
+// Obtener progreso de zonas de trabajo (en lugar de proyectos)
 router.get('/projects-progress', async (req, res) => {
     try {
-        const projects = await prisma.project.findMany({
-            where: {
-                status: 'ACTIVE'
-            },
-            select: {
-                id: true,
-                name: true,
-                progress: true,
-                workers: {
-                    select: {
-                        id: true
-                    }
-                },
+        const workZones = await prisma.workZone.findMany({
+            include: {
+                supervisor: true,
                 tasks: {
                     where: {
                         status: 'PENDING'
-                    },
-                    select: {
-                        id: true
                     }
                 }
             }
         });
 
-        const formattedProjects = projects.map(project => ({
-            id: project.id,
-            title: project.name,
-            progress: project.progress,
-            workers: project.workers.length,
-            tasks: project.tasks.length
+        const formattedWorkZones = workZones.map(zone => ({
+            id: Number(zone.id),
+            title: zone.name,
+            progress: 0, // Calcular basado en tareas completadas/total
+            workers: 0, // No tenemos relación directa worker-workzone
+            tasks: zone.tasks.length
         }));
 
-        res.json(formattedProjects);
+        res.json(formattedWorkZones);
     } catch (error) {
+        console.error('Error en /projects-progress:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -82,34 +89,25 @@ router.get('/attendance', async (req, res) => {
 
         const attendance = await prisma.attendance.findMany({
             where: {
-                date: {
+                checkIn: {
                     gte: today
                 }
             },
-            select: {
-                id: true,
-                worker: {
-                    select: {
-                        id: true,
-                        name: true,
-                        role: true
-                    }
-                },
-                status: true,
-                checkIn: true
+            include: {
+                // No tenemos relación directa con users en el schema actual
             }
         });
 
         const formattedAttendance = attendance.map(record => ({
-            id: record.id,
-            name: record.worker.name,
-            role: record.worker.role,
-            status: record.status,
+            id: Number(record.id),
+            userId: record.userId ? Number(record.userId) : null,
+            status: "PRESENT", // Valor por defecto
             time: record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : null
         }));
 
         res.json(formattedAttendance);
     } catch (error) {
+        console.error('Error en /attendance:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -121,14 +119,21 @@ router.get('/materials', async (req, res) => {
             select: {
                 id: true,
                 name: true,
-                used: true,
-                total: true,
-                unit: true
+                quantity: true
             }
         });
 
-        res.json(materials);
+        const formattedMaterials = materials.map(material => ({
+            id: Number(material.id),
+            name: material.name,
+            used: 0, // Calcular basado en solicitudes
+            total: material.quantity,
+            unit: 'unidades' // Valor por defecto
+        }));
+
+        res.json(formattedMaterials);
     } catch (error) {
+        console.error('Error en /materials:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -136,28 +141,59 @@ router.get('/materials', async (req, res) => {
 // Obtener actividades recientes
 router.get('/recent-activities', async (req, res) => {
     try {
-        const activities = await prisma.activity.findMany({
-            take: 5,
-            orderBy: {
-                createdAt: 'desc'
-            },
-            select: {
-                id: true,
-                title: true,
-                description: true,
-                createdAt: true
-            }
-        });
+        const activities = await Promise.all([
+            // Obtener últimas tareas completadas
+            prisma.task.findMany({
+                where: {
+                    status: 'COMPLETED'
+                },
+                take: 3,
+                orderBy: {
+                    completionDate: 'desc'
+                },
+                include: {
+                    workZone: true,
+                    user: true
+                }
+            }),
+            // Obtener últimas solicitudes de materiales
+            prisma.request.findMany({
+                take: 2,
+                orderBy: {
+                    requestDate: 'desc'
+                },
+                include: {
+                    user: true,
+                    material: true
+                }
+            })
+        ]);
 
-        const formattedActivities = activities.map(activity => ({
-            id: activity.id,
-            title: activity.title,
-            description: activity.description,
-            time: new Date(activity.createdAt).toLocaleString()
-        }));
+        let [tasks, requests] = activities;
+        
+        // Convert BigInt to regular numbers
+        tasks = convertBigIntToNumber(tasks);
+        requests = convertBigIntToNumber(requests);
+
+        const formattedActivities = [
+            ...tasks.map(task => ({
+                id: `task-${task.id}`,
+                title: 'Tarea Completada',
+                description: `${task.user ? task.user.username : 'Usuario'} completó: ${task.description}`,
+                location: task.workZone ? task.workZone.name : 'Desconocido',
+                time: task.completionDate ? new Date(task.completionDate).toLocaleString() : 'Fecha desconocida'
+            })),
+            ...requests.map(request => ({
+                id: `request-${request.id}`,
+                title: 'Solicitud de Material',
+                description: `${request.user ? request.user.username : 'Usuario'} solicitó ${request.material ? request.material.name : 'material'}`,
+                time: new Date(request.requestDate).toLocaleString()
+            }))
+        ].sort((a, b) => new Date(b.time) - new Date(a.time));
 
         res.json(formattedActivities);
     } catch (error) {
+        console.error('Error en /recent-activities:', error);
         res.status(500).json({ error: error.message });
     }
 });
