@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -18,6 +17,8 @@ model User {
   id             Int          @id @default(autoincrement())
   email          String       @unique
   username       String?
+  roleId         Int          @map("role_id")  // Clave foránea
+  role           Role         @relation(fields: [roleId], references: [id])
   attendances    Attendance[]
   requests       Request[]
   supervisedZones WorkZone[]
@@ -28,13 +29,16 @@ model User {
   @@map("users")
 }
 
+
 model Role {
   id          Int      @id @default(autoincrement())
   roleName    String   @map("role_name") @db.VarChar(50)
   permissions String   @db.Text
+  users       User[]   // Relación con User
 
   @@map("roles")
 }
+
 
 model Attendance {
   id        Int       @id @default(autoincrement())
