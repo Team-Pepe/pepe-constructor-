@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -15,43 +14,59 @@ datasource db {
 }
 
 model User {
-  id             Int          @id @default(autoincrement())
-  email          String       @unique
-  username       String?
-  attendances    Attendance[]
-  requests       Request[]
+  id              Int         @id @default(autoincrement())
+  email           String      
+  username        String?
+  roleId          Int         @map("role_id")
+  role            Role        @relation(fields: [roleId], references: [id])
+  sentMessages    Message[]   @relation("SenderMessages")
+  receivedMessages Message[]  @relation("ReceiverMessages")
+  assignedTasks   Task[]      @relation("AssignedTasks")
+  requests        Request[]
   supervisedZones WorkZone[]
-  assignedTasks  Task[]
-  sentMessages    Message[]   @relation("SentMessages")
-  receivedMessages Message[]  @relation("ReceivedMessages")
 
   @@map("users")
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  roleName    String   @map("role_name") @db.VarChar(50)
-  permissions String   @db.Text
+  id           Int      @id @default(autoincrement())
+  roleName     String   @map("role_name")
+  permissions  String
+  users        User[]
 
   @@map("roles")
 }
 
-model Attendance {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  checkIn   DateTime  @map("check_in")
-  checkOut  DateTime? @map("check_out")
-  latitud   Float?
-  longitud  Float?
-  user      User      @relation(fields: [userId], references: [id])
+model WorkZone {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar
+  description  String?
+  supervisorId Int       @map("supervisor_id")
+  supervisor   User      @relation(fields: [supervisorId], references: [id])
+  tasks        Task[]
+  metrics      Metric[]
 
-  @@map("attendance")
+  @@map("work_zones")
+}
+
+model Task {
+  id             Int        @id @default(autoincrement())
+  workZoneId     Int        @map("work_zone_id")
+  assignedTo     Int        @map("assigned_to")
+  description    String
+  status         String     @db.VarChar
+  completionDate DateTime?  @map("completion_date")
+  evidenceUrl    String?    @map("evidence_url") @db.VarChar
+  workZone       WorkZone   @relation(fields: [workZoneId], references: [id])
+  user           User       @relation("AssignedTasks", fields: [assignedTo], references: [id])
+
+  @@map("tasks")
 }
 
 model Material {
   id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(100)
-  description String?   @db.Text
+  name        String    @db.VarChar
+  description String?
   quantity    Int
   requests    Request[]
 
@@ -63,58 +78,43 @@ model Request {
   userId      Int       @map("user_id")
   materialId  Int       @map("material_id")
   requestDate DateTime  @map("request_date")
-  status      String    @db.VarChar(50)
+  status      String    @db.VarChar
   user        User      @relation(fields: [userId], references: [id])
   material    Material  @relation(fields: [materialId], references: [id])
 
   @@map("requests")
 }
 
-model WorkZone {
-  id            Int       @id @default(autoincrement())
-  name          String    @db.VarChar(100)
-  description   String?   @db.Text
-  supervisorId  Int       @map("supervisor_id")
-  supervisor    User      @relation(fields: [supervisorId], references: [id])
-  tasks         Task[]
-  metrics       Metric[]
+model Attendance {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  checkIn   DateTime  @map("check_in")
+  checkOut  DateTime? @map("check_out")
+  latitud   Float?
+  longitud  Float?
 
-  @@map("work_zones")
-}
-
-model Task {
-  id             Int       @id @default(autoincrement())
-  workZoneId     Int       @map("work_zone_id")
-  assignedToId   Int       @map("assigned_to")
-  description    String    @db.Text
-  status         String    @db.VarChar(50)
-  completionDate DateTime? @map("completion_date")
-  evidenceUrl    String?   @map("evidence_url") @db.VarChar(255)
-  workZone       WorkZone  @relation(fields: [workZoneId], references: [id])
-  assignedTo     User      @relation(fields: [assignedToId], references: [id])
-
-  @@map("tasks")
-}
-
-model Metric {
-  id          Int       @id @default(autoincrement())
-  workZoneId  Int       @map("work_zone_id")
-  metricType  String    @map("metric_type") @db.VarChar(50)
-  value       Float
-  recordedAt  DateTime  @map("recorded_at")
-  workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
-
-  @@map("metrics")
+  @@map("attendance")
 }
 
 model Message {
   id          Int       @id @default(autoincrement())
   senderId    Int       @map("sender_id")
   receiverId  Int       @map("receiver_id")
-  message     String    @db.Text
+  message     String
   sentAt      DateTime  @map("sent_at")
-  sender      User      @relation("SentMessages", fields: [senderId], references: [id])
-  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender      User      @relation("SenderMessages", fields: [senderId], references: [id])
+  receiver    User      @relation("ReceiverMessages", fields: [receiverId], references: [id])
 
   @@map("messages")
+}
+
+model Metric {
+  id          Int       @id @default(autoincrement())
+  workZoneId  Int       @map("work_zone_id")
+  metricType  String    @map("metric_type") @db.VarChar
+  value       Float
+  recordedAt  DateTime  @map("recorded_at")
+  workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
+
+  @@map("metrics")
 }

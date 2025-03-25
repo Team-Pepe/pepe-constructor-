@@ -1,209 +1,83 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Activity,
-    AlertCircle,
-    BarChart3,
-    Bell,
-    CircleOff,
-    Command,
-    Cpu,
-    Database,
-    Download,
-    Globe,
+    Calendar,
+    ClipboardList,
+    FileText,
     HardDrive,
-    Hexagon,
-    LineChart,
-    Lock,
     MessageSquare,
-    Mic,
-    Moon,
-    Radio,
-    RefreshCw,
-    Search,
     Settings,
-    Shield,
-    Sun,
-    Terminal,
-    Wifi,
-    Zap,
+    Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import PropTypes from 'prop-types';
 
 export default function Dashboard() {
-    const [theme, setTheme] = useState("dark");
-    const [systemStatus, setSystemStatus] = useState(85);
-    const [cpuUsage, setCpuUsage] = useState(42);
-    const [memoryUsage, setMemoryUsage] = useState(68);
-    const [networkStatus, setNetworkStatus] = useState(92);
-    const [securityLevel, setSecurityLevel] = useState(75);
-    const [currentTime, setCurrentTime] = useState(new Date());
     const [isLoading, setIsLoading] = useState(true);
+    const [metrics, setMetrics] = useState(null);
+    const [projects, setProjects] = useState([]);
+    const [attendance, setAttendance] = useState([]);
+    const [materials, setMaterials] = useState([]);
+    const [activities, setActivities] = useState([]);
+    const [workers, setWorkers] = useState([]);
 
-    const canvasRef = useRef(null);
+    const apiEndpoint = import.meta.env.VITE_API_ENDPOINT;
+    console.log(apiEndpoint);
 
-    // Simulate data loading
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 2000);
+        const fetchDashboardData = async () => {
+            try {
+                const [metricsRes, projectsRes, attendanceRes, materialsRes, activitiesRes, workersRes] = await Promise.all([
+                    fetch(`${apiEndpoint}/api/dashboard/metrics`),
+                    fetch(`${apiEndpoint}/api/dashboard/projects-progress`),
+                    fetch(`${apiEndpoint}/api/dashboard/attendance`),
+                    fetch(`${apiEndpoint}/api/dashboard/materials`),
+                    fetch(`${apiEndpoint}/api/dashboard/recent-activities`),
+                    fetch(`${apiEndpoint}/api/users?roleId=2`)
+                ]);
 
-        return () => clearTimeout(timer);
-    }, []);
-
-    // Update time
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Simulate changing data
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCpuUsage(Math.floor(Math.random() * 30) + 30);
-            setMemoryUsage(Math.floor(Math.random() * 20) + 60);
-            setNetworkStatus(Math.floor(Math.random() * 15) + 80);
-            setSystemStatus(Math.floor(Math.random() * 10) + 80);
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Particle effect
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-
-        const particles = [];
-        const particleCount = 100;
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 3 + 1;
-                this.speedX = (Math.random() - 0.5) * 0.5;
-                this.speedY = (Math.random() - 0.5) * 0.5;
-                this.color = `rgba(${Math.floor(Math.random() * 155) + 100}, ${Math.floor(Math.random() * 100) + 50
-                    }, ${Math.random() < 0.7
-                        ? Math.floor(Math.random() * 50)
-                        : Math.floor(Math.random() * 100) + 100
-                    }, ${Math.random() * 0.5 + 0.2})`;
+                const [metricsData, projectsData, attendanceData, materialsData, activitiesData, workersData] = await Promise.all([
+                    metricsRes.json(),
+                    projectsRes.json(),
+                    attendanceRes.json(),
+                    materialsRes.json(),
+                    activitiesRes.json(),
+                    workersRes.json()
+                ]);
+                console.info("USUARIOS", workersData);
+                
+                setMetrics(metricsData);
+                setProjects(projectsData);
+                setAttendance(attendanceData);
+                setMaterials(materialsData);
+                setActivities(activitiesData);
+                setWorkers(workersData)
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setIsLoading(false);
             }
-
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-
-                if (this.x > canvas.width) this.x = 0;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0;
-                if (this.y < 0) this.y = canvas.height;
-            }
-
-            draw() {
-                if (!ctx) return;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
-        }
-
-        function animate() {
-            if (!ctx || !canvas) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (const particle of particles) {
-                particle.update();
-                particle.draw();
-            }
-
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-
-        const handleResize = () => {
-            if (!canvas) return;
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
         };
 
-        window.addEventListener("resize", handleResize);
-
-        return () => {
-            window.removeEventListener("resize", handleResize);
-        };
+        fetchDashboardData();
+        // Actualizar datos cada 5 minutos
+        const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
-
-    // Toggle theme
-    const toggleTheme = () => {
-        setTheme(theme === "dark" ? "light" : "dark");
-    };
-
-    // Format time
-    const formatTime = (date) => {
-        return date.toLocaleTimeString("en-US", {
-            hour12: false,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-        });
-    };
-
-    // Format date
-    const formatDate = (date) => {
-        return date.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
-    };
 
     return (
-        <div
-            className={`${theme} min-h-screen bg-gradient-to-br from-orange-900 to-slate-900 text-slate-100 relative overflow-hidden`}
-        >
-            {/* Background particle effect */}
-            <canvas
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full opacity-30"
-            />
-
+        <div className="min-h-screen bg-gradient-to-br from-orange-900 to-slate-900 text-slate-100 p-6">
             {/* Loading overlay */}
             {isLoading && (
                 <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -211,90 +85,29 @@ export default function Dashboard() {
                         <div className="relative w-24 h-24">
                             <div className="absolute inset-0 border-4 border-orange-500/30 rounded-full animate-ping"></div>
                             <div className="absolute inset-2 border-4 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                            <div className="absolute inset-4 border-4 border-r-purple-500 border-t-transparent border-b-transparent border-l-transparent rounded-full animate-spin-slow"></div>
-                            <div className="absolute inset-6 border-4 border-b-blue-500 border-t-transparent border-r-transparent border-l-transparent rounded-full animate-spin-slower"></div>
-                            <div className="absolute inset-8 border-4 border-l-green-500 border-t-transparent border-r-transparent border-b-transparent rounded-full animate-spin"></div>
                         </div>
                         <div className="mt-4 text-orange-500 font-mono text-sm tracking-wider">
-                            SYSTEM INITIALIZING
+                            CARGANDO DASHBOARD
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className="container mx-auto p-4 relative z-10">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <header className="flex items-center justify-between py-4 border-b border-slate-700/50 mb-6">
-                    <div className="flex items-center space-x-2">
-                        <Hexagon className="h-8 w-8 text-orange-500" />
-                        <span className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">
-                            NEXUS OS
-                        </span>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold">Dashboard de Supervisión</h1>
+                    <div className="flex items-center space-x-4">
+                        <Button variant="outline" className="text-slate-100">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Mensajes
+                        </Button>
+                        <Button variant="outline" className="text-slate-100">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Configuración
+                        </Button>
                     </div>
-
-                    <div className="flex items-center space-x-6">
-                        <div className="hidden md:flex items-center space-x-1 bg-slate-800/50 rounded-full px-3 py-1.5 border border-slate-700/50 backdrop-blur-sm">
-                            <Search className="h-4 w-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search systems..."
-                                className="bg-transparent border-none focus:outline-none text-sm w-40 placeholder:text-slate-500"
-                            />
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="relative text-slate-400 hover:text-slate-100"
-                                        >
-                                            <Bell className="h-5 w-5" />
-                                            <span className="absolute -top-1 -right-1 h-2 w-2 bg-orange-500 rounded-full animate-pulse"></span>
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Notifications</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={toggleTheme}
-                                            className="text-slate-400 hover:text-slate-100"
-                                        >
-                                            {theme === "dark" ? (
-                                                <Moon className="h-5 w-5" />
-                                            ) : (
-                                                <Sun className="h-5 w-5" />
-                                            )}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Toggle theme</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-
-                            <Avatar>
-                                <AvatarImage
-                                    src="/placeholder.svg?height=40&width=40"
-                                    alt="User"
-                                />
-                                <AvatarFallback className="bg-slate-700 text-cyan-500">
-                                    CM
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
-                    </div>
-                </header>
+                </div>
 
                 {/* Main content */}
                 <div className="grid grid-cols-12 gap-6">
@@ -303,38 +116,13 @@ export default function Dashboard() {
                         <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm h-full">
                             <CardContent className="p-4">
                                 <nav className="space-y-2">
-                                    <NavItem icon={Command} label="Dashboard" active />
-                                    <NavItem icon={Activity} label="Diagnostics" />
-                                    <NavItem icon={Database} label="Data Center" />
-                                    <NavItem icon={Globe} label="Network" />
-                                    <NavItem icon={Shield} label="Security" />
-                                    <NavItem icon={Terminal} label="Console" />
-                                    <NavItem icon={MessageSquare} label="Communications" />
-                                    <NavItem icon={Settings} label="Settings" />
+                                    <NavItem icon={Activity} label="Resumen" active />
+                                    <NavItem icon={Users} label="Asistencia" />
+                                    <NavItem icon={HardDrive} label="Materiales" />
+                                    <NavItem icon={ClipboardList} label="Tareas" />
+                                    <NavItem icon={Calendar} label="Calendario" />
+                                    <NavItem icon={FileText} label="Reportes" />
                                 </nav>
-
-                                <div className="mt-8 pt-6 border-t border-slate-700/50">
-                                    <div className="text-xs text-slate-500 mb-2 font-mono">
-                                        SYSTEM STATUS
-                                    </div>
-                                    <div className="space-y-3">
-                                        <StatusItem
-                                            label="Core Systems"
-                                            value={systemStatus}
-                                            color="cyan"
-                                        />
-                                        <StatusItem
-                                            label="Security"
-                                            value={securityLevel}
-                                            color="green"
-                                        />
-                                        <StatusItem
-                                            label="Network"
-                                            value={networkStatus}
-                                            color="blue"
-                                        />
-                                    </div>
-                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -342,382 +130,98 @@ export default function Dashboard() {
                     {/* Main dashboard */}
                     <div className="col-span-12 md:col-span-9 lg:col-span-7">
                         <div className="grid gap-6">
-                            {/* System overview */}
-                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm overflow-hidden">
-                                <CardHeader className="border-b border-slate-700/50 pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-slate-100 flex items-center">
-                                            <Activity className="mr-2 h-5 w-5 text-cyan-500" />
-                                            System Overview
-                                        </CardTitle>
-                                        <div className="flex items-center space-x-2">
-                                            <Badge
-                                                variant="outline"
-                                                className="bg-slate-800/50 text-cyan-400 border-cyan-500/50 text-xs"
-                                            >
-                                                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 mr-1 animate-pulse"></div>
-                                                LIVE
-                                            </Badge>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-slate-400"
-                                            >
-                                                <RefreshCw className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <MetricCard
-                                            title="CPU Usage"
-                                            value={cpuUsage}
-                                            icon={Cpu}
-                                            trend="up"
-                                            color="cyan"
-                                            detail="3.8 GHz | 12 Cores"
-                                        />
-                                        <MetricCard
-                                            title="Memory"
-                                            value={memoryUsage}
-                                            icon={HardDrive}
-                                            trend="stable"
-                                            color="purple"
-                                            detail="16.4 GB / 24 GB"
-                                        />
-                                        <MetricCard
-                                            title="Network"
-                                            value={networkStatus}
-                                            icon={Wifi}
-                                            trend="down"
-                                            color="blue"
-                                            detail="1.2 GB/s | 42ms"
-                                        />
-                                    </div>
-
-                                    <div className="mt-8">
-                                        <Tabs defaultValue="performance" className="w-full">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <TabsList className="bg-slate-800/50 p-1">
-                                                    <TabsTrigger
-                                                        value="performance"
-                                                        className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                                    >
-                                                        Performance
-                                                    </TabsTrigger>
-                                                    <TabsTrigger
-                                                        value="processes"
-                                                        className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                                    >
-                                                        Processes
-                                                    </TabsTrigger>
-                                                    <TabsTrigger
-                                                        value="storage"
-                                                        className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                                    >
-                                                        Storage
-                                                    </TabsTrigger>
-                                                </TabsList>
-
-                                                <div className="flex items-center space-x-2 text-xs text-slate-400">
-                                                    <div className="flex items-center">
-                                                        <div className="h-2 w-2 rounded-full bg-orange-500 mr-1"></div>
-                                                        CPU
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <div className="h-2 w-2 rounded-full bg-purple-500 mr-1"></div>
-                                                        Memory
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <div className="h-2 w-2 rounded-full bg-blue-500 mr-1"></div>
-                                                        Network
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <TabsContent value="performance" className="mt-0">
-                                                <div className="h-64 w-full relative bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
-                                                    <PerformanceChart />
-                                                    <div className="absolute bottom-4 right-4 bg-slate-900/80 backdrop-blur-sm rounded-md px-3 py-2 border border-slate-700/50">
-                                                        <div className="text-xs text-slate-400">
-                                                            System Load
-                                                        </div>
-                                                        <div className="text-lg font-mono text-orange-400">
-                                                            {cpuUsage}%
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
-
-                                            <TabsContent value="processes" className="mt-0">
-                                                <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
-                                                    <div className="grid grid-cols-12 text-xs text-slate-400 p-3 border-b border-slate-700/50 bg-slate-800/50">
-                                                        <div className="col-span-1">PID</div>
-                                                        <div className="col-span-4">Process</div>
-                                                        <div className="col-span-2">User</div>
-                                                        <div className="col-span-2">CPU</div>
-                                                        <div className="col-span-2">Memory</div>
-                                                        <div className="col-span-1">Status</div>
-                                                    </div>
-
-                                                    <div className="divide-y divide-slate-700/30">
-                                                        <ProcessRow
-                                                            pid="1024"
-                                                            name="system_core.exe"
-                                                            user="SYSTEM"
-                                                            cpu={12.4}
-                                                            memory={345}
-                                                            status="running"
-                                                        />
-                                                        <ProcessRow
-                                                            pid="1842"
-                                                            name="nexus_service.exe"
-                                                            user="SYSTEM"
-                                                            cpu={8.7}
-                                                            memory={128}
-                                                            status="running"
-                                                        />
-                                                        <ProcessRow
-                                                            pid="2156"
-                                                            name="security_monitor.exe"
-                                                            user="ADMIN"
-                                                            cpu={5.2}
-                                                            memory={96}
-                                                            status="running"
-                                                        />
-                                                        <ProcessRow
-                                                            pid="3012"
-                                                            name="network_manager.exe"
-                                                            user="SYSTEM"
-                                                            cpu={3.8}
-                                                            memory={84}
-                                                            status="running"
-                                                        />
-                                                        <ProcessRow
-                                                            pid="4268"
-                                                            name="user_interface.exe"
-                                                            user="USER"
-                                                            cpu={15.3}
-                                                            memory={256}
-                                                            status="running"
-                                                        />
-                                                        <ProcessRow
-                                                            pid="5124"
-                                                            name="data_analyzer.exe"
-                                                            user="ADMIN"
-                                                            cpu={22.1}
-                                                            memory={512}
-                                                            status="running"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
-
-                                            <TabsContent value="storage" className="mt-0">
-                                                <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-4">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <StorageItem
-                                                            name="System Drive (C:)"
-                                                            total={512}
-                                                            used={324}
-                                                            type="SSD"
-                                                        />
-                                                        <StorageItem
-                                                            name="Data Drive (D:)"
-                                                            total={2048}
-                                                            used={1285}
-                                                            type="HDD"
-                                                        />
-                                                        <StorageItem
-                                                            name="Backup Drive (E:)"
-                                                            total={4096}
-                                                            used={1865}
-                                                            type="HDD"
-                                                        />
-                                                        <StorageItem
-                                                            name="External Drive (F:)"
-                                                            total={1024}
-                                                            used={210}
-                                                            type="SSD"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
-                                        </Tabs>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Security & Alerts */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-slate-100 flex items-center text-base">
-                                            <Shield className="mr-2 h-5 w-5 text-green-500" />
-                                            Security Status
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm text-slate-400">Firewall</div>
-                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
-                                                    Active
-                                                </Badge>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm text-slate-400">
-                                                    Intrusion Detection
-                                                </div>
-                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
-                                                    Active
-                                                </Badge>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm text-slate-400">Encryption</div>
-                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
-                                                    Active
-                                                </Badge>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm text-slate-400">
-                                                    Threat Database
-                                                </div>
-                                                <div className="text-sm text-cyan-400">
-                                                    Updated{" "}
-                                                    <span className="text-slate-500">12 min ago</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-2 mt-2 border-t border-slate-700/50">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="text-sm font-medium">
-                                                        Security Level
-                                                    </div>
-                                                    <div className="text-sm text-cyan-400">
-                                                        {securityLevel}%
-                                                    </div>
-                                                </div>
-                                                <Progress
-                                                    value={securityLevel}
-                                                    className="h-2 bg-slate-700"
-                                                >
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                                                        style={{ width: `${securityLevel}%` }}
-                                                    />
-                                                </Progress>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-slate-100 flex items-center text-base">
-                                            <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
-                                            System Alerts
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-3">
-                                            <AlertItem
-                                                title="Security Scan Complete"
-                                                time="14:32:12"
-                                                description="No threats detected in system scan"
-                                                type="info"
-                                            />
-                                            <AlertItem
-                                                title="Bandwidth Spike Detected"
-                                                time="13:45:06"
-                                                description="Unusual network activity on port 443"
-                                                type="warning"
-                                            />
-                                            <AlertItem
-                                                title="System Update Available"
-                                                time="09:12:45"
-                                                description="Version 12.4.5 ready to install"
-                                                type="update"
-                                            />
-                                            <AlertItem
-                                                title="Backup Completed"
-                                                time="04:30:00"
-                                                description="Incremental backup to drive E: successful"
-                                                type="success"
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                            {/* Overview cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <MetricCard
+                                    title="Obras Activas"
+                                    value={metrics?.activeProjects || '0'}
+                                    icon={Activity}
+                                    color="cyan"
+                                    detail={`${projects.length} en progreso`}
+                                />
+                                <MetricCard
+                                    title="Trabajadores"
+                                    value={workers?.length || '0'}
+                                    icon={Users}
+                                    color="purple"
+                                    detail={`${attendance.filter(a => a.status === 'PRESENT').length} presentes`}
+                                />
+                                <MetricCard
+                                    title="Tareas"
+                                    value={`${metrics?.tasks || '0'}`}
+                                    icon={ClipboardList}
+                                    color="blue"
+                                    detail={`${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`}
+                                />
                             </div>
 
-                            {/* Communications */}
+                            {/* Tabs section */}
                             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                                    <CardTitle className="text-slate-100 flex items-center text-base">
-                                        <MessageSquare className="mr-2 h-5 w-5 text-blue-500" />
-                                        Communications Log
-                                    </CardTitle>
-                                    <Badge
-                                        variant="outline"
-                                        className="bg-slate-800/50 text-blue-400 border-blue-500/50"
-                                    >
-                                        4 New Messages
-                                    </Badge>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-3">
-                                        <CommunicationItem
-                                            sender="System Administrator"
-                                            time="15:42:12"
-                                            message="Scheduled maintenance will occur at 02:00. All systems will be temporarily offline."
-                                            avatar="/placeholder.svg?height=40&width=40"
-                                            unread
-                                        />
-                                        <CommunicationItem
-                                            sender="Security Module"
-                                            time="14:30:45"
-                                            message="Unusual login attempt blocked from IP 192.168.1.45. Added to watchlist."
-                                            avatar="/placeholder.svg?height=40&width=40"
-                                            unread
-                                        />
-                                        <CommunicationItem
-                                            sender="Network Control"
-                                            time="12:15:33"
-                                            message="Bandwidth allocation adjusted for priority services during peak hours."
-                                            avatar="/placeholder.svg?height=40&width=40"
-                                            unread
-                                        />
-                                        <CommunicationItem
-                                            sender="Data Center"
-                                            time="09:05:18"
-                                            message="Backup verification complete. All data integrity checks passed."
-                                            avatar="/placeholder.svg?height=40&width=40"
-                                            unread
-                                        />
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="border-t border-slate-700/50 pt-4">
-                                    <div className="flex items-center w-full space-x-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Type a message..."
-                                            className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                                        />
-                                        <Button
-                                            size="icon"
-                                            className="bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            <Mic className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            size="icon"
-                                            className="bg-cyan-600 hover:bg-cyan-700"
-                                        >
-                                            <MessageSquare className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardFooter>
+                                <Tabs defaultValue="overview" className="w-full">
+                                    <CardHeader className="border-b border-slate-700/50 pb-3">
+                                        <TabsList className="bg-slate-800/50 p-1">
+                                            <TabsTrigger
+                                                value="overview"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Resumen
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="attendance"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Asistencia
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="materials"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Materiales
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <TabsContent value="overview">
+                                            <div className="space-y-4">
+                                                {projects.map(project => (
+                                                    <WorkProgressCard
+                                                        key={project.id}
+                                                        title={project.title}
+                                                        progress={project.progress}
+                                                        workers={project.workers}
+                                                        tasks={project.tasks}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="attendance">
+                                            <div className="space-y-4">
+                                                {attendance.map(record => (
+                                                    <AttendanceCard
+                                                        key={record.id}
+                                                        name={record.name}
+                                                        role={record.role}
+                                                        status={record.status}
+                                                        time={record.time}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="materials">
+                                            <div className="space-y-4">
+                                                {materials.map(material => (
+                                                    <MaterialCard
+                                                        key={material.id}
+                                                        name={material.name}
+                                                        used={material.used}
+                                                        total={material.total}
+                                                        unit={material.unit}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                    </CardContent>
+                                </Tabs>
                             </Card>
                         </div>
                     </div>
@@ -725,188 +229,40 @@ export default function Dashboard() {
                     {/* Right sidebar */}
                     <div className="col-span-12 lg:col-span-3">
                         <div className="grid gap-6">
-                            {/* System time */}
-                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm overflow-hidden">
-                                <CardContent className="p-0">
-                                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 border-b border-slate-700/50">
-                                        <div className="text-center">
-                                            <div className="text-xs text-slate-500 mb-1 font-mono">
-                                                SYSTEM TIME
-                                            </div>
-                                            <div className="text-3xl font-mono text-orange-400 mb-1">
-                                                {formatTime(currentTime)}
-                                            </div>
-                                            <div className="text-sm text-slate-400">
-                                                {formatDate(currentTime)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-                                                <div className="text-xs text-slate-500 mb-1">
-                                                    Uptime
-                                                </div>
-                                                <div className="text-sm font-mono text-slate-200">
-                                                    14d 06:42:18
-                                                </div>
-                                            </div>
-                                            <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-                                                <div className="text-xs text-slate-500 mb-1">
-                                                    Time Zone
-                                                </div>
-                                                <div className="text-sm font-mono text-slate-200">
-                                                    UTC-08:00
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
                             {/* Quick actions */}
                             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-slate-100 text-base">
-                                        Quick Actions
+                                        Acciones Rápidas
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <ActionButton icon={Shield} label="Security Scan" />
-                                        <ActionButton icon={RefreshCw} label="Sync Data" />
-                                        <ActionButton icon={Download} label="Backup" />
-                                        <ActionButton icon={Terminal} label="Console" />
+                                        <ActionButton icon={ClipboardList} label="Nueva Tarea" />
+                                        <ActionButton icon={FileText} label="Generar Reporte" />
+                                        <ActionButton icon={Users} label="Registrar Asistencia" />
+                                        <ActionButton icon={HardDrive} label="Solicitar Materiales" />
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Resource allocation */}
+                            {/* Recent activities */}
                             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-slate-100 text-base">
-                                        Resource Allocation
+                                        Actividades Recientes
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="text-sm text-slate-400">
-                                                    Processing Power
-                                                </div>
-                                                <div className="text-xs text-cyan-400">
-                                                    42% allocated
-                                                </div>
-                                            </div>
-                                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                                                    style={{ width: "42%" }}
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="text-sm text-slate-400">
-                                                    Memory Allocation
-                                                </div>
-                                                <div className="text-xs text-purple-400">
-                                                    68% allocated
-                                                </div>
-                                            </div>
-                                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-                                                    style={{ width: "68%" }}
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="text-sm text-slate-400">
-                                                    Network Bandwidth
-                                                </div>
-                                                <div className="text-xs text-blue-400">
-                                                    35% allocated
-                                                </div>
-                                            </div>
-                                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
-                                                    style={{ width: "35%" }}
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-2 border-t border-slate-700/50">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <div className="text-slate-400">Priority Level</div>
-                                                <div className="flex items-center">
-                                                    <Slider
-                                                        defaultValue={[3]}
-                                                        max={5}
-                                                        step={1}
-                                                        className="w-24 mr-2"
-                                                    />
-                                                    <span className="text-cyan-400">3/5</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Environment controls */}
-                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-slate-100 text-base">
-                                        Environment Controls
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center">
-                                                <Radio className="text-orange-500 mr-2 h-4 w-4" />
-                                                <Label className="text-sm text-slate-400">
-                                                    Power Management
-                                                </Label>
-                                            </div>
-                                            <Switch />
-                                        </div>
-
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center">
-                                                <Lock className="text-orange-500 mr-2 h-4 w-4" />
-                                                <Label className="text-sm text-slate-400">
-                                                    Security Protocol
-                                                </Label>
-                                            </div>
-                                            <Switch defaultChecked />
-                                        </div>
-
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center">
-                                                <Zap className="text-orange-500 mr-2 h-4 w-4" />
-                                                <Label className="text-sm text-slate-400">
-                                                    Power Saving Mode
-                                                </Label>
-                                            </div>
-                                            <Switch />
-                                        </div>
-
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center">
-                                                <CircleOff className="text-orange-500 mr-2 h-4 w-4" />
-                                                <Label className="text-sm text-slate-400">
-                                                    Auto Shutdown
-                                                </Label>
-                                            </div>
-                                            <Switch defaultChecked />
-                                        </div>
+                                        {activities.map(activity => (
+                                            <ActivityItem
+                                                key={activity.id}
+                                                title={activity.title}
+                                                time={activity.time}
+                                                description={activity.description}
+                                            />
+                                        ))}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -923,10 +279,11 @@ function NavItem({ icon: Icon, label, active }) {
     return (
         <Button
             variant="ghost"
-            className={`w-full justify-start ${active
-                ? "bg-slate-800/70 text-orange-400"
-                : "text-slate-400 hover:text-slate-100"
-                }`}
+            className={`w-full justify-start ${
+                active
+                    ? "bg-slate-800/70 text-orange-400"
+                    : "text-slate-400 hover:text-slate-100"
+            }`}
         >
             <Icon className="mr-2 h-4 w-4" />
             {label}
@@ -934,41 +291,15 @@ function NavItem({ icon: Icon, label, active }) {
     );
 }
 
-// Component for status items
-function StatusItem({ label, value, color }) {
-    const getColor = () => {
-        switch (color) {
-            case "cyan":
-                return "from-cyan-500 to-blue-500";
-            case "green":
-                return "from-green-500 to-emerald-500";
-            case "blue":
-                return "from-blue-500 to-indigo-500";
-            case "purple":
-                return "from-purple-500 to-pink-500";
-            default:
-                return "from-cyan-500 to-blue-500";
-        }
-    };
-
-    return (
-        <div>
-            <div className="flex items-center justify-between mb-1">
-                <div className="text-xs text-slate-400">{label}</div>
-                <div className="text-xs text-slate-400">{value}%</div>
-            </div>
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                    className={`h-full bg-gradient-to-r ${getColor()} rounded-full`}
-                    style={{ width: `${value}%` }}
-                ></div>
-            </div>
-        </div>
-    );
-}
+// PropTypes para todos los componentes
+NavItem.propTypes = {
+    icon: PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired,
+    active: PropTypes.bool
+};
 
 // Component for metric cards
-function MetricCard({ title, value, icon: Icon, trend, color, detail }) {
+function MetricCard({ title, value, icon: Icon, color, detail }) {
     const getColor = () => {
         switch (color) {
             case "cyan":
@@ -984,19 +315,6 @@ function MetricCard({ title, value, icon: Icon, trend, color, detail }) {
         }
     };
 
-    const getTrendIcon = () => {
-        switch (trend) {
-            case "up":
-                return <BarChart3 className="h-4 w-4 text-amber-500" />;
-            case "down":
-                return <BarChart3 className="h-4 w-4 rotate-180 text-green-500" />;
-            case "stable":
-                return <LineChart className="h-4 w-4 text-blue-500" />;
-            default:
-                return null;
-        }
-    };
-
     return (
         <div
             className={`bg-slate-800/50 rounded-lg border ${getColor()} p-4 relative overflow-hidden`}
@@ -1006,251 +324,146 @@ function MetricCard({ title, value, icon: Icon, trend, color, detail }) {
                 <Icon className={`h-5 w-5 text-${color}-500`} />
             </div>
             <div className="text-2xl font-bold mb-1 bg-gradient-to-r bg-clip-text text-transparent from-slate-100 to-slate-300">
-                {value}%
+                {value}
             </div>
             <div className="text-xs text-slate-500">{detail}</div>
-            <div className="absolute bottom-2 right-2 flex items-center">
-                {getTrendIcon()}
-            </div>
-            <div className="absolute -bottom-6 -right-6 h-16 w-16 rounded-full bg-gradient-to-r opacity-20 blur-xl from-cyan-500 to-blue-500"></div>
         </div>
     );
 }
 
-// Performance chart component
-function PerformanceChart() {
+MetricCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    icon: PropTypes.elementType.isRequired,
+    color: PropTypes.string.isRequired,
+    detail: PropTypes.string.isRequired
+};
+
+// Component for work progress cards
+function WorkProgressCard({ title, progress, workers, tasks }) {
     return (
-        <div className="h-full w-full flex items-end justify-between px-4 pt-4 pb-8 relative">
-            {/* Y-axis labels */}
-            <div className="absolute left-2 top-0 h-full flex flex-col justify-between py-4">
-                <div className="text-xs text-slate-500">100%</div>
-                <div className="text-xs text-slate-500">75%</div>
-                <div className="text-xs text-slate-500">50%</div>
-                <div className="text-xs text-slate-500">25%</div>
-                <div className="text-xs text-slate-500">0%</div>
-            </div>
-
-            {/* X-axis grid lines */}
-            <div className="absolute left-0 right-0 top-0 h-full flex flex-col justify-between py-4 px-10">
-                <div className="border-b border-slate-700/30 w-full"></div>
-                <div className="border-b border-slate-700/30 w-full"></div>
-                <div className="border-b border-slate-700/30 w-full"></div>
-                <div className="border-b border-slate-700/30 w-full"></div>
-                <div className="border-b border-slate-700/30 w-full"></div>
-            </div>
-
-            {/* Chart bars */}
-            <div className="flex-1 h-full flex items-end justify-between px-2 z-10">
-                {Array.from({ length: 24 }).map((_, i) => {
-                    const cpuHeight = Math.floor(Math.random() * 60) + 20;
-                    const memHeight = Math.floor(Math.random() * 40) + 40;
-                    const netHeight = Math.floor(Math.random() * 30) + 30;
-
-                    return (
-                        <div key={i} className="flex space-x-0.5">
-                            <div
-                                className="w-1 bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-sm"
-                                style={{ height: `${cpuHeight}%` }}
-                            ></div>
-                            <div
-                                className="w-1 bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-sm"
-                                style={{ height: `${memHeight}%` }}
-                            ></div>
-                            <div
-                                className="w-1 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm"
-                                style={{ height: `${netHeight}%` }}
-                            ></div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* X-axis labels */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between px-10">
-                <div className="text-xs text-slate-500">00:00</div>
-                <div className="text-xs text-slate-500">06:00</div>
-                <div className="text-xs text-slate-500">12:00</div>
-                <div className="text-xs text-slate-500">18:00</div>
-                <div className="text-xs text-slate-500">24:00</div>
-            </div>
-        </div>
-    );
-}
-
-// Process row component
-function ProcessRow({ pid, name, user, cpu, memory, status }) {
-    return (
-        <div className="grid grid-cols-12 py-2 px-3 text-sm hover:bg-slate-800/50">
-            <div className="col-span-1 text-slate-500">{pid}</div>
-            <div className="col-span-4 text-slate-300">{name}</div>
-            <div className="col-span-2 text-slate-400">{user}</div>
-            <div className="col-span-2 text-orange-400">{cpu}%</div>
-            <div className="col-span-2 text-purple-400">{memory} MB</div>
-            <div className="col-span-1">
-                <Badge
-                    variant="outline"
-                    className="bg-green-500/10 text-green-400 border-green-500/30 text-xs"
-                >
-                    {status}
+        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <Badge variant="outline" className="bg-slate-700/50 text-slate-300">
+                    {progress}% Completado
                 </Badge>
             </div>
+            <Progress value={progress} className="h-2 mb-4" />
+            <div className="flex justify-between text-sm text-slate-400">
+                <div>{workers} trabajadores</div>
+                <div>{tasks} tareas pendientes</div>
+            </div>
         </div>
     );
 }
 
-// Storage item component
-function StorageItem({ name, total, used, type }) {
-    const percentage = Math.round((used / total) * 100);
+WorkProgressCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    progress: PropTypes.number.isRequired,
+    workers: PropTypes.number.isRequired,
+    tasks: PropTypes.number.isRequired
+};
 
+// Component for attendance cards
+function AttendanceCard({ name, role, status, time }) {
     return (
-        <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-            <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-slate-300">{name}</div>
-                <Badge
-                    variant="outline"
-                    className="bg-slate-700/50 text-slate-300 border-slate-600/50 text-xs"
-                >
-                    {type}
-                </Badge>
-            </div>
-            <div className="mb-2">
-                <div className="flex items-center justify-between mb-1">
-                    <div className="text-xs text-slate-500">
-                        {used} GB / {total} GB
+        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <Avatar>
+                        <AvatarFallback>{name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <div className="font-medium">{name}</div>
+                        <div className="text-sm text-slate-400">{role}</div>
                     </div>
-                    <div className="text-xs text-slate-400">{percentage}%</div>
                 </div>
-                <Progress value={percentage} className="h-1.5 bg-slate-700">
-                    <div
-                        className={`h-full rounded-full ${percentage > 90
-                            ? "bg-red-500"
-                            : percentage > 70
-                                ? "bg-amber-500"
-                                : "bg-cyan-500"
-                            }`}
-                        style={{ width: `${percentage}%` }}
-                    />
-                </Progress>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-                <div className="text-slate-500">Free: {total - used} GB</div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2 text-slate-400 hover:text-slate-100"
-                >
-                    Details
-                </Button>
+                <div className="text-right">
+                    <Badge
+                        variant="outline"
+                        className={`${
+                            status === "Presente"
+                                ? "bg-green-500/20 text-green-400 border-green-500/50"
+                                : "bg-red-500/20 text-red-400 border-red-500/50"
+                        }`}
+                    >
+                        {status}
+                    </Badge>
+                    <div className="text-sm text-slate-400 mt-1">{time}</div>
+                </div>
             </div>
         </div>
     );
 }
 
-// Alert item component
-function AlertItem({ title, time, description, type }) {
-    const getTypeStyles = () => {
-        switch (type) {
-            case "info":
-                return {
-                    icon: Info,
-                    color: "text-blue-500 bg-blue-500/10 border-blue-500/30",
-                };
-            case "warning":
-                return {
-                    icon: AlertCircle,
-                    color: "text-amber-500 bg-amber-500/10 border-amber-500/30",
-                };
-            case "error":
-                return {
-                    icon: AlertCircle,
-                    color: "text-red-500 bg-red-500/10 border-red-500/30",
-                };
-            case "success":
-                return {
-                    icon: Check,
-                    color: "text-green-500 bg-green-500/10 border-green-500/30",
-                };
-            case "update":
-                return {
-                    icon: Download,
-                    color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/30",
-                };
-            default:
-                return {
-                    icon: Info,
-                    color: "text-blue-500 bg-blue-500/10 border-blue-500/30",
-                };
-        }
-    };
+AttendanceCard.propTypes = {
+    name: PropTypes.string.isRequired,
+    role: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    time: PropTypes.string
+};
 
-    const { icon: Icon, color } = getTypeStyles();
-
+// Component for material cards
+function MaterialCard({ name, used, total, unit }) {
+    const percentage = (used / total) * 100;
     return (
-        <div className="flex items-start space-x-3">
-            <div
-                className={`mt-0.5 p-1 rounded-full ${color.split(" ")[1]} ${color.split(" ")[2]
-                    }`}
-            >
-                <Icon className={`h-3 w-3 ${color.split(" ")[0]}`} />
+        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">{name}</h3>
+                <Badge variant="outline" className="bg-slate-700/50 text-slate-300">
+                    {percentage.toFixed(0)}% Usado
+                </Badge>
             </div>
-            <div>
-                <div className="flex items-center">
-                    <div className="text-sm font-medium text-slate-200">{title}</div>
-                    <div className="ml-2 text-xs text-slate-500">{time}</div>
-                </div>
-                <div className="text-xs text-slate-400">{description}</div>
+            <Progress value={percentage} className="h-2 mb-2" />
+            <div className="flex justify-between text-sm text-slate-400">
+                <div>{used} {unit} usados</div>
+                <div>{total - used} {unit} disponibles</div>
             </div>
         </div>
     );
 }
 
-// Communication item component
-function CommunicationItem({ sender, time, message, avatar, unread }) {
-    return (
-        <div
-            className={`flex space-x-3 p-2 rounded-md ${unread ? "bg-slate-800/50 border border-slate-700/50" : ""
-                }`}
-        >
-            <Avatar className="h-8 w-8">
-                <AvatarImage src={avatar} alt={sender} />
-                <AvatarFallback className="bg-slate-700 text-cyan-500">
-                    {sender.charAt(0)}
-                </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-slate-200">{sender}</div>
-                    <div className="text-xs text-slate-500">{time}</div>
-                </div>
-                <div className="text-xs text-slate-400 mt-1">{message}</div>
-            </div>
-            {unread && (
-                <div className="flex-shrink-0 self-center">
-                    <div className="h-2 w-2 rounded-full bg-cyan-500"></div>
-                </div>
-            )}
-        </div>
-    );
-}
+MaterialCard.propTypes = {
+    name: PropTypes.string.isRequired,
+    used: PropTypes.number.isRequired,
+    total: PropTypes.number.isRequired,
+    unit: PropTypes.string.isRequired
+};
 
-// Action button component
+// Component for action buttons
 function ActionButton({ icon: Icon, label }) {
     return (
         <Button
             variant="outline"
-            className="h-auto py-3 px-3 border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 flex flex-col items-center justify-center space-y-1 w-full"
+            className="h-20 flex flex-col items-center justify-center text-slate-100 hover:text-orange-400"
         >
-            <Icon className="h-5 w-5 text-orange-500" />
+            <Icon className="h-6 w-6 mb-2" />
             <span className="text-xs">{label}</span>
         </Button>
     );
 }
 
-// Add missing imports
-function Info(props) {
-    return <AlertCircle {...props} />;
+ActionButton.propTypes = {
+    icon: PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired
+};
+
+// Component for activity items
+function ActivityItem({ title, time, description }) {
+    return (
+        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">{title}</h3>
+                <span className="text-sm text-slate-400">{time}</span>
+            </div>
+            <p className="text-sm text-slate-400">{description}</p>
+        </div>
+    );
 }
 
-function Check(props) {
-    return <Shield {...props} />;
-}
+ActivityItem.propTypes = {
+    title: PropTypes.string.isRequired,
+    time: PropTypes.string.isRequired,
+    description: PropTypes.string.isRequired
+};

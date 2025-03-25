@@ -26,7 +26,10 @@ const router = express.Router();
  */
 router.get('/users', async (req, res) => {
   try {
-    const users = await prisma.User.findMany();
+    const { roleId } = req.query;
+    const users = await prisma.User.findMany({
+      where: roleId ? { roleId: Number(roleId) } : {},
+    });
     res.json(users);
   } catch (error) {
     console.error('Error al obtener usuarios:', error);

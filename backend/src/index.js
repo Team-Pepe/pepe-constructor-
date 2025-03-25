@@ -1,94 +1,80 @@
 require('dotenv').config();
 
 const express = require('express');
-const { prisma, testConnection } = require('./config/db');
+const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
-const geoRoutes = require('./routes/geo');
-const { setupSwagger } = require('./config/swagger');
 
-// Inicializar la aplicación Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const prisma = new PrismaClient();
 
-// Middleware para parsear JSON
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-// Configurar Swagger
-setupSwagger(app);
+// Verificar conexión a la base de datos
+async function testDatabaseConnection() {
+    try {
+        await prisma.$connect();
+        console.log('✅ Conexión exitosa a la base de datos');
+        return true;
+    } catch (error) {
+        console.error('❌ Error al conectar con la base de datos:', error);
+        return false;
+    }
+}
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: Ruta de prueba
- *     tags: [General]
- *     responses:
- *       200:
- *         description: Mensaje de bienvenida
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- */
-app.get('/', (req, res) => {
-  res.json({ message: 'API de Pepe Constructor funcionando correctamente' });
-});
+// Swagger configuration
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'API de Pepe Constructor',
+            version: '1.0.0',
+            description: 'Documentación de la API para el sistema de gestión de construcción',
+        },
+        servers: [
+            {
+                url: 'http://localhost:3000',
+                description: 'Servidor de desarrollo',
+            },
+        ],
+    },
+    apis: ['./src/routes/*.js'],
+};
 
-/**
- * @swagger
- * /test-db:
- *   get:
- *     summary: Prueba la conexión a la base de datos
- *     tags: [General]
- *     responses:
- *       200:
- *         description: Conexión exitosa
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 message:
- *                   type: string
- *       500:
- *         description: Error de conexión
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-app.get('/test-db', async (req, res) => {
-  const isConnected = await testConnection();
-  if (isConnected) {
-    res.json({ status: 'success', message: 'Conexión a la base de datos establecida correctamente' });
-  } else {
-    res.status(500).json({ status: 'error', message: 'Error al conectar con la base de datos' });
-  }
-});
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Usar las rutas de la API
+// Rutas
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api', apiRoutes);
 
-// Usar las rutas geoespaciales
-app.use('/api/geo', geoRoutes);
-
-// Iniciar el servidor
-app.listen(PORT, async () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`Documentación de la API disponible en http://localhost:${PORT}/docs`);
-  
-  // Probar la conexión a la base de datos al iniciar
-  await testConnection();
+// Ruta de prueba
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// Manejar el cierre de la aplicación
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  console.log('Conexión a la base de datos cerrada');
-  process.exit(0);
+const PORT = process.env.PORT || 3000;
+
+// Iniciar servidor solo si la conexión a la base de datos es exitosa
+async function startServer() {
+    const isConnected = await testDatabaseConnection();
+    if (isConnected) {
+        app.listen(PORT, () => {
+            console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
+            console.log(`📚 Documentación disponible en http://localhost:${PORT}/api-docs`);
+        });
+    } else {
+        console.error('❌ No se pudo iniciar el servidor debido a problemas con la base de datos');
+        process.exit(1);
+    }
+}
+
+startServer().catch(error => {
+    console.error('❌ Error fatal:', error);
+    process.exit(1);
 });
