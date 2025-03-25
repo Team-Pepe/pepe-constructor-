@@ -44,7 +44,7 @@ export default function Dashboard() {
                     fetch(`${apiEndpoint}/api/dashboard/attendance`),
                     fetch(`${apiEndpoint}/api/dashboard/materials`),
                     fetch(`${apiEndpoint}/api/dashboard/recent-activities`),
-                    fetch(`${apiEndpoint}/api/users`)
+                    fetch(`${apiEndpoint}/api/users?roleId=2`)
                 ]);
 
                 const [metricsData, projectsData, attendanceData, materialsData, activitiesData, workersData] = await Promise.all([
