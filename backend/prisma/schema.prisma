@@ -28,6 +28,7 @@ model User {
   @@map("users")
 }
 
+
 model Role {
   id           BigInt   @id @default(autoincrement())
   roleName     String   @map("role_name")
