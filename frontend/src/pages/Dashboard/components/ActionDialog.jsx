@@ -1,8 +1,7 @@
-"use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, SendHorizontal, CreditCard } from "lucide-react"
+import React from "react";
+import PropTypes from 'prop-types';
+import { Button } from "@/components/ui/button";
+import { PlusCircle, SendHorizontal, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,17 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-function ActionDialog({
-  title,
-  description,
-  actionText
-}) {
+export function ActionDialog({ title, description, actionText }) {
   return (
-    (<Dialog>
+    <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full justify-start">
           {title === "Add Funds" && <PlusCircle className="mr-2 h-4 w-4" />}
@@ -48,28 +43,12 @@ function ActionDialog({
         </div>
         <Button type="submit">{actionText}</Button>
       </DialogContent>
-    </Dialog>)
+    </Dialog>
   );
 }
 
-export function QuickActions() {
-  return (
-    (<Card className="border border-border">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <ActionDialog
-          title="Add Funds"
-          description="Add funds to your account"
-          actionText="Add Funds" />
-        <ActionDialog
-          title="Send Money"
-          description="Send money to another account"
-          actionText="Send Money" />
-        <ActionDialog title="Top Up" description="Top up your account" actionText="Top Up" />
-      </CardContent>
-    </Card>)
-  );
-}
-
+ActionDialog.propTypes = {
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+  actionText: PropTypes.string.isRequired
+}; 

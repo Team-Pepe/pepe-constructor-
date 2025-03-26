@@ -1,8 +1,8 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage, Register, ForgotPassword as FPassword } from "@/features/auth";
-import Dashboard from "@/components/dashboard/dashboard";
-import DashboardEmpleados from "@/components/dashboard-empleados/dashboard-empleados"; // Importa el nuevo componente
+import Dashboard from "@/pages/Dashboard/dashboard";
+import DashboardEmpleados from "@/pages/DashboardWorkers/dashboard-empleados"; // Importa el nuevo componente
 
 function App() {
   return (
