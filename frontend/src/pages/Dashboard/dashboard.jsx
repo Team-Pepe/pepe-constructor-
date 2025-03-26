@@ -17,11 +17,17 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import PropTypes from 'prop-types';
+
+import {
+    NavItem,
+    MetricCard,
+    WorkProgressCard,
+    AttendanceCard,
+    MaterialCard,
+    ActionButton,
+    ActivityItem
+} from "./components";
 
 export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
@@ -273,197 +279,3 @@ export default function Dashboard() {
         </div>
     );
 }
-
-// Component for nav items
-function NavItem({ icon: Icon, label, active }) {
-    return (
-        <Button
-            variant="ghost"
-            className={`w-full justify-start ${
-                active
-                    ? "bg-slate-800/70 text-orange-400"
-                    : "text-slate-400 hover:text-slate-100"
-            }`}
-        >
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
-        </Button>
-    );
-}
-
-// PropTypes para todos los componentes
-NavItem.propTypes = {
-    icon: PropTypes.elementType.isRequired,
-    label: PropTypes.string.isRequired,
-    active: PropTypes.bool
-};
-
-// Component for metric cards
-function MetricCard({ title, value, icon: Icon, color, detail }) {
-    const getColor = () => {
-        switch (color) {
-            case "cyan":
-                return "from-orange-500 to-amber-500 border-orange-500/30";
-            case "green":
-                return "from-green-500 to-emerald-500 border-green-500/30";
-            case "blue":
-                return "from-blue-500 to-indigo-500 border-blue-500/30";
-            case "purple":
-                return "from-purple-500 to-pink-500 border-purple-500/30";
-            default:
-                return "from-cyan-500 to-blue-500 border-cyan-500/30";
-        }
-    };
-
-    return (
-        <div
-            className={`bg-slate-800/50 rounded-lg border ${getColor()} p-4 relative overflow-hidden`}
-        >
-            <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-slate-400">{title}</div>
-                <Icon className={`h-5 w-5 text-${color}-500`} />
-            </div>
-            <div className="text-2xl font-bold mb-1 bg-gradient-to-r bg-clip-text text-transparent from-slate-100 to-slate-300">
-                {value}
-            </div>
-            <div className="text-xs text-slate-500">{detail}</div>
-        </div>
-    );
-}
-
-MetricCard.propTypes = {
-    title: PropTypes.string.isRequired,
-    value: PropTypes.string.isRequired,
-    icon: PropTypes.elementType.isRequired,
-    color: PropTypes.string.isRequired,
-    detail: PropTypes.string.isRequired
-};
-
-// Component for work progress cards
-function WorkProgressCard({ title, progress, workers, tasks }) {
-    return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{title}</h3>
-                <Badge variant="outline" className="bg-slate-700/50 text-slate-300">
-                    {progress}% Completado
-                </Badge>
-            </div>
-            <Progress value={progress} className="h-2 mb-4" />
-            <div className="flex justify-between text-sm text-slate-400">
-                <div>{workers} trabajadores</div>
-                <div>{tasks} tareas pendientes</div>
-            </div>
-        </div>
-    );
-}
-
-WorkProgressCard.propTypes = {
-    title: PropTypes.string.isRequired,
-    progress: PropTypes.number.isRequired,
-    workers: PropTypes.number.isRequired,
-    tasks: PropTypes.number.isRequired
-};
-
-// Component for attendance cards
-function AttendanceCard({ name, role, status, time }) {
-    return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <Avatar>
-                        <AvatarFallback>{name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <div className="font-medium">{name}</div>
-                        <div className="text-sm text-slate-400">{role}</div>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <Badge
-                        variant="outline"
-                        className={`${
-                            status === "Presente"
-                                ? "bg-green-500/20 text-green-400 border-green-500/50"
-                                : "bg-red-500/20 text-red-400 border-red-500/50"
-                        }`}
-                    >
-                        {status}
-                    </Badge>
-                    <div className="text-sm text-slate-400 mt-1">{time}</div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-AttendanceCard.propTypes = {
-    name: PropTypes.string.isRequired,
-    role: PropTypes.string.isRequired,
-    status: PropTypes.string.isRequired,
-    time: PropTypes.string
-};
-
-// Component for material cards
-function MaterialCard({ name, used, total, unit }) {
-    const percentage = (used / total) * 100;
-    return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-            <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium">{name}</h3>
-                <Badge variant="outline" className="bg-slate-700/50 text-slate-300">
-                    {percentage.toFixed(0)}% Usado
-                </Badge>
-            </div>
-            <Progress value={percentage} className="h-2 mb-2" />
-            <div className="flex justify-between text-sm text-slate-400">
-                <div>{used} {unit} usados</div>
-                <div>{total - used} {unit} disponibles</div>
-            </div>
-        </div>
-    );
-}
-
-MaterialCard.propTypes = {
-    name: PropTypes.string.isRequired,
-    used: PropTypes.number.isRequired,
-    total: PropTypes.number.isRequired,
-    unit: PropTypes.string.isRequired
-};
-
-// Component for action buttons
-function ActionButton({ icon: Icon, label }) {
-    return (
-        <Button
-            variant="outline"
-            className="h-20 flex flex-col items-center justify-center text-slate-100 hover:text-orange-400"
-        >
-            <Icon className="h-6 w-6 mb-2" />
-            <span className="text-xs">{label}</span>
-        </Button>
-    );
-}
-
-ActionButton.propTypes = {
-    icon: PropTypes.elementType.isRequired,
-    label: PropTypes.string.isRequired
-};
-
-// Component for activity items
-function ActivityItem({ title, time, description }) {
-    return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-            <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium">{title}</h3>
-                <span className="text-sm text-slate-400">{time}</span>
-            </div>
-            <p className="text-sm text-slate-400">{description}</p>
-        </div>
-    );
-}
-
-ActivityItem.propTypes = {
-    title: PropTypes.string.isRequired,
-    time: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired
-};

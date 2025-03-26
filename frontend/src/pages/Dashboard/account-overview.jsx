@@ -1,16 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 const accounts = [
   { name: "Checking", balance: 5240.23 },
   { name: "Savings", balance: 12750.89 },
   { name: "Investment", balance: 7890.45 },
-]
+];
 
-export function AccountOverview() {
-  const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0)
+export default function AccountOverview() {
+  const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
 
   return (
-    (<Card className="border border-border">
+    <Card className="border border-border">
       <CardHeader>
         <CardTitle className="text-lg font-medium">Account Overview</CardTitle>
       </CardHeader>
@@ -25,7 +26,7 @@ export function AccountOverview() {
           ))}
         </div>
       </CardContent>
-    </Card>)
+    </Card>
   );
 }
 

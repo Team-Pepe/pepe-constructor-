@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -10,9 +11,9 @@ const data = [
   { month: "Jun", income: 3000, expenses: 2600 },
 ]
 
-export function FinancialChart() {
+export default function FinancialChart() {
   return (
-    (<Card>
+    <Card>
       <CardHeader>
         <CardTitle>Financial Overview</CardTitle>
       </CardHeader>
@@ -39,7 +40,7 @@ export function FinancialChart() {
           </ResponsiveContainer>
         </div>
       </CardContent>
-    </Card>)
+    </Card>
   );
 }
 
