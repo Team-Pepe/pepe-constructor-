@@ -30,6 +30,7 @@ export default function LoginPage() {
       // Guardar el token en localStorage
       const { token, role_id } = response.data;
       localStorage.setItem("authToken", token);
+      localStorage.setItem("roleId", role_id);
 
       // Redirigir según el role_id
       if (role_id === 1) {
@@ -39,6 +40,10 @@ export default function LoginPage() {
       } else {
         setError("Rol no válido");
       }
+      
+      // Llamar a la función login del contexto
+      login(token, role_id);
+
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
       setError("Correo o contraseña incorrectos");
