@@ -1,38 +1,48 @@
 "use client";
-import React from 'react';
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { Building2, Mail, Lock, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // 👈 Agregamos useNavigate
+import { Building2, Mail, Lock, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import axios from "axios"; // 👈 Importamos axios para hacer solicitudes HTTP
 
 export default function RegisterPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate(); // 👈 Hook para redirigir después del registro
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
-    // Simulate registration process
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log("Registration attempt with:", { name, email, password })
-    } catch (error) {
-      console.error("Registration error:", error)
+      // Hacer la solicitud al backend
+      await axios.post("http://localhost:3000/api/auth/register", {
+        email,
+        password,
+        username: name, // Enviamos el nombre como username
+        roleId: 2, // 👈 Forzamos el roleId a 2
+      });
+
+      // Redirigir al login después del registro exitoso
+      navigate("/login");
+    } catch (err) {
+      console.error("Error al registrar usuario:", err);
+      setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    (<div
-      className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
@@ -56,7 +66,8 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required />
+                  required
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -70,7 +81,8 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required />
+                  required
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -84,18 +96,20 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required />
+                  required
+                />
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox id="terms" required />
               <Label htmlFor="terms" className="text-sm">
                 Acepto los{" "}
-                <Link href="/terms" className="text-primary hover:underline">
+                <Link to="/terms" className="text-primary hover:underline">
                   términos y condiciones
                 </Link>
               </Label>
             </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Procesando..." : "Registrarse"}
             </Button>
@@ -126,7 +140,6 @@ export default function RegisterPage() {
           </div>
         </CardFooter>
       </Card>
-    </div>)
+    </div>
   );
 }
-

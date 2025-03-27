@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
+const authRouter = require('./routes/authRouter'); // 👈 Correcto para CommonJS
 
 const app = express();
 const prisma = new PrismaClient();
@@ -49,9 +50,10 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Rutas
+app.use('/api/auth', authRouter); // 👈 Agregamos las rutas de autenticación
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use('/api', apiRoutes);
+app.use('/api/auth', authRouter);
 
 // Ruta de prueba
 app.get('/health', (req, res) => {

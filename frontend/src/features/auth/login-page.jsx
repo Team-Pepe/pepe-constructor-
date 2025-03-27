@@ -1,32 +1,51 @@
-"use client"
-import React, { useState } from "react"
-import { Link } from "react-router-dom"
-import { Building2, Lock, Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+"use client";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Building2, Lock, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import axios from "axios";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
-    // Simulate authentication process
     try {
-      // Here you would connect to your authentication service
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log("Login attempt with:", { email, password })
-    } catch (error) {
-      console.error("Login error:", error)
+      // Hacer la solicitud al backend
+      const response = await axios.post("http://localhost:3000/api/auth/login", {
+        email,
+        password,
+      });
+
+      // Guardar el token en localStorage
+      const { token, role_id } = response.data;
+      localStorage.setItem("authToken", token);
+
+      // Redirigir según el role_id
+      if (role_id === 1) {
+        navigate("/dashboard");
+      } else if (role_id === 2) {
+        navigate("/dashboard-empleados");
+      } else {
+        setError("Rol no válido");
+      }
+    } catch (err) {
+      console.error("Error al iniciar sesión:", err);
+      setError("Correo o contraseña incorrectos");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
@@ -77,6 +96,7 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Cargando..." : "Iniciar Sesión"}
             </Button>
@@ -108,7 +128,6 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-
 

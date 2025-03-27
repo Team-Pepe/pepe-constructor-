@@ -15,8 +15,9 @@ datasource db {
 
 model User {
   id              Int         @id @default(autoincrement())
-  email           String      
+  email           String      @unique // Asegúrate de que el email sea único
   username        String?
+  password        String      // 👈 Campo para almacenar la contraseña encriptada
   roleId          Int         @map("role_id")
   role            Role        @relation(fields: [roleId], references: [id])
   sentMessages    Message[]   @relation("SenderMessages")
