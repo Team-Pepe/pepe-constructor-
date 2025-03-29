@@ -54,6 +54,7 @@ app.use('/api/auth', authRouter); // 👈 Agregamos las rutas de autenticación
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRouter);
+app.use('/api', apiRoutes); 
 
 // Ruta de prueba
 app.get('/health', (req, res) => {

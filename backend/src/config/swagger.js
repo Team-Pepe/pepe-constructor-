@@ -27,6 +27,8 @@ const options = {
             id: { type: 'integer' },
             email: { type: 'string', format: 'email' },
             username: { type: 'string' },
+            password: { type: 'string' },
+            roleId: { type: 'integer' },
           },
         },
         WorkZone: {
