@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       // Hacer la solicitud al backend
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
+      const response = await axios.post("http://localhost:3000/api/auth/login", {//No esta haciendo uso correcto del .env
         email,
         password,
       });

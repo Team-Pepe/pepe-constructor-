@@ -35,7 +35,7 @@ export function MetricCard({ title, value, icon: Icon, color, detail }) {
 
 MetricCard.propTypes = {
     title: PropTypes.string.isRequired,
-    value: PropTypes.string.isRequired,
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     icon: PropTypes.elementType.isRequired,
     color: PropTypes.string.isRequired,
     detail: PropTypes.string.isRequired

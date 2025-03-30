@@ -29,6 +29,8 @@ import {
     ActivityItem
 } from "./components";
 
+import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
+
 export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [metrics, setMetrics] = useState(null);
@@ -63,12 +65,36 @@ export default function Dashboard() {
                 ]);
                 console.info("USUARIOS", workersData);
                 
+                // Datos de ubicación fijas para los trabajadores en Pereira
+                const addLocationToWorkers = (workers) => {
+                    if (!workers) return [];
+                    
+                    // Coordenadas de trabajadores en diferentes puntos de Pereira
+                    const fixedLocations = [
+                        { lat: 4.8133, lng: -75.6961 }, // Centro de Pereira
+                        { lat: 4.8182, lng: -75.6923 }, // Cerca del centro
+                        { lat: 4.8056, lng: -75.7056 }, // Zona oeste
+                        { lat: 4.8240, lng: -75.6845 }, // Zona norte
+                        { lat: 4.8050, lng: -75.6845 }, // Zona sur
+                        { lat: 4.8150, lng: -75.7100 }  // Zona oeste
+                    ];
+                    
+                    return workers.map((worker, index) => ({
+                        ...worker,
+                        name: worker.username || worker.name || `Trabajador ${index + 1}`,
+                        location: fixedLocations[index % fixedLocations.length] // Usa ubicación fija basada en el índice
+                    }));
+                };
+                
+                // Añadimos ubicación a los trabajadores
+                const workersWithLocation = addLocationToWorkers(workersData);
+                setWorkers(workersWithLocation);
+                
                 setMetrics(metricsData);
                 setProjects(projectsData);
                 setAttendance(attendanceData);
                 setMaterials(materialsData);
                 setActivities(activitiesData);
-                setWorkers(workersData)
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -160,6 +186,9 @@ export default function Dashboard() {
                                     detail={`${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`}
                                 />
                             </div>
+
+                            {/* Work Zone Map */}
+                            <WorkZoneMap workers={workers} />
 
                             {/* Tabs section */}
                             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">

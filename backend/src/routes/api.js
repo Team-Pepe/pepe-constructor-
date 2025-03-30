@@ -97,6 +97,68 @@ router.get('/users/:id', async (req, res) => {
 /**
  * @swagger
  * /api/work-zones:
+ *   post:
+ *     summary: Obtiene todas las zonas de trabajo
+ *     tags: [Zonas de Trabajo]
+ *     responses:
+ *       200:
+ *         description: Lista de zonas de trabajo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/WorkZone'
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/work-zones', async (req, res) => {
+  try {
+    // Extraer datos del cuerpo de la solicitud
+    const { name, description, supervisorId, latitude, longitude } = req.body;
+    
+    // Validar datos requeridos
+    if (!name || !supervisorId) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Se requieren nombre y supervisor para crear una zona de trabajo' 
+      });
+    }    // Crear zona de trabajo en la base de datos
+    const newWorkZone = await prisma.WorkZone.create({
+      data: {
+        name,
+        description,
+        supervisor: {
+          connect: { id: parseInt(supervisorId) }
+        },
+        latitud: parseFloat(latitude), // Ahora directamente como float
+        longitud: parseFloat(longitude), // Ahora directamente como float
+        //radius: radius ? parseInt(radius) : 500 // Valor por defecto
+      }
+    });
+
+
+    res.status(201).json({ 
+      status: 'success', 
+      data: newWorkZone 
+    });
+  } catch (error) {
+    console.error('Error al crear zona de trabajo:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al crear zona de trabajo',
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/work-zones:
  *   get:
  *     summary: Obtiene todas las zonas de trabajo
  *     tags: [Zonas de Trabajo]
@@ -120,15 +182,16 @@ router.get('/work-zones', async (req, res) => {
   try {
     const workZones = await prisma.WorkZone.findMany({
       include: {
-        supervisor: true,
-        tasks: true,
-        metrics: true,
+        supervisor: true, // Incluir el supervisor si es necesario
       }
     });
     res.json(workZones);
   } catch (error) {
     console.error('Error al obtener zonas de trabajo:', error);
-    res.status(500).json({ status: 'error', message: 'Error al obtener zonas de trabajo' });
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al obtener zonas de trabajo' 
+    });
   }
 });
 

@@ -7,4 +7,5 @@ export { ActionButton } from './ActionButton';
 export { ActivityItem } from './ActivityItem';
 export { ActionDialog } from './ActionDialog';
 export { TransactionItem } from './TransactionItem';
-export { EventCard } from './EventCard'; 
+export { EventCard } from './EventCard';
+export { EmployeeCard } from './EmployeeCard'; 

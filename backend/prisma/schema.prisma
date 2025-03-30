@@ -46,6 +46,8 @@ model WorkZone {
   supervisor   User      @relation(fields: [supervisorId], references: [id])
   tasks        Task[]
   metrics      Metric[]
+  latitud      Float?
+  longitud     Float?
 
   @@map("work_zones")
 }
