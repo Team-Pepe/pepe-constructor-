@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import axios from "axios";
+import fondo from "../../assets/fondo.jpg"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,7 +43,7 @@ export default function LoginPage() {
       }
       
       // Llamar a la función login del contexto
-      login(token, role_id);
+      /* login(token, role_id); */
 
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
@@ -53,7 +54,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+      style={{
+        backgroundImage: `url(${fondo})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        width: "100%",
+        height: "100vh"
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
@@ -62,7 +73,9 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-center">Iniciar Sesión</CardTitle>
-          <CardDescription className="text-center">Ingresa tus credenciales para acceder a tu cuenta</CardDescription>
+          <CardDescription className="text-center">
+            Ingresa tus credenciales para acceder a tu cuenta
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,12 +130,8 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">
-              Google
-            </Button>
-            <Button variant="outline" className="w-full">
-              Microsoft
-            </Button>
+            <Button variant="outline" className="w-full">Google</Button>
+            <Button variant="outline" className="w-full">Microsoft</Button>
           </div>
           <div className="text-center text-sm">
             ¿No tienes una cuenta?{" "}
@@ -135,4 +144,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
