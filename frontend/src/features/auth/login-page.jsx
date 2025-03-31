@@ -20,34 +20,31 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
+  
     try {
-      // Hacer la solicitud al backend
-      const response = await axios.post("http://localhost:3000/api/auth/login", {//No esta haciendo uso correcto del .env
+      axios.defaults.withCredentials = true;
+      const response = await axios.post("http://localhost:3000/api/auth/login", {
         email,
         password,
       });
-
-      // Guardar el token en localStorage
-      const { token, role_id } = response.data;
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("roleId", role_id);
-
-      // Redirigir según el role_id
-      if (role_id === 1) {
-        navigate("/dashboard");
-      } else if (role_id === 2) {
-        navigate("/dashboard-empleados");
+  
+      // Verifica que la respuesta tenga el roleId
+      if (response.data?.roleId) {
+        const roleId = Number(response.data.roleId);
+        
+        if (roleId === 1) {
+          navigate("/dashboard");
+        } else if (roleId === 2) {
+          navigate("/dashboard-empleados");
+        } else {
+          setError("Rol no válido");
+        }
       } else {
-        setError("Rol no válido");
+        setError("Respuesta del servidor incompleta");
       }
-      
-      // Llamar a la función login del contexto
-      /* login(token, role_id); */
-
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      setError("Correo o contraseña incorrectos");
+      setError(err.response?.data?.message || "Error al iniciar sesión");
     } finally {
       setIsLoading(false);
     }
