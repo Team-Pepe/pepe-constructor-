@@ -1,13 +1,14 @@
 "use client";
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // 👈 Agregamos useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { Building2, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import axios from "axios"; // 👈 Importamos axios para hacer solicitudes HTTP
+import axios from "axios";
+import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fondo
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -15,7 +16,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate(); // 👈 Hook para redirigir después del registro
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,15 +24,13 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      // Hacer la solicitud al backend
       await axios.post("http://localhost:3000/api/auth/register", {
         email,
         password,
-        username: name, // Enviamos el nombre como username
-        roleId: 2, // 👈 Forzamos el roleId a 2
+        username: name,
+        roleId: 2,
       });
 
-      // Redirigir al login después del registro exitoso
       navigate("/login");
     } catch (err) {
       console.error("Error al registrar usuario:", err);
@@ -42,7 +41,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+      style={{
+        backgroundImage: `url(${fondo})`, // 👈 Aplicamos la imagen de fondo
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        width: "100%",
+        height: "100vh",
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
