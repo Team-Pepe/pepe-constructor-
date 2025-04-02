@@ -274,29 +274,38 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   // Función para eliminar una zona guardada
   const deleteSavedZone = async (id) => {
     try {
-      const token = localStorage.getItem("authToken");
+      // Verificar si es un ID generado localmente (mayor a un valor razonable como 10000)
+      const isLocalId = id > 10000 || typeof id === 'string' && id.startsWith('temp-');
       
-      // Intentar eliminar la zona en la API
-      await axios.delete(`${apiEndpoint}/api/workzones/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      if (!isLocalId) {
+        // Solo intentar eliminar en la API si es un ID de la base de datos
+        const token = localStorage.getItem("authToken");
+        try {
+          await axios.delete(`${apiEndpoint}/api/work-zones/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          console.log("Zona eliminada exitosamente en la API");
+        } catch (apiError) {
+          console.error("Error al eliminar en API, continuando con eliminación local:", apiError.message);
         }
-      });
+      } else {
+        console.log("ID local detectado, eliminando solo localmente:", id);
+      }
       
-      // Eliminar de la lista local y localStorage
+      // Siempre eliminar de la lista local y localStorage
       const updatedZones = savedZones.filter(zone => zone.id !== id);
       setSavedZones(updatedZones);
       localStorage.setItem('workZones', JSON.stringify(updatedZones));
       
     } catch (error) {
-      console.error("Error al eliminar la zona de trabajo en API:", error);
+      console.error("Error general al eliminar la zona:", error);
       
-      // Eliminar solo localmente si la API falla
+      // Eliminación local como respaldo
       const updatedZones = savedZones.filter(zone => zone.id !== id);
       setSavedZones(updatedZones);
       localStorage.setItem('workZones', JSON.stringify(updatedZones));
-      
-      alert("API no disponible. La zona se ha eliminado localmente.");
     }
   };
 

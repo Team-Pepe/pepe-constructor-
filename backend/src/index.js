@@ -12,6 +12,23 @@ const authRouter = require('./routes/authRouter'); // 👈 Correcto para CommonJ
 const app = express();
 const prisma = new PrismaClient();
 
+const cookieParser = require("cookie-parser");
+
+const authenticateToken = require("./middleware/authMiddleware");
+
+app.use(cookieParser());
+// Configuración de CORS
+app.use(cors({
+    origin: "http://localhost:5173", // Reemplaza con la URL de tu frontend
+    credentials: true, // Permitir el envío de cookies y credenciales
+}));
+app.use(authenticateToken); 
+
+// Rutas protegidas
+app.use("/api/dashboard", authenticateToken, dashboardRoutes);
+app.use("/api/dashboard-empleados", authenticateToken, dashboardEmpleadosRoutes); // 👈 Actualizamos la ruta protegida
+
+
 // Middleware
 app.use(cors());
 app.use(express.json());

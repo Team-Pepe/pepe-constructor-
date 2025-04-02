@@ -197,6 +197,81 @@ router.get('/work-zones', async (req, res) => {
 
 /**
  * @swagger
+ * /api/work-zones/{id}:
+ *   delete:
+ *     summary: Elimina una zona de trabajo por su ID
+ *     tags: [Zonas de Trabajo]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la zona de trabajo a eliminar
+ *     responses:
+ *       200:
+ *         description: Zona de trabajo eliminada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Zona de trabajo eliminada correctamente
+ *       404:
+ *         description: Zona de trabajo no encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete('/work-zones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar si la zona de trabajo existe
+    const workZone = await prisma.WorkZone.findUnique({
+      where: { id: parseInt(id) }
+    });
+    
+    if (!workZone) {
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Zona de trabajo no encontrada' 
+      });
+    }
+    
+    // Eliminar la zona de trabajo
+    await prisma.WorkZone.delete({
+      where: { id: parseInt(id) }
+    });
+    
+    res.json({ 
+      status: 'success', 
+      message: 'Zona de trabajo eliminada correctamente' 
+    });
+  } catch (error) {
+    console.error('Error al eliminar zona de trabajo:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al eliminar zona de trabajo',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
  * /api/tasks:
  *   get:
  *     summary: Obtiene todas las tareas

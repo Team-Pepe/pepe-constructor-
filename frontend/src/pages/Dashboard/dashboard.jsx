@@ -30,6 +30,7 @@ import {
 } from "./components";
 
 import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
+import { fetchAllDashboardData } from "@/services/dashboardService";
 
 export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
@@ -40,61 +41,17 @@ export default function Dashboard() {
     const [activities, setActivities] = useState([]);
     const [workers, setWorkers] = useState([]);
 
-    const apiEndpoint = import.meta.env.VITE_API_ENDPOINT;
-    console.log(apiEndpoint);
-
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const loadDashboardData = async () => {
             try {
-                const [metricsRes, projectsRes, attendanceRes, materialsRes, activitiesRes, workersRes] = await Promise.all([
-                    fetch(`${apiEndpoint}/api/dashboard/metrics`),
-                    fetch(`${apiEndpoint}/api/dashboard/projects-progress`),
-                    fetch(`${apiEndpoint}/api/dashboard/attendance`),
-                    fetch(`${apiEndpoint}/api/dashboard/materials`),
-                    fetch(`${apiEndpoint}/api/dashboard/recent-activities`),
-                    fetch(`${apiEndpoint}/api/users?roleId=2`)
-                ]);
-
-                const [metricsData, projectsData, attendanceData, materialsData, activitiesData, workersData] = await Promise.all([
-                    metricsRes.json(),
-                    projectsRes.json(),
-                    attendanceRes.json(),
-                    materialsRes.json(),
-                    activitiesRes.json(),
-                    workersRes.json()
-                ]);
-                console.info("USUARIOS", workersData);
+                const data = await fetchAllDashboardData();
                 
-                // Datos de ubicación fijas para los trabajadores en Pereira
-                const addLocationToWorkers = (workers) => {
-                    if (!workers) return [];
-                    
-                    // Coordenadas de trabajadores en diferentes puntos de Pereira
-                    const fixedLocations = [
-                        { lat: 4.8133, lng: -75.6961 }, // Centro de Pereira
-                        { lat: 4.8182, lng: -75.6923 }, // Cerca del centro
-                        { lat: 4.8056, lng: -75.7056 }, // Zona oeste
-                        { lat: 4.8240, lng: -75.6845 }, // Zona norte
-                        { lat: 4.8050, lng: -75.6845 }, // Zona sur
-                        { lat: 4.8150, lng: -75.7100 }  // Zona oeste
-                    ];
-                    
-                    return workers.map((worker, index) => ({
-                        ...worker,
-                        name: worker.username || worker.name || `Trabajador ${index + 1}`,
-                        location: fixedLocations[index % fixedLocations.length] // Usa ubicación fija basada en el índice
-                    }));
-                };
-                
-                // Añadimos ubicación a los trabajadores
-                const workersWithLocation = addLocationToWorkers(workersData);
-                setWorkers(workersWithLocation);
-                
-                setMetrics(metricsData);
-                setProjects(projectsData);
-                setAttendance(attendanceData);
-                setMaterials(materialsData);
-                setActivities(activitiesData);
+                setMetrics(data.metrics);
+                setProjects(data.projects);
+                setAttendance(data.attendance);
+                setMaterials(data.materials);
+                setActivities(data.activities);
+                setWorkers(data.workers);
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -102,9 +59,9 @@ export default function Dashboard() {
             }
         };
 
-        fetchDashboardData();
+        loadDashboardData();
         // Actualizar datos cada 5 minutos
-        const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
+        const interval = setInterval(loadDashboardData, 5 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -130,11 +87,11 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold">Dashboard de Supervisión</h1>
                     <div className="flex items-center space-x-4">
-                        <Button variant="outline" className="text-slate-100">
+                        <Button variant="outline" className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50">
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Mensajes
                         </Button>
-                        <Button variant="outline" className="text-slate-100">
+                        <Button variant="outline" className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50">
                             <Settings className="mr-2 h-4 w-4" />
                             Configuración
                         </Button>

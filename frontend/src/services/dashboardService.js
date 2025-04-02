@@ -1,0 +1,103 @@
+import axios from 'axios';
+import { getAuthToken } from '@/utils/cookies';
+
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
+
+const API_ENDPOINTS = {
+  BASE_URL: API_ENDPOINT,
+  DASHBOARD_METRICS: '/api/dashboard/metrics',
+  PROJECTS_PROGRESS: '/api/dashboard/projects-progress',
+  ATTENDANCE: '/api/dashboard/attendance',
+  MATERIALS: '/api/dashboard/materials',
+  RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
+  USERS: '/api/users',
+};
+
+export const apiClient = axios.create({
+  baseURL: API_ENDPOINTS.BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  console.log(token);
+  
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Dashboard API functions
+export const fetchDashboardMetrics = () => 
+  apiClient.get(API_ENDPOINTS.DASHBOARD_METRICS, { headers: getAuthHeaders() });
+
+export const fetchProjectsProgress = () => 
+  apiClient.get(API_ENDPOINTS.PROJECTS_PROGRESS, { headers: getAuthHeaders() });
+
+export const fetchAttendance = () => 
+  apiClient.get(API_ENDPOINTS.ATTENDANCE, { headers: getAuthHeaders() });
+
+export const fetchMaterials = () => 
+  apiClient.get(API_ENDPOINTS.MATERIALS, { headers: getAuthHeaders() });
+
+export const fetchRecentActivities = () => 
+  apiClient.get(API_ENDPOINTS.RECENT_ACTIVITIES, { headers: getAuthHeaders() });
+
+export const fetchWorkers = () => 
+  apiClient.get(`${API_ENDPOINTS.USERS}?roleId=2`, { headers: getAuthHeaders() });
+
+// Function to fetch all dashboard data at once
+export const fetchAllDashboardData = async () => {
+  try {
+    const [
+      metricsResponse,
+      projectsResponse,
+      attendanceResponse,
+      materialsResponse,
+      activitiesResponse,
+      workersResponse
+    ] = await Promise.all([
+      fetchDashboardMetrics(),
+      fetchProjectsProgress(),
+      fetchAttendance(),
+      fetchMaterials(),
+      fetchRecentActivities(),
+      fetchWorkers()
+    ]);
+
+    return {
+      metrics: metricsResponse.data,
+      projects: projectsResponse.data,
+      attendance: attendanceResponse.data,
+      materials: materialsResponse.data,
+      activities: activitiesResponse.data,
+      workers: addLocationToWorkers(workersResponse.data)
+    };
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    throw error;
+  }
+};
+
+// Helper function to add location to workers
+const addLocationToWorkers = (workers) => {
+  if (!workers) return [];
+  
+  const fixedLocations = [
+    { lat: 4.8133, lng: -75.6961 },
+    { lat: 4.8182, lng: -75.6923 },
+    { lat: 4.8056, lng: -75.7056 },
+    { lat: 4.8240, lng: -75.6845 },
+    { lat: 4.8050, lng: -75.6845 },
+    { lat: 4.8150, lng: -75.7100 }
+  ];
+  
+  return workers.map((worker, index) => ({
+    ...worker,
+    name: worker.username || worker.name || `Trabajador ${index + 1}`,
+    location: fixedLocations[index % fixedLocations.length]
+  }));
+};
+
+export default apiClient;
