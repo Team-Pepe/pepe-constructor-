@@ -8,6 +8,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
 const authRouter = require('./routes/authRouter'); // 👈 Correcto para CommonJS
+const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados'); // 👈 Agregamos las rutas de dashboard empleados
 
 const app = express();
 const prisma = new PrismaClient();
@@ -30,7 +31,6 @@ app.use("/api/dashboard-empleados", authenticateToken, dashboardEmpleadosRoutes)
 
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Verificar conexión a la base de datos
