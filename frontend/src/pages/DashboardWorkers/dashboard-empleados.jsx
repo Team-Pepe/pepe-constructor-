@@ -31,23 +31,21 @@ function DashboardEmpleados() {
     const fetchSavedZones = async () => {
       setLoading(true);
       try {
-        // Intentar cargar desde la API
-        const response = await axios.get(`${apiEndpoint}/api/workzones`);
+        // Corregir la URL para que coincida con el backend
+        const response = await axios.get(`${apiEndpoint}/api/work-zones`);
         if (response.data) {
           setSavedZones(response.data);
         }
       } catch (error) {
         console.error("Error al cargar zonas de trabajo desde API:", error);
-
-        // Si la API falla, cargar desde localStorage
+        // El fallback a localStorage se mantiene igual
         const savedZonesFromStorage = localStorage.getItem("workZones");
         if (savedZonesFromStorage) {
           try {
             const zones = JSON.parse(savedZonesFromStorage);
             setSavedZones(zones);
-            console.log("Zonas de trabajo cargadas desde localStorage:", zones);
           } catch (parseError) {
-            console.error("Error al parsear zonas de trabajo desde localStorage:", parseError);
+            console.error("Error al parsear zonas de trabajo:", parseError);
           }
         }
       } finally {
@@ -55,12 +53,8 @@ function DashboardEmpleados() {
       }
     };
 
-    // Cargar zonas al iniciar y cada vez que se activa la sección correspondiente
     fetchSavedZones();
-
-    // Configurar un intervalo para actualizar periódicamente
-    const interval = setInterval(fetchSavedZones, 30000); // cada 30 segundos
-
+    const interval = setInterval(fetchSavedZones, 30000);
     return () => clearInterval(interval);
   }, [apiEndpoint]);
 
