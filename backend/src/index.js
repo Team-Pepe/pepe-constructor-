@@ -23,15 +23,13 @@ app.use(cors({
     origin: "http://localhost:5173", // Reemplaza con la URL de tu frontend
     credentials: true, // Permitir el envío de cookies y credenciales
 }));
-app.use(authenticateToken); 
+
+// Middleware
+app.use(express.json());
 
 // Rutas protegidas
 app.use("/api/dashboard", authenticateToken, dashboardRoutes);
 app.use("/api/dashboard-empleados", authenticateToken, dashboardEmpleadosRoutes); // 👈 Actualizamos la ruta protegida
-
-
-// Middleware
-app.use(express.json());
 
 // Verificar conexión a la base de datos
 async function testDatabaseConnection() {
@@ -70,7 +68,6 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api/auth', authRouter); // 👈 Agregamos las rutas de autenticación
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use('/api/auth', authRouter);
 app.use('/api', apiRoutes); 
 
 // Ruta de prueba

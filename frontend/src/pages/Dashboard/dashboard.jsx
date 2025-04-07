@@ -31,6 +31,7 @@ import {
 
 import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
 import { fetchAllDashboardData } from "@/services/dashboardService";
+import Inventory from "./inventory";
 
 export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +41,7 @@ export default function Dashboard() {
     const [materials, setMaterials] = useState([]);
     const [activities, setActivities] = useState([]);
     const [workers, setWorkers] = useState([]);
+    const [activeSection, setActiveSection] = useState("resumen");
 
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -64,6 +66,115 @@ export default function Dashboard() {
         const interval = setInterval(loadDashboardData, 5 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
+
+    const renderMainContent = () => {
+        switch (activeSection) {
+            case "inventario":
+                return <Inventory />;
+            case "resumen":
+            default:
+                return (
+                    <div className="grid gap-6">
+                        {/* Overview cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <MetricCard
+                                title="Obras Activas"
+                                value={metrics?.activeProjects || '0'}
+                                icon={Activity}
+                                color="cyan"
+                                detail={`${projects.length} en progreso`}
+                            />
+                            <MetricCard
+                                title="Trabajadores"
+                                value={workers?.length || '0'}
+                                icon={Users}
+                                color="purple"
+                                detail={`${attendance.filter(a => a.status === 'PRESENT').length} presentes`}
+                            />
+                            <MetricCard
+                                title="Tareas"
+                                value={`${metrics?.tasks || '0'}`}
+                                icon={ClipboardList}
+                                color="blue"
+                                detail={`${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`}
+                            />
+                        </div>
+
+                        {/* Work Zone Map */}
+                        <WorkZoneMap workers={workers} />
+
+                        {/* Tabs section */}
+                        <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
+                            <Tabs defaultValue="overview" className="w-full">
+                                <CardHeader className="border-b border-slate-700/50 pb-3">
+                                    <TabsList className="bg-slate-800/50 p-1">
+                                        <TabsTrigger
+                                            value="overview"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Resumen
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="attendance"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Asistencia
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="materials"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Inventario
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <TabsContent value="overview">
+                                        <div className="space-y-4">
+                                            {projects.map(project => (
+                                                <WorkProgressCard
+                                                    key={project.id}
+                                                    title={project.title}
+                                                    progress={project.progress}
+                                                    workers={project.workers}
+                                                    tasks={project.tasks}
+                                                />
+                                            ))}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="attendance">
+                                        <div className="space-y-4">
+                                            {attendance.map(record => (
+                                                <AttendanceCard
+                                                    key={record.id}
+                                                    name={record.name}
+                                                    role={record.role}
+                                                    status={record.status}
+                                                    time={record.time}
+                                                />
+                                            ))}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="materials">
+                                        <div className="space-y-4">
+                                            {materials.map(material => (
+                                                <MaterialCard
+                                                    key={material.id}
+                                                    name={material.name}
+                                                    used={material.used}
+                                                    total={material.total}
+                                                    unit={material.unit}
+                                                />
+                                            ))}
+                                        </div>
+                                    </TabsContent>
+                                </CardContent>
+                            </Tabs>
+                        </Card>
+                    </div>
+                );
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-900 to-slate-900 text-slate-100 p-6">
@@ -105,117 +216,50 @@ export default function Dashboard() {
                         <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm h-full">
                             <CardContent className="p-4">
                                 <nav className="space-y-2">
-                                    <NavItem icon={Activity} label="Resumen" active />
-                                    <NavItem icon={Users} label="Asistencia" />
-                                    <NavItem icon={HardDrive} label="Materiales" />
-                                    <NavItem icon={ClipboardList} label="Tareas" />
-                                    <NavItem icon={Calendar} label="Calendario" />
-                                    <NavItem icon={FileText} label="Reportes" />
+                                    <NavItem 
+                                        icon={Activity} 
+                                        label="Resumen" 
+                                        active={activeSection === "resumen"}
+                                        onClick={() => setActiveSection("resumen")}
+                                    />
+                                    <NavItem 
+                                        icon={Users} 
+                                        label="Asistencia"
+                                        active={activeSection === "asistencia"}
+                                        onClick={() => setActiveSection("asistencia")}
+                                    />
+                                    <NavItem 
+                                        icon={HardDrive} 
+                                        label="Inventario"
+                                        active={activeSection === "inventario"}
+                                        onClick={() => setActiveSection("inventario")}
+                                    />
+                                    <NavItem 
+                                        icon={ClipboardList} 
+                                        label="Tareas"
+                                        active={activeSection === "tareas"}
+                                        onClick={() => setActiveSection("tareas")}
+                                    />
+                                    <NavItem 
+                                        icon={Calendar} 
+                                        label="Calendario"
+                                        active={activeSection === "calendario"}
+                                        onClick={() => setActiveSection("calendario")}
+                                    />
+                                    <NavItem 
+                                        icon={FileText} 
+                                        label="Reportes"
+                                        active={activeSection === "reportes"}
+                                        onClick={() => setActiveSection("reportes")}
+                                    />
                                 </nav>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Main dashboard */}
+                    {/* Main dashboard content - Cambia según la sección activa */}
                     <div className="col-span-12 md:col-span-9 lg:col-span-7">
-                        <div className="grid gap-6">
-                            {/* Overview cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <MetricCard
-                                    title="Obras Activas"
-                                    value={metrics?.activeProjects || '0'}
-                                    icon={Activity}
-                                    color="cyan"
-                                    detail={`${projects.length} en progreso`}
-                                />
-                                <MetricCard
-                                    title="Trabajadores"
-                                    value={workers?.length || '0'}
-                                    icon={Users}
-                                    color="purple"
-                                    detail={`${attendance.filter(a => a.status === 'PRESENT').length} presentes`}
-                                />
-                                <MetricCard
-                                    title="Tareas"
-                                    value={`${metrics?.tasks || '0'}`}
-                                    icon={ClipboardList}
-                                    color="blue"
-                                    detail={`${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`}
-                                />
-                            </div>
-
-                            {/* Work Zone Map */}
-                            <WorkZoneMap workers={workers} />
-
-                            {/* Tabs section */}
-                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                <Tabs defaultValue="overview" className="w-full">
-                                    <CardHeader className="border-b border-slate-700/50 pb-3">
-                                        <TabsList className="bg-slate-800/50 p-1">
-                                            <TabsTrigger
-                                                value="overview"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Resumen
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="attendance"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Asistencia
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="materials"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Materiales
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </CardHeader>
-                                    <CardContent className="p-6">
-                                        <TabsContent value="overview">
-                                            <div className="space-y-4">
-                                                {projects.map(project => (
-                                                    <WorkProgressCard
-                                                        key={project.id}
-                                                        title={project.title}
-                                                        progress={project.progress}
-                                                        workers={project.workers}
-                                                        tasks={project.tasks}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="attendance">
-                                            <div className="space-y-4">
-                                                {attendance.map(record => (
-                                                    <AttendanceCard
-                                                        key={record.id}
-                                                        name={record.name}
-                                                        role={record.role}
-                                                        status={record.status}
-                                                        time={record.time}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="materials">
-                                            <div className="space-y-4">
-                                                {materials.map(material => (
-                                                    <MaterialCard
-                                                        key={material.id}
-                                                        name={material.name}
-                                                        used={material.used}
-                                                        total={material.total}
-                                                        unit={material.unit}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                    </CardContent>
-                                </Tabs>
-                            </Card>
-                        </div>
+                        {renderMainContent()}
                     </div>
 
                     {/* Right sidebar */}
@@ -233,7 +277,11 @@ export default function Dashboard() {
                                         <ActionButton icon={ClipboardList} label="Nueva Tarea" />
                                         <ActionButton icon={FileText} label="Generar Reporte" />
                                         <ActionButton icon={Users} label="Registrar Asistencia" />
-                                        <ActionButton icon={HardDrive} label="Solicitar Materiales" />
+                                        <ActionButton 
+                                            icon={HardDrive} 
+                                            label="Gestionar Inventario" 
+                                            onClick={() => setActiveSection("inventario")}
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>
