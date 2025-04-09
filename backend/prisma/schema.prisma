@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,54 +8,54 @@ datasource db {
 }
 
 model User {
-  id              Int         @id @default(autoincrement())
-  email           String      @unique // Asegúrate de que el email sea único
-  username        String?
-  password        String      // 👈 Campo para almacenar la contraseña encriptada
-  roleId          Int         @map("role_id")
-  role            Role        @relation(fields: [roleId], references: [id])
-  sentMessages    Message[]   @relation("SenderMessages")
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
+  username         String?
+  roleId           Int        @map("role_id")
+  password         String
   receivedMessages Message[]  @relation("ReceiverMessages")
-  assignedTasks   Task[]      @relation("AssignedTasks")
-  requests        Request[]
-  supervisedZones WorkZone[]
+  sentMessages     Message[]  @relation("SenderMessages")
+  requests         Request[]
+  assignedTasks    Task[]     @relation("AssignedTasks")
+  role             Role       @relation(fields: [roleId], references: [id])
+  supervisedZones  WorkZone[]
 
   @@map("users")
 }
 
 model Role {
-  id           Int      @id @default(autoincrement())
-  roleName     String   @map("role_name")
-  permissions  String
-  users        User[]
+  id          Int    @id @default(autoincrement())
+  roleName    String @map("role_name")
+  permissions String
+  users       User[]
 
   @@map("roles")
 }
 
 model WorkZone {
-  id           Int       @id @default(autoincrement())
-  name         String    @db.VarChar
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar
   description  String?
-  supervisorId Int       @map("supervisor_id")
-  supervisor   User      @relation(fields: [supervisorId], references: [id])
-  tasks        Task[]
+  supervisorId Int      @map("supervisor_id")
+  latitud      Float?   @db.Real
+  longitud     Float?   @db.Real
   metrics      Metric[]
-  latitud      Float?
-  longitud     Float?
+  tasks        Task[]
+  supervisor   User     @relation(fields: [supervisorId], references: [id])
 
   @@map("work_zones")
 }
 
 model Task {
-  id             Int        @id @default(autoincrement())
-  workZoneId     Int        @map("work_zone_id")
-  assignedTo     Int        @map("assigned_to")
+  id             Int       @id @default(autoincrement())
+  workZoneId     Int       @map("work_zone_id")
+  assignedTo     Int       @map("assigned_to")
   description    String
-  status         String     @db.VarChar
-  completionDate DateTime?  @map("completion_date")
-  evidenceUrl    String?    @map("evidence_url") @db.VarChar
-  workZone       WorkZone   @relation(fields: [workZoneId], references: [id])
-  user           User       @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  status         String    @db.VarChar
+  completionDate DateTime? @map("completion_date")
+  evidenceUrl    String?   @map("evidence_url") @db.VarChar
+  user           User      @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  workZone       WorkZone  @relation(fields: [workZoneId], references: [id])
 
   @@map("tasks")
 }
@@ -71,54 +65,54 @@ model Material {
   name        String    @db.VarChar
   description String?
   quantity    Int
+  image_url   String?   @unique
   requests    Request[]
-  image_url   String?
 
   @@map("materials")
 }
 
 model Request {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  materialId  Int       @map("material_id")
-  requestDate DateTime  @map("request_date")
-  status      String    @db.VarChar
-  user        User      @relation(fields: [userId], references: [id])
-  material    Material  @relation(fields: [materialId], references: [id])
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  materialId  Int      @map("material_id")
+  requestDate DateTime @map("request_date")
+  status      String   @db.VarChar
+  material    Material @relation(fields: [materialId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@map("requests")
 }
 
 model Attendance {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  checkIn   DateTime  @map("check_in")
-  checkOut  DateTime? @map("check_out")
-  latitud   Float?
-  longitud  Float?
+  id       Int       @id @default(autoincrement())
+  userId   Int       @map("user_id")
+  checkIn  DateTime  @map("check_in")
+  checkOut DateTime? @map("check_out")
+  latitud  Float?
+  longitud Float?
 
   @@map("attendance")
 }
 
 model Message {
-  id          Int       @id @default(autoincrement())
-  senderId    Int       @map("sender_id")
-  receiverId  Int       @map("receiver_id")
-  message     String
-  sentAt      DateTime  @map("sent_at")
-  sender      User      @relation("SenderMessages", fields: [senderId], references: [id])
-  receiver    User      @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  id         Int      @id @default(autoincrement())
+  senderId   Int      @map("sender_id")
+  receiverId Int      @map("receiver_id")
+  message    String
+  sentAt     DateTime @map("sent_at")
+  receiver   User     @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  sender     User     @relation("SenderMessages", fields: [senderId], references: [id])
 
   @@map("messages")
 }
 
 model Metric {
-  id          Int       @id @default(autoincrement())
-  workZoneId  Int       @map("work_zone_id")
-  metricType  String    @map("metric_type") @db.VarChar
-  value       Float
-  recordedAt  DateTime  @map("recorded_at")
-  workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
+  id         Int      @id @default(autoincrement())
+  workZoneId Int      @map("work_zone_id")
+  metricType String   @map("metric_type") @db.VarChar
+  value      Float
+  recordedAt DateTime @map("recorded_at")
+  workZone   WorkZone @relation(fields: [workZoneId], references: [id])
 
   @@map("metrics")
 }

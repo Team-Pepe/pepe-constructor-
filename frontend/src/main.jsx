@@ -15,7 +15,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     loader: () => redirect("/login"),
-    errorElement: <h1>Error cargando la página</h1>, // 👈 Captura errores
+    errorElement: <h1>Error cargando la página</h1>,
   },
   {
     path: "/login",
@@ -30,19 +30,25 @@ const router = createBrowserRouter([
     element: <FPassword />,
   },
   {
-    path: "/",
     element: <ProtectedRoute />,
     children: [
       {
         path: "dashboard",
         element: <Dashboard />,
+        // Añadir metadatos para el rol requerido
+        handle: { requiredRole: 1 }
       },
       {
         path: "dashboard-empleados",
         element: <DashboardEmpleados />,
+        handle: { requiredRole: 2 }
       },
     ],
   },
+  {
+    path: "*",
+    element: <h1>404 - Página no encontrada</h1>
+  }
 ]);
 
 // Renderiza la aplicación con AuthProvider y StrictMode

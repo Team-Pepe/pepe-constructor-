@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import axios from "axios";
-import fondo from "../../assets/fondo.jpg"
+import fondo from "../../assets/fondo.jpg";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { setIsAuthenticated, setRoleId, setCsrfToken } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,16 +24,35 @@ export default function LoginPage() {
     setError("");
   
     try {
+      // Configuración de Axios para enviar credenciales
       axios.defaults.withCredentials = true;
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
-        email,
-        password,
-      });
-  
-      // Verifica que la respuesta tenga el roleId
-      if (response.data?.roleId) {
-        const roleId = Number(response.data.roleId);
+      
+      // Realizar la petición de login
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_ENDPOINT}/api/auth/login`, 
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true
+        }
+      );
+
+      // Verificar respuesta y manejar tokens
+      if (response.data?.user?.roleId) {
+        // Actualizar estado de autenticación
+        setIsAuthenticated(true);
+        setRoleId(response.data.user.roleId);
         
+        // Guardar token CSRF si viene en la respuesta
+        if (response.data.csrfToken) {
+          setCsrfToken(response.data.csrfToken);
+          localStorage.setItem('csrfToken', response.data.csrfToken);
+        }
+
+        // Redirección basada en el rol
+        const roleId = Number(response.data.user.roleId);
         if (roleId === 1) {
           navigate("/dashboard");
         } else if (roleId === 2) {
@@ -44,12 +65,27 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      setError(err.response?.data?.message || "Error al iniciar sesión");
+      
+      // Manejo específico de errores
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError("Credenciales inválidas");
+        } else if (err.response.status === 403) {
+          setError("Acceso no autorizado");
+        } else {
+          setError(err.response?.data?.message || "Error al iniciar sesión");
+        }
+      } else if (err.request) {
+        setError("No se recibió respuesta del servidor");
+      } else {
+        setError("Error al configurar la solicitud");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // El resto de tu componente UI permanece exactamente igual
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8"

@@ -1,28 +1,10 @@
 // filepath: backend/src/routes/authRouter.js
 const express = require("express");
 const { login, register } = require("../controllers/authController");
-const jwt = require("jsonwebtoken");
+// Quitar la definición duplicada del middleware
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
-
-// Middleware para autenticar el token
-function authenticateToken(req, res, next) {
-    const token = req.cookies.token;
-
-    if (!token) {
-        return res.status(401).json({ message: "No autenticado" });
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        res.status(401).json({ message: "Token inválido o expirado" });
-    }
-}
-
 // Ruta de inicio de sesión
 router.post("/login", login);
 
@@ -30,8 +12,9 @@ router.post("/login", login);
 router.post("/register", register);
 
 // Ruta para verificar el token y obtener datos del usuario
+// Ruta corregida para /me usando el middleware importado
 router.get("/me", authenticateToken, (req, res) => {
-    res.json({ user: req.user }); // Devolver los datos del usuario autenticado
+    res.json({ user: req.user });
 });
 
 // Ruta para cerrar sesión
