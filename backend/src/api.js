@@ -16,7 +16,7 @@ router.get('/api/storage-config', (req, res) => {
   // No compartir claves sensibles de admin, solo la anon key
   res.json({
     projectId,
-    bucketName: process.env.BUCKET_NAME || 'materials',
+    bucketName: process.env.BUCKET_NAME || 'images',
     anonKey: process.env.SUPABASE_KEY
   });
 }); 

@@ -5,10 +5,14 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
 const authRouter = require('./routes/authRouter'); // 👈 Correcto para CommonJS
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados'); // 👈 Agregamos las rutas de dashboard empleados
+
+// Requerir las utilidades de archivos para crear los directorios necesarios al inicio
+require('./utils/fileUtils');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -24,8 +28,14 @@ app.use(cors({
     credentials: true, // Permitir el envío de cookies y credenciales
 }));
 
-// Middleware
-app.use(express.json());
+// Middleware para parsear JSON y form data con límites razonables
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Servir archivos estáticos desde la carpeta uploads
+const uploadsPath = path.join(__dirname, '../uploads');
+console.log('📁 Configurando directorio de uploads:', uploadsPath);
+app.use('/uploads', express.static(uploadsPath));
 
 // Rutas protegidas
 app.use("/api/dashboard", authenticateToken, dashboardRoutes);
@@ -51,6 +61,10 @@ const swaggerOptions = {
             title: 'API de Pepe Constructor',
             version: '1.0.0',
             description: 'Documentación de la API para el sistema de gestión de construcción',
+            contact: {
+                name: 'Equipo de Desarrollo',
+                url: 'https://github.com/tu-usuario/pepe-constructor'
+            },
         },
         servers: [
             {
@@ -58,6 +72,18 @@ const swaggerOptions = {
                 description: 'Servidor de desarrollo',
             },
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        },
+        security: [{
+            bearerAuth: []
+        }]
     },
     apis: ['./src/routes/*.js'],
 };
