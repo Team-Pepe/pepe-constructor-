@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ZonasDeTrabajo from "./zonas-de-trabajo";
-import SolicitarMateriales from "./solicitar-materiales";
+import Inventario from "./inventario";
 import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap"; // Importamos el nuevo componente
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -149,6 +149,19 @@ function DashboardEmpleados() {
           >
             Zonas Guardadas
           </button>
+
+          {/* Botón para el inventario */}
+          <button
+            onClick={() => {
+              setActiveSection("inventario");
+              setSelectedZone(null);
+            }}
+            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+              activeSection === "inventario" ? "bg-gray-100" : ""
+            }`}
+          >
+            Inventario
+          </button>
         </nav>
       </aside>
 
@@ -164,7 +177,12 @@ function DashboardEmpleados() {
         {selectedZone && (
           <section id="solicitar-materiales">
             <h2 className="text-2xl font-bold mb-4">Solicitar Materiales - {selectedZone}</h2>
-            <SolicitarMateriales />
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <p className="mb-4">Para solicitar materiales para la zona <strong>{selectedZone}</strong>, por favor utilice la sección de Inventario y seleccione esta zona en el formulario.</p>
+              <Button onClick={() => setActiveSection("inventario")} className="w-full">
+                Ir a Inventario
+              </Button>
+            </div>
           </section>
         )}
 
@@ -227,6 +245,13 @@ function DashboardEmpleados() {
                 )}
               </div>
             )}
+          </section>
+        )}
+
+        {activeSection === "inventario" && (
+          <section id="inventario">
+            <h2 className="text-2xl font-bold mb-4">Inventario de Materiales</h2>
+            <Inventario />
           </section>
         )}
 

@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from 'prop-types';
 import { Button } from "@/components/ui/button";
 
-export function NavItem({ icon: Icon, label, active }) {
+export function NavItem({ icon: Icon, label, active, onClick }) {
     return (
         <Button
             variant="ghost"
@@ -11,6 +11,7 @@ export function NavItem({ icon: Icon, label, active }) {
                     ? "bg-slate-800/70 text-orange-400"
                     : "text-slate-400 hover:text-orange-400 hover:bg-slate-800/50"
             }`}
+            onClick={onClick}
         >
             <Icon className={`mr-2 h-4 w-4 ${active ? "text-orange-400" : "group-hover:text-orange-400"}`} />
             {label}
@@ -21,5 +22,6 @@ export function NavItem({ icon: Icon, label, active }) {
 NavItem.propTypes = {
     icon: PropTypes.elementType.isRequired,
     label: PropTypes.string.isRequired,
-    active: PropTypes.bool
+    active: PropTypes.bool,
+    onClick: PropTypes.func
 }; 
