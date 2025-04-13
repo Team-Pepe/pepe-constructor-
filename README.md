@@ -1,70 +1,167 @@
-# Getting Started with Create React App
+# 🏗️ Sistema de Gestión de Obras de Construcción
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[![Node.js](https://img.shields.io/badge/Node.js-14.x%2B-green)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.x-blue)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-336791)](https://www.postgresql.org/)
 
-## Available Scripts
+**Plataforma digital para optimizar la administración de obras, control de asistencia, gestión de materiales y cálculo de pagos.**  
+*Desarrollado con ❤️ por [Tu Nombre] para la Universidad Tecnológica de Pereira.*
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🚀 Características Clave
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| Módulo                  | Descripción                                                                 | Tecnologías Usadas                     |
+|-------------------------|-----------------------------------------------------------------------------|----------------------------------------|
+| 👥 **Gestión de Usuarios** | Registro de roles (supervisor, trabajador, administrador) con permisos.     | Node.js, JWT, PostgreSQL, React        |
+| 📍 **Control de Asistencia** | Check-in/out con geolocalización y reportes en tiempo real.                 | Google Maps API, Socket.io             |
+| 🧱 **Gestión de Materiales** | Solicitud y aprobación de materiales con notificaciones instantáneas.       | Firebase Cloud Messaging, Tailwind CSS |
+| 💼 **Cálculo de Pagos**    | Automatización de horas trabajadas y generación de resúmenes descargables.  | PDFKit, Chart.js                       |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 📋 Requerimientos Funcionales (RF)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+| **Código** | **Descripción**                                                                 | **Tecnologías Clave**                          | **Prioridad** | **Dificultad** | **Tiempo** |
+|------------|---------------------------------------------------------------------------------|------------------------------------------------|---------------|----------------|------------|
+| **RF01**   | Gestión de usuarios y roles con autenticación JWT                               | Node.js, PostgreSQL, React, bcrypt.js          | Must Have     | Difícil        | 4 semanas  |
+| **RF02**   | Control de asistencia con geolocalización y validación en tiempo real           | Google Maps API, Socket.io, PostgreSQL         | Should Have   | Alta           | 3 semanas  |
+| **RF03**   | Administración de materiales y aprobación de solicitudes                        | Node.js, PostgreSQL, WebSockets                | Must Have     | Media          | 2 semanas  |
+| **RF04**   | Gestión de zonas de trabajo y asignación de tareas con evidencias fotográficas  | React, Cloud Storage, PostgreSQL               | Must Have     | Media          | 2.5 semanas|
+| **RF05**   | Panel de control con métricas y generación de reportes PDF                      | Chart.js, PDFKit, Node.js                      | Should Have   | Media          | 2 semanas  |
+| **RF06**   | Chat en tiempo real entre trabajadores y supervisores                           | Socket.io, PostgreSQL, React                   | Could Have    | Media          | 2 semanas  |
+| **RF07**   | Funcionamiento offline con sincronización automática                            | IndexedDB, Redis, React                        | Could Have    | Alta           | 3 semanas  |
+| **RF08**   | Cálculo automático de pagos basado en asistencia                                 | Node.js, PostgreSQL, PDFKit                    | Must Have     | Alta           | 3 semanas  |
+| **RF09**   | Generación de carnets digitales con código de barras                            | React, PDFKit, PostgreSQL                      | Should Have   | Media          | 1 semana   |
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🛡️ Requerimientos No Funcionales (RNF)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+| **Código** | **Descripción**                                                                 | **Prioridad** | **Dificultad** | **Tiempo** |
+|------------|---------------------------------------------------------------------------------|---------------|----------------|------------|
+| **RNF01**  | Rendimiento óptimo (<500ms respuesta) y soporte para alta concurrencia          | Must Have     | Fácil          | 2 semanas  |
+| **RNF02**  | Seguridad en autenticación y protección de datos sensibles                      | Must Have     | Alta           | 3 semanas  |
+| **RNF03**  | Escalabilidad para crecimiento de usuarios y obras                              | Should Have   | Fácil          | 1 semana   |
+| **RNF04**  | Interfaz intuitiva y multi-dispositivo                                          | Won't Have    | Media          | 2 semanas  |
+| **RNF05**  | Código documentado y mantenible                                                 | Should Have   | Media          | 2 semanas  |
+| **RNF06**  | Integración con Google Maps y notificaciones en tiempo real                     | Could Have    | Alta           | 3 semanas  |
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+## 📌 Seguimiento del Proyecto
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+[![Project Progress](https://img.shields.io/badge/Progress-45%25-orange?logo=progress&style=for-the-badge)](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+[📊 Tablero completo de actividades](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🛠️ Tecnologías
 
-## Learn More
+**Frontend**:  
+![React](https://img.shields.io/badge/-React-61DAFB?logo=react&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/-Tailwind_CSS-38B2AC?logo=tailwind-css)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**Backend**:  
+![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/-Express-000000?logo=express)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Base de Datos**:  
+![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-4169E1?logo=postgresql)
 
-### Code Splitting
+**Integraciones**:  
+![Google Maps API](https://img.shields.io/badge/-Google_Maps-4285F4?logo=google-maps)
+![Firebase](https://img.shields.io/badge/-Firebase-FFCA28?logo=firebase)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+## 📊 Arquitectura del Sistema
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```mermaid
+graph TD
+  A[Frontend: React.js] -->|HTTP Requests| B[API REST: Node.js + Express]
+  B -->|Consulta/Guardado| C[(PostgreSQL)]
+  B -->|Geolocalización| D[Google Maps API]
+  B -->|Notificaciones| E[Firebase Cloud Messaging]
+  B -->|Almacenamiento| F[Cloud Storage]
+  A -->|Offline Sync| G[IndexedDB]
+  B -->|Caching| H[Redis]
+```
+## 🗃️ Diagrama Entidad-Relación (PostgreSQL)
 
-### Making a Progressive Web App
+```mermaid
+erDiagram
+    User ||--o{ Role : "tiene"
+    User ||--o{ Attendance : "registra"
+    User ||--o{ Request : "realiza"
+    User ||--o{ Task : "asignado"
+    User ||--o{ WorkZone : "supervisa"
+    User ||--o{ Message : "envía"
+    User ||--o{ Message : "recibe"
+    Request }o--|| Material : "solicita"
+    WorkZone ||--o{ Task : "contiene"
+    WorkZone ||--o{ Metric : "genera"
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+    User {
+        int id PK
+        string email
+        string username
+        string password
+    }
 
-### Advanced Configuration
+    Role {
+        int id PK
+        string roleName
+        string permissions
+    }
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+    Attendance {
+        int id PK
+        date checkIn
+        date checkOut
+        float latitud
+        float longitud
+    }
 
-### Deployment
+    Request {
+        int id PK
+        date requestDate
+        string status
+    }
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+    Material {
+        int id PK
+        string name
+        string description
+        int quantity
+        string image_url
+    }
 
-### `npm run build` fails to minify
+    Task {
+        int id PK
+        string description
+        string status
+        date completionDate
+        string evidenceUrl
+    }
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+    WorkZone {
+        int id PK
+        string name
+        string description
+        float latitud
+        float longitud
+    }
+
+    Metric {
+        int id PK
+        string metricType
+        float value
+        date recordedAt
+    }
+
+    Message {
+        int id PK
+        string message
+        date sentAt
+    }
