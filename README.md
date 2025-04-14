@@ -237,3 +237,66 @@ erDiagram
         string roleName
         string permissions
     }
+```
+## 📅 Cronograma de Sprints
+
+| Sprint       | Fecha       | Progreso | Estado     |
+|--------------|-------------|----------|------------|
+| **Sprint 1** | 19 Mar 2024 | 20%      | ✅ Completado | 
+| **Sprint 2** | 2 Abr 2024  | 40%      | ✅ Completado |
+| **Sprint 3** | 23 Abr 2024 | 60%      | 🟡 En curso |
+| **Sprint 4** | 14 May 2024 | 80%      | ⏳ Pendiente | 
+
+**Leyenda:**  
+✅ Completado 🟡 En progreso ⏳ Pendiente
+
+### 📊 Progreso General
+```mermaid
+gantt
+    title Progreso del Proyecto
+    dateFormat  YYYY-MM-DD
+    section Sprints
+    Sprint 1           :done,    s1, 2024-03-19, 14d
+    Sprint 2           :active,  s2, 2024-04-02, 21d
+    Sprint 3           :         s3, 2024-04-23, 21d
+    Sprint 4           :         s4, 2024-05-14, 14d
+```
+[📊 Tablero completo de tareas](https://github.com/orgs/Team-Pepe/projects/8/views/2)
+
+## 📌 Nomenclatura de Commits
+
+El proyecto sigue el formato convencional de commits:  
+" <tipo> (<área>): <descripción> "
+
+### Tipos de Commits
+| Tipo       | Descripción |
+|------------|-------------|
+| `feat`     | Nueva funcionalidad |
+| `fix`      | Corrección de errores |
+| `refactor` | Mejora del código sin cambiar funcionalidad |
+| `docs`     | Cambios en documentación |
+| `style`    | Cambios de formato (espaciado, estilos) |
+| `test`     | Agregar o modificar pruebas |
+| `perf`     | Mejoras de rendimiento |
+| `chore`    | Tareas de mantenimiento |
+| `ci`       | Cambios en integración continua |
+| `build`    | Cambios en compilación o dependencias |
+| `revert`   | Reversión de un commit anterior |
+
+### Áreas del Proyecto
+| Área           | Descripción |
+|----------------|-------------|
+| `auth`         | Autenticación, autorización y seguridad |
+| `usuarios`     | Gestión de usuarios y roles |
+| `asistencia`   | Control de asistencia con geolocalización |
+| `inventario`   | Administración de materiales |
+| `zonas-tareas` | Gestión de zonas y asignación de tareas |
+| `reportes`     | Generación de reportes |
+| `comunicacion` | Chat y notificaciones |
+| `offline`      | Funcionalidad sin conexión |
+| `escalabilidad`| Mejoras de rendimiento |
+| `ui`           | Interfaz de usuario |
+| `api`          | Endpoints y servicios backend |
+| `integraciones`| Conexión con APIs externas |
+
+</div>
