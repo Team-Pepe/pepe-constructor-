@@ -14,12 +14,12 @@ function DashboardEmpleados() {
   const [workerLocation, setWorkerLocation] = useState(null);
   const [savedZones, setSavedZones] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // Estado para controlar si el menú está abierto o cerrado
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
   // Establecer ubicación fija del trabajador actual
   useEffect(() => {
-    // Ubicación fija en Pereira
     setWorkerLocation({
       lat: 4.8133,
       lng: -75.6961,
@@ -31,14 +31,12 @@ function DashboardEmpleados() {
     const fetchSavedZones = async () => {
       setLoading(true);
       try {
-        // Corregir la URL para que coincida con el backend
         const response = await axios.get(`${apiEndpoint}/api/work-zones`);
         if (response.data) {
           setSavedZones(response.data);
         }
       } catch (error) {
         console.error("Error al cargar zonas de trabajo desde API:", error);
-        // El fallback a localStorage se mantiene igual
         const savedZonesFromStorage = localStorage.getItem("workZones");
         if (savedZonesFromStorage) {
           try {
@@ -58,14 +56,13 @@ function DashboardEmpleados() {
     return () => clearInterval(interval);
   }, [apiEndpoint]);
 
-  // Crear un objeto de trabajador para el usuario actual
   const currentWorker = workerLocation
     ? [
         {
           id: "current",
           name: "Mi ubicación",
           location: workerLocation,
-          inZone: false, // Se actualizará automáticamente en el componente
+          inZone: false,
         },
       ]
     : [];
@@ -74,7 +71,7 @@ function DashboardEmpleados() {
     <div
       className="min-h-screen flex"
       style={{
-        backgroundImage: `url(${fondo2})`, // 👈 Aplicamos la imagen de fondo
+        backgroundImage: `url(${fondo2})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -82,91 +79,117 @@ function DashboardEmpleados() {
         height: "100vh",
       }}
     >
+      {/* Botón para abrir/cerrar el menú */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="absolute top-2 left-4 z-50 bg-gray-800 text-white px-4 py-1 rounded-md shadow-md"
+      >
+        {menuOpen ? "×" : "☰"}
+      </button>
+
       {/* Menú lateral */}
-      <aside className="w-64 bg-white shadow-md">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-gray-800">Menú</h1>
+      <aside
+        className={`w-64 bg-white shadow-md flex flex-col justify-between overflow-y-auto transform ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-300 fixed h-full z-40`}
+      >
+        <div>
+          <div className="p-4 border-b">
+            <h1 className="text-xl font-bold text-gray-800"></h1>
+          </div>
+
+          {/* Carnet de empleado */}
+          <div className="p-4">
+            <EmployeeCard
+              name="Juan Pérez"
+              email="juan.perez@pepe.com"
+              role="Trabajador de Obra"
+            />
+          </div>
+
+          <nav className="p-4 space-y-2">
+            <button
+              onClick={() => {
+                setActiveSection(null);
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === null && !selectedZone ? "bg-gray-100" : ""
+              }`}
+            >
+              Inicio
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("zonas-de-trabajo");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "zonas-de-trabajo" ? "bg-gray-100" : ""
+              }`}
+            >
+              Zonas de Trabajo
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("mapa");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "mapa" ? "bg-gray-100" : ""
+              }`}
+            >
+              Mi Ubicación
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("zonas-guardadas");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "zonas-guardadas" ? "bg-gray-100" : ""
+              }`}
+            >
+              Zonas Guardadas
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("inventario");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "inventario" ? "bg-gray-100" : ""
+              }`}
+            >
+              Inventario
+            </button>
+          </nav>
         </div>
 
-        {/* Carnet de empleado */}
         <div className="p-4">
-          <EmployeeCard
-            name="Juan Pérez"
-            email="juan.perez@pepe.com"
-            role="Trabajador de Obra"
-          />
-        </div>
-
-        <nav className="p-4 space-y-2">
-          {/* Botón de Inicio */}
           <button
             onClick={() => {
-              setActiveSection(null);
-              setSelectedZone(null); // Restablece la zona seleccionada
-            }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === null && !selectedZone ? "bg-gray-100" : ""
-            }`}
-          >
-            Inicio
-          </button>
-
-          {/* Botón de Zonas de Trabajo */}
-          <button
-            onClick={() => {
-              setActiveSection("zonas-de-trabajo");
-              setSelectedZone(null); // Restablece la zona seleccionada
-            }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === "zonas-de-trabajo" ? "bg-gray-100" : ""
-            }`}
-          >
-            Zonas de Trabajo
-          </button>
-
-          {/* Botón para el mapa */}
-          <button
-            onClick={() => {
-              setActiveSection("mapa");
-              setSelectedZone(null);
-            }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === "mapa" ? "bg-gray-100" : ""
-            }`}
-          >
-            Mi Ubicación
-          </button>
-
-          {/* Botón para zonas guardadas */}
-          <button
-            onClick={() => {
-              setActiveSection("zonas-guardadas");
-              setSelectedZone(null);
-            }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === "zonas-guardadas" ? "bg-gray-100" : ""
-            }`}
-          >
-            Zonas Guardadas
-          </button>
-
-          {/* Botón para el inventario */}
-          <button
-            onClick={() => {
-              setActiveSection("inventario");
-              setSelectedZone(null);
+              console.log("Cerrar sesión");
             }}
             className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
               activeSection === "inventario" ? "bg-gray-100" : ""
             }`}
           >
-            Inventario
+            Cerrar Sesión
           </button>
-        </nav>
+        </div>
       </aside>
 
       {/* Contenido principal */}
-      <main className="flex-1 p-6">
+      <main
+        className={`flex-1 p-6 transition-all duration-300 ${
+          menuOpen ? "ml-64" : "ml-0"
+        }`}
+      >
         {activeSection === "zonas-de-trabajo" && !selectedZone && (
           <section id="zonas-de-trabajo">
             <h2 className="text-2xl font-bold mb-4">Zonas de Trabajo</h2>
@@ -178,7 +201,10 @@ function DashboardEmpleados() {
           <section id="solicitar-materiales">
             <h2 className="text-2xl font-bold mb-4">Solicitar Materiales - {selectedZone}</h2>
             <div className="bg-white rounded-lg shadow-md p-6">
-              <p className="mb-4">Para solicitar materiales para la zona <strong>{selectedZone}</strong>, por favor utilice la sección de Inventario y seleccione esta zona en el formulario.</p>
+              <p className="mb-4">
+                Para solicitar materiales para la zona <strong>{selectedZone}</strong>, por favor
+                utilice la sección de Inventario y seleccione esta zona en el formulario.
+              </p>
               <Button onClick={() => setActiveSection("inventario")} className="w-full">
                 Ir a Inventario
               </Button>
@@ -233,7 +259,6 @@ function DashboardEmpleados() {
                         <Button
                           onClick={() => {
                             setActiveSection("mapa");
-                            // Aquí podrías pasar la zona seleccionada al mapa
                           }}
                           className="mt-4 w-full"
                         >
