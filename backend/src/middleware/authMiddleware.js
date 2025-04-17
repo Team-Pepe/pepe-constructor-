@@ -1,15 +1,14 @@
 const jwt = require("jsonwebtoken");
 
 exports.authenticateToken = (req, res, next) => {
-    // Obtener token de las cookies
-    const token = req.cookies.token;
-
+    // Obtener token de cookies o headers
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    
     if (!token) {
         return res.status(401).json({ message: "No autenticado - Token no proporcionado" });
     }
 
     try {
-        // Verificar token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();

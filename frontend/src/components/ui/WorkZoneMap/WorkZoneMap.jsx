@@ -86,8 +86,14 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   useEffect(() => {
     const fetchSavedZones = async () => {
       try {
-        // Intentar cargar desde la API
-        const response = await axios.get(`${apiEndpoint}/api/work-zones`);
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get(`${apiEndpoint}/api/work-zones`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          withCredentials: true // Para enviar cookies si las usas
+        });
+        
         if (response.data) {
           const zones = response.data.map(zone => ({
             id: zone.id,
@@ -199,68 +205,85 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     
     setLoading(true);
     
-    // Crear el objeto de zona
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("No se encontró token de autenticación");
+      setLoading(false);
+      return;
+    }
+  
+    // 1. Obtener CSRF token del backend
+    let csrfToken;
+    try {
+      const csrfResponse = await axios.get(`${apiEndpoint}/csrf-token`, {
+        withCredentials: true
+      });
+      csrfToken = csrfResponse.data.csrfToken;
+    } catch (csrfError) {
+      console.error("Error obteniendo CSRF token:", csrfError);
+      setLoading(false);
+      return;
+    }
+  
+    // 2. Crear objeto newZone
     const newZone = {
       ...tempZone,
       name: zoneForm.name,
       description: zoneForm.description,
-      supervisorId: parseInt(zoneForm.supervisorId), // Convertir supervisorId a entero
-      id: Date.now(), // ID temporal
+      supervisorId: parseInt(zoneForm.supervisorId),
+      id: Date.now(),
       radius: zoneRadius,
       saved: true
     };
-    
+  
     try {
-      // Obtener el token de autenticación
-      const token = localStorage.getItem("authToken");
-      
-      // Intentar crear la zona en la API
+      // 3. Enviar petición con ambos tokens
       const response = await axios.post(
         `${apiEndpoint}/api/work-zones`,
         {
           name: zoneForm.name,
           description: zoneForm.description,
-          supervisorId: parseInt(zoneForm.supervisorId), // Convertir a entero
-          latitude: parseFloat(tempZone.lat), // Asegurar que latitude es float
-          longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
+          supervisorId: parseInt(zoneForm.supervisorId),
+          latitude: parseFloat(tempZone.lat),
+          longitude: parseFloat(tempZone.lng),
           radius: zoneRadius
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+            'X-CSRF-Token': csrfToken,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
         }
       );
-      
-      // Si la creación fue exitosa, usar el ID de la API
+  
+      // 4. Actualizar con respuesta del servidor
       if (response.data && response.data.id) {
-        newZone.id = response.data.id;
+        const updatedZones = [...savedZones, { ...newZone, id: response.data.id }];
+        setSavedZones(updatedZones);
+        localStorage.setItem('workZones', JSON.stringify(updatedZones));
       }
-      
-      // Actualizar estado y localStorage
-      const updatedZones = [...savedZones, newZone];
-      setSavedZones(updatedZones);
-      localStorage.setItem('workZones', JSON.stringify(updatedZones));
-      
-      // Limpiar el formulario y el temporal
+  
       setTempZone(null);
       setZoneForm({ name: "", description: "", supervisorId: "" });
       setShowModal(false);
-      
+  
     } catch (error) {
-      console.error("Error al guardar la zona de trabajo en API:", error);
-      
-      // Guardar solo en localStorage si la API falla
-      const updatedZones = [...savedZones, newZone];
-      setSavedZones(updatedZones);
-      localStorage.setItem('workZones', JSON.stringify(updatedZones));
-      
-      // Limpiar el formulario y el temporal
-      setTempZone(null);
-      setZoneForm({ name: "", description: "", supervisorId: "" });
-      setShowModal(false);
-      
-      alert("API no disponible. La zona se ha guardado localmente.");
+      // 5. Manejar errores específicos
+      if (error.response?.status === 401) {
+        console.error("Sesión expirada - Redirigiendo a login...");
+        window.location.href = '/login';
+      } else if (error.response?.status === 403) {
+        console.error("Error CSRF - Recargando página para obtener nuevo token...");
+        window.location.reload();
+      } else {
+        // Guardar en localStorage como respaldo
+        const updatedZones = [...savedZones, newZone];
+        setSavedZones(updatedZones);
+        localStorage.setItem('workZones', JSON.stringify(updatedZones));
+        alert("API no disponible. La zona se ha guardado localmente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -694,4 +717,4 @@ WorkZoneMap.propTypes = {
   defaultZoom: PropTypes.number
 };
 
-export default WorkZoneMap; 
+export default WorkZoneMap;

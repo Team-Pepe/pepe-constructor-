@@ -47,13 +47,25 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración CORS
+// Actualizar configuración CORS para incluir headers CSRF
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-CSRF-Token', 
+    'Cookie',
+    'X-Requested-With' // Añadir este header requerido
+  ]
 }));
+
+// Añadir middleware CSRF antes de las rutas protegidas
+app.use((req, res, next) => {
+  res.header('Access-Control-Expose-Headers', 'X-CSRF-Token');
+  next();
+});
 
 // Conexión a la base de datos
 async function testDatabaseConnection() {

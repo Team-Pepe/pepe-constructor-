@@ -31,9 +31,24 @@ function DashboardEmpleados() {
     const fetchSavedZones = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${apiEndpoint}/api/work-zones`);
+        const token = localStorage.getItem("authToken"); // Obtener token
+        const response = await axios.get(`${apiEndpoint}/api/work-zones`, {
+          headers: {
+            Authorization: `Bearer ${token}` // Añadir header de autenticación
+          },
+          withCredentials: true // Permitir cookies
+        });
+        
         if (response.data) {
-          setSavedZones(response.data);
+          const transformedZones = response.data.map(zone => ({
+            id: zone.id,
+            lat: zone.latitud,
+            lng: zone.longitud,
+            name: zone.name,
+            description: zone.description,
+            radius: zone.radius
+          }));
+          setSavedZones(transformedZones);
         }
       } catch (error) {
         console.error("Error al cargar zonas de trabajo desde API:", error);
@@ -246,14 +261,15 @@ function DashboardEmpleados() {
                         <p className="text-sm text-gray-600 mb-2">
                           {zone.description || "Sin descripción"}
                         </p>
+                        // En el renderizado de tarjetas de zonas:
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                           <div>
                             <span className="font-semibold">Latitud:</span>{" "}
-                            {zone.lat ? zone.lat.toFixed(6) : zone.latitud?.toFixed(6)}
+                            {zone.lat?.toFixed(6) || zone.latitud?.toFixed(6)}
                           </div>
                           <div>
                             <span className="font-semibold">Longitud:</span>{" "}
-                            {zone.lng ? zone.lng.toFixed(6) : zone.longitud?.toFixed(6)}
+                            {zone.lng?.toFixed(6) || zone.longitud?.toFixed(6)}
                           </div>
                         </div>
                         <Button
