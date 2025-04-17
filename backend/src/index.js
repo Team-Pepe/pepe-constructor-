@@ -36,11 +36,20 @@ const swaggerOptions = {
           in: 'cookie',
           name: 'token',
           description: 'Autenticación basada en cookies JWT'
+        },
+        csrfToken: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-CSRF-Token',
+          description: 'Token CSRF para protección contra solicitudes cruzadas'
         }
       }
-    }
+    },
+    security: [
+      { cookieAuth: [], csrfToken: [] }
+    ]
   },
-  apis: ['./routes/*.js'],
+  apis: ['./src/routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

@@ -11,6 +11,7 @@ const API_ENDPOINTS = {
   MATERIALS: '/api/dashboard/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
+  WORK_ZONES: '/api/work-zones',
 };
 
 export const apiClient = axios.create({
@@ -23,10 +24,21 @@ export const apiClient = axios.create({
 
 const getAuthHeaders = () => {
   const token = getAuthToken();
-  console.log(token);
-  
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const csrfToken = localStorage.getItem('csrfToken');
+
+  const headers = {};
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+
+  return headers;
 };
+
 
 // Dashboard API functions
 export const fetchDashboardMetrics = () => 
@@ -46,6 +58,12 @@ export const fetchRecentActivities = () =>
 
 export const fetchWorkers = () => 
   apiClient.get(`${API_ENDPOINTS.USERS}?roleId=2`, { headers: getAuthHeaders() });
+
+export const fetchWorkZones = () =>
+  apiClient.get(API_ENDPOINTS.WORK_ZONES, { headers: getAuthHeaders() });
+
+export const postWorkZone = (data) =>
+  apiClient.post(API_ENDPOINTS.WORK_ZONES, data, { headers: getAuthHeaders() });
 
 // Function to fetch all dashboard data at once
 export const fetchAllDashboardData = async () => {

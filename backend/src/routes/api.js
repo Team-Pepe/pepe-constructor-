@@ -100,17 +100,57 @@ router.get('/users/:id', async (req, res) => {
  * @swagger
  * /api/work-zones:
  *   post:
- *     summary: Obtiene todas las zonas de trabajo
+ *     summary: Crea una nueva zona de trabajo
  *     tags: [Zonas de Trabajo]
+ *     security:
+ *       - cookieAuth: []
+ *       - csrfToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - supervisorId
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la zona de trabajo
+ *               description:
+ *                 type: string
+ *                 description: Descripción de la zona de trabajo
+ *               supervisorId:
+ *                 type: integer
+ *                 description: ID del supervisor de la zona
+ *               latitude:
+ *                 type: number
+ *                 format: float
+ *                 description: Latitud de la ubicación de la zona
+ *               longitude:
+ *                 type: number
+ *                 format: float
+ *                 description: Longitud de la ubicación de la zona
  *     responses:
- *       200:
- *         description: Lista de zonas de trabajo
+ *       201:
+ *         description: Zona de trabajo creada exitosamente
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/WorkZone'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/WorkZone'
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
  *         content:
@@ -146,7 +186,7 @@ router.post('/work-zones', async (req, res) => {
 
     res.status(201).json({ 
       status: 'success', 
-      data: newWorkZone 
+      newWorkZone 
     });
   } catch (error) {
     console.error('Error al crear zona de trabajo:', error);

@@ -9,7 +9,7 @@ import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import axios from "axios";
+import { fetchWorkZones, postWorkZone } from "@/services/dashboardService";
 
 // Importaciones necesarias para los estilos de Leaflet
 import "leaflet/dist/leaflet.css";
@@ -86,8 +86,8 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   useEffect(() => {
     const fetchSavedZones = async () => {
       try {
-        // Intentar cargar desde la API
-        const response = await axios.get(`${apiEndpoint}/api/work-zones`);
+        console.log("Cargando zonas guardadas...");
+        const response = await fetchWorkZones();
         if (response.data) {
           const zones = response.data.map(zone => ({
             id: zone.id,
@@ -98,15 +98,12 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             radius: 500, // Valor por defecto
             saved: true
           }));
-          
           setSavedZones(zones);
           // Guardar en localStorage como respaldo
           localStorage.setItem('workZones', JSON.stringify(zones));
         }
       } catch (error) {
         console.error("Error al cargar zonas de trabajo desde API:", error);
-        
-        // Si la API falla, cargar desde localStorage
         const savedZonesFromStorage = localStorage.getItem('workZones');
         if (savedZonesFromStorage) {
           try {
@@ -117,11 +114,11 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             console.error("Error al parsear zonas de trabajo desde localStorage:", parseError);
           }
         }
+
       }
-    };
-    
-    fetchSavedZones();
-  }, [apiEndpoint]);
+    }
+    fetchSavedZones();    
+  }, []);
 
   // Función para verificar si un trabajador está dentro de una zona
   const checkWorkersInZones = () => {
@@ -209,34 +206,28 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       radius: zoneRadius,
       saved: true
     };
+    console.log("test#1");
     
     try {
-      // Obtener el token de autenticación
-      const token = localStorage.getItem("authToken");
+    console.log("test#2");
+      const data = {
+        name: zoneForm.name,
+        description: zoneForm.description,
+        supervisorId: parseInt(zoneForm.supervisorId), // Convertir a entero
+        latitude: parseFloat(tempZone.lat), // Asegurar que latitude es float
+        longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
+        radius: zoneRadius
+      }
+      const response = await postWorkZone(data)
+      console.log("response");
       
-      // Intentar crear la zona en la API
-      const response = await axios.post(
-        `${apiEndpoint}/api/work-zones`,
-        {
-          name: zoneForm.name,
-          description: zoneForm.description,
-          supervisorId: parseInt(zoneForm.supervisorId), // Convertir a entero
-          latitude: parseFloat(tempZone.lat), // Asegurar que latitude es float
-          longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
-          radius: zoneRadius
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      console.log(response);
       
       // Si la creación fue exitosa, usar el ID de la API
-      if (response.data && response.data.id) {
-        newZone.id = response.data.id;
+      if (response.data.newWorkZone && response.data.newWorkZone.id) {
+      console.log("test#3");
+        newZone.id = response.data.newWorkZone.id;
       }
-      
       // Actualizar estado y localStorage
       const updatedZones = [...savedZones, newZone];
       setSavedZones(updatedZones);
