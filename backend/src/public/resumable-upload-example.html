@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Resumable Upload Supabase - Pepe Constructor</title>
+    <link href="https://releases.transloadit.com/uppy/v3.6.1/uppy.min.css" rel="stylesheet" />
+
+    <style>
+      html {
+        background: #3498db;
+      }
+      body {
+        height: 100vh;
+        background: radial-gradient(72.03% 66.03% at 50% 69.72%, #a8d3f1 0, transparent 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        font-family: Arial, sans-serif;
+      }
+      a {
+        display: block;
+        margin: 10px;
+        text-decoration: none;
+        color: #2980b9;
+      }
+      h1 {
+        color: #2c3e50;
+      }
+      #drag-drop-area {
+        margin-top: 40px;
+        width: 80%;
+        max-width: 800px;
+      }
+      .config-container {
+        background-color: #f1f1f1;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+        font-size: 14px;
+        width: 80%;
+        max-width: 800px;
+      }
+      .config-item {
+        margin-bottom: 10px;
+      }
+      .logo {
+        max-width: 250px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pepe Constructor - Cargas Resumibles</h1>
+    <div id="drag-drop-area"></div>
+    
+    <div class="config-container">
+      <h3>Configuración actual:</h3>
+      <div class="config-item" id="project-id"></div>
+      <div class="config-item" id="bucket-name"></div>
+    </div>
+    
+    <a href="/api-docs" target="_blank">Ver documentación API</a>
+
+    <script type="module">
+      import {
+        Uppy,
+        Dashboard,
+        Tus,
+      } from 'https://releases.transloadit.com/uppy/v3.6.1/uppy.min.mjs'
+
+      // Obtener configuración desde el servidor
+      fetch('/api/storage-config')
+        .then(response => response.json())
+        .then(config => {
+          const { projectId, bucketName, anonKey } = config;
+          
+          document.getElementById('project-id').textContent = `Project ID: ${projectId}`;
+          document.getElementById('bucket-name').textContent = `Bucket: ${bucketName}`;
+          
+          setupUppy(projectId, bucketName, anonKey);
+        })
+        .catch(error => {
+          console.error('Error al cargar configuración:', error);
+          document.getElementById('drag-drop-area').innerHTML = `
+            <div style="color: red; text-align: center;">
+              <h3>Error de configuración</h3>
+              <p>${error.message || 'No se pudo cargar la configuración de Supabase'}</p>
+            </div>
+          `;
+        });
+
+      function setupUppy(projectId, bucketName, anonKey) {
+        const supabaseStorageURL = `https://${projectId}.supabase.co/storage/v1/upload/resumable`;
+        
+        const uppy = new Uppy({
+          debug: true,
+          autoProceed: true,
+          restrictions: {
+            maxFileSize: 10 * 1024 * 1024, // 10MB máximo
+            maxNumberOfFiles: 5,
+            allowedFileTypes: ['image/*']
+          }
+        })
+          .use(Dashboard, {
+            inline: true,
+            target: '#drag-drop-area',
+            showProgressDetails: true,
+            proudlyDisplayPoweredByUppy: false,
+            height: 400,
+          })
+          .use(Tus, {
+            endpoint: supabaseStorageURL,
+            headers: {
+              authorization: `Bearer ${anonKey}`,
+              apikey: anonKey,
+            },
+            uploadDataDuringCreation: true,
+            chunkSize: 6 * 1024 * 1024,
+            allowedMetaFields: ['bucketName', 'objectName', 'contentType', 'cacheControl'],
+            onError: function (error) {
+              console.log('Error en la carga: ' + error);
+            },
+          });
+
+        uppy.on('file-added', (file) => {
+          // Genera un nombre de archivo único
+          const timestamp = new Date().getTime();
+          const uniqueFileName = `${timestamp}-${file.name.replace(/\s+/g, '_')}`;
+          
+          const supabaseMetadata = {
+            bucketName: bucketName,
+            objectName: uniqueFileName,
+            contentType: file.type,
+            cacheControl: '3600'
+          };
+
+          file.meta = {
+            ...file.meta,
+            ...supabaseMetadata,
+          };
+
+          console.log('Archivo añadido:', file);
+        });
+
+        uppy.on('complete', (result) => {
+          console.log('¡Carga completa! Archivos subidos:', result.successful);
+          
+          // Mostrar URLs públicas de los archivos subidos
+          const urls = result.successful.map(file => {
+            const url = `https://${projectId}.supabase.co/storage/v1/object/public/${bucketName}/${file.meta.objectName}`;
+            return { name: file.name, url };
+          });
+          
+          console.log('URLs públicas:', urls);
+          
+          // Opcional: enviar los IDs/URLs al servidor para guardar en la base de datos
+          urls.forEach(file => {
+            fetch('/api/materials', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: file.name.split('.')[0], // Usar nombre de archivo como nombre del material
+                description: 'Subido mediante carga resumible',
+                quantity: 1,
+                image_url: file.url
+              })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Material guardado:', data))
+            .catch(error => console.error('Error al guardar material:', error));
+          });
+        });
+      }
+    </script>
+  </body>
+</html> 

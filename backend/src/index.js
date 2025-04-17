@@ -6,11 +6,15 @@ const cookieParser = require('cookie-parser');
 const { PrismaClient } = require('@prisma/client');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
 const authRouter = require('./routes/authRouter');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
 const { authenticateToken, verifyCSRF } = require('./middleware/authMiddleware');
+
+// Requerir las utilidades de archivos para crear los directorios necesarios al inicio
+require('./utils/fileUtils');
 
 const app = express();
 const prisma = new PrismaClient();
