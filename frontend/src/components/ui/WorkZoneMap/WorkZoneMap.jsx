@@ -5,11 +5,12 @@ import * as turf from "@turf/turf";
 import PropTypes from "prop-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { fetchWorkZones, postWorkZone } from "@/services/dashboardService";
+import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target, Package, List, FileInput } from "lucide-react";
+import { fetchWorkZones, createWorkZone, deleteWorkZone, fetchZoneMaterials, assignMaterialsToZone, useMaterialsFromZone, fetchMaterials } from "@/services/dashboardService";
+import { useAuth } from "@/features/auth";
+import { MaterialAssignmentModal } from "./MaterialAssignmentModal";
+import { ViewMaterialsModal } from "./ViewMaterialsModal";
+import { UseMaterialsModal } from "./UseMaterialsModal";
 
 // Importaciones necesarias para los estilos de Leaflet
 import "leaflet/dist/leaflet.css";
@@ -63,6 +64,7 @@ ZoomController.propTypes = {
 };
 
 function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], defaultZoom = 13 }) {
+  const { roleId } = useAuth();
   const [workZones, setWorkZones] = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [zoneRadius, setZoneRadius] = useState(500); // Radio en metros
@@ -76,7 +78,13 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const [loading, setLoading] = useState(false);
   const [savedZones, setSavedZones] = useState([]);
   const [creationMode, setCreationMode] = useState(false);
-  const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
+  const [showMaterialAssignmentModal, setShowMaterialAssignmentModal] = useState(false);
+  const [showViewMaterialsModal, setShowViewMaterialsModal] = useState(false);
+  const [showUseMaterialsModal, setShowUseMaterialsModal] = useState(false);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [zoneMaterials, setZoneMaterials] = useState([]);
+  const [authError, setAuthError] = useState("");
+  const [availableMaterials, setAvailableMaterials] = useState([]);
   
   // Funciones para el zoom
   const [zoomIn, setZoomIn] = useState(() => () => {});
@@ -118,6 +126,19 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       }
     }
     fetchSavedZones();    
+  }, []);
+
+  // Cargar materiales disponibles al iniciar
+  useEffect(() => {
+    const loadAvailableMaterials = async () => {
+      try {
+        const response = await fetchMaterials();
+        setAvailableMaterials(response.data);
+      } catch (error) {
+        console.error("Error al cargar materiales disponibles:", error);
+      }
+    };
+    loadAvailableMaterials();
   }, []);
 
   // Función para verificar si un trabajador está dentro de una zona
@@ -191,7 +212,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   };
 
   // Función para guardar la zona en la base de datos o localStorage
-  const saveZone = async () => {
+  const handleSaveZone = async () => {
     if (!tempZone || !zoneForm.name || !zoneForm.supervisorId) return;
     
     setLoading(true);
@@ -199,19 +220,6 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     const token = localStorage.getItem("authToken");
     if (!token) {
       console.error("No se encontró token de autenticación");
-      setLoading(false);
-      return;
-    }
-  
-    // 1. Obtener CSRF token del backend
-    let csrfToken;
-    try {
-      const csrfResponse = await axios.get(`${apiEndpoint}/csrf-token`, {
-        withCredentials: true
-      });
-      csrfToken = csrfResponse.data.csrfToken;
-    } catch (csrfError) {
-      console.error("Error obteniendo CSRF token:", csrfError);
       setLoading(false);
       return;
     }
@@ -226,10 +234,8 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       radius: zoneRadius,
       saved: true
     };
-    console.log("test#1");
     
     try {
-    console.log("test#2");
       const data = {
         name: zoneForm.name,
         description: zoneForm.description,
@@ -238,7 +244,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
         longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
         radius: zoneRadius
       }
-      const response = await postWorkZone(data)
+      const response = await createWorkZone(data)
       console.log("response");
       
       console.log(response);
@@ -291,13 +297,8 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       
       if (!isLocalId) {
         // Solo intentar eliminar en la API si es un ID de la base de datos
-        const token = localStorage.getItem("authToken");
         try {
-          await axios.delete(`${apiEndpoint}/api/work-zones/${id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
+          await deleteWorkZone(id);
           console.log("Zona eliminada exitosamente en la API");
         } catch (apiError) {
           console.error("Error al eliminar en API, continuando con eliminación local:", apiError.message);
@@ -346,10 +347,156 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     setShowModal(false);
   };
 
+  // Función para verificar y obtener el token
+  const getAuthToken = () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      setAuthError("No se encontró el token de autenticación. Por favor, inicie sesión nuevamente.");
+      return null;
+    }
+    return token;
+  };
+
+  // Función para manejar errores de autenticación
+  const handleAuthError = (error) => {
+    console.error("Error de autenticación:", error);
+    if (error.response?.status === 401) {
+      setAuthError("Sesión expirada. Por favor, inicie sesión nuevamente.");
+      // Redirigir al login
+      window.location.href = '/login';
+    } else {
+      setAuthError(error.message || "Error de autenticación");
+    }
+  };
+
+  // Modificar loadZoneMaterials para usar las nuevas funciones de autenticación
+  const loadZoneMaterials = async (zoneId) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      const response = await fetchZoneMaterials(zoneId);
+      setZoneMaterials(response.data);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  };
+
+  // Modificar handleAssignMaterials para usar las nuevas funciones de autenticación
+  const handleAssignMaterials = async (data) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      await assignMaterialsToZone({
+        zoneId: selectedZone.id,
+        materialId: data.materialId,
+        quantity: data.quantity
+      });
+
+      await loadZoneMaterials(selectedZone.id);
+      setShowMaterialAssignmentModal(false);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  };
+
+  // Modificar handleUseMaterials para usar las nuevas funciones de autenticación
+  const handleUseMaterials = async (data) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      await useMaterialsFromZone({
+        zoneId: selectedZone.id,
+        materialId: data.materialId,
+        quantity: data.quantity,
+        notes: data.notes
+      });
+
+      await loadZoneMaterials(selectedZone.id);
+      setShowUseMaterialsModal(false);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  };
+
+  // Renderizar los botones según el rol
+  const renderZoneButtons = (zone) => {
+    const buttons = [];
+
+    // Supervisor (roleId = 1)
+    if (roleId === 1) {
+      buttons.push(
+        <Button
+          key="assign"
+          variant="default"
+          size="sm"
+          onClick={() => {
+            setSelectedZone(zone);
+            setShowMaterialAssignmentModal(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <Package size={14} className="mr-1" /> Agregar materiales
+        </Button>
+      );
+    }
+
+    // Botón de eliminar zona (común para todos)
+    buttons.push(
+      <Button
+        key="delete"
+        variant="destructive"
+        size="sm"
+        onClick={() => deleteSavedZone(zone.id)}
+        className="bg-red-600 hover:bg-red-700 text-white"
+      >
+        <Trash2 size={14} className="mr-1" /> Eliminar zona
+      </Button>
+    );
+
+    // Común para todos los roles
+    buttons.push(
+      <Button
+        key="view"
+        variant="default"
+        size="sm"
+        onClick={() => {
+          setSelectedZone(zone);
+          loadZoneMaterials(zone.id);
+          setShowViewMaterialsModal(true);
+        }}
+        className="bg-green-600 hover:bg-green-700 text-white"
+      >
+        <List size={14} className="mr-1" /> Ver materiales
+      </Button>
+    );
+
+    // Empleado que descuenta materiales (roleId = 3)
+    if (roleId === 3) {
+      buttons.push(
+        <Button
+          key="use"
+          variant="default"
+          size="sm"
+          onClick={() => {
+            setSelectedZone(zone);
+            loadZoneMaterials(zone.id);
+            setShowUseMaterialsModal(true);
+          }}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white"
+        >
+          <FileInput size={14} className="mr-1" /> Registrar uso
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex flex-col space-y-2 mt-2">
+        {buttons}
+      </div>
+    );
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
+    <Card className="w-full bg-slate-800/80 text-white border-slate-700/50 hover:border-orange-500/30 transition-colors">
+      <CardHeader className="bg-slate-800/80">
+        <CardTitle className="flex justify-between items-center text-white">
           <span>Zonas de Trabajo - Pereira</span>
           <div className="flex space-x-2">
             <Button 
@@ -357,7 +504,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
               size="sm"
               onClick={() => setCreationMode(!creationMode)}
               title={creationMode ? "Cancelar creación" : "Crear nueva zona"}
-              className={creationMode ? "bg-green-600 hover:bg-green-700" : ""}
+              className={creationMode ? "bg-green-600 hover:bg-green-700 text-white" : "border-white text-white hover:bg-white/20"}
             >
               {creationMode ? (
                 <>
@@ -372,12 +519,21 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-slate-800/80">
         {creationMode && (
           <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm">
             <p className="flex items-center">
               <Target size={16} className="mr-2" /> 
               <strong>Modo creación activo:</strong> Haz clic en cualquier lugar del mapa para crear una nueva zona de trabajo.
+            </p>
+          </div>
+        )}
+        
+        {authError && (
+          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+            <p className="flex items-center">
+              <span className="mr-2">⚠️</span>
+              {authError}
             </p>
           </div>
         )}
@@ -484,7 +640,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                     pathOptions={{
                       fillColor: "#10B981",
                       fillOpacity: 0.4,
-                      color: "#FFFFFF", // Borde blanco
+                      color: "#FFFFFF",
                       weight: 2
                     }}
                   >
@@ -493,14 +649,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                         <p className="font-semibold">{zone.name}</p>
                         {zone.description && <p className="text-sm">{zone.description}</p>}
                         <p>Radio: {zone.radius || zoneRadius}m</p>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => deleteSavedZone(zone.id)}
-                        >
-                          <Trash2 size={14} className="mr-1" /> Eliminar zona
-                        </Button>
+                        {renderZoneButtons(zone)}
                       </div>
                     </Popup>
                   </Circle>
@@ -621,72 +770,37 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             </div>
           </div>
         </div>
-        
-        {/* Modal de creación/edición de zona */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-              <h3 className="text-lg font-semibold mb-4">
-                {tempZone.saved ? "Editar Zona de Trabajo" : "Nueva Zona de Trabajo"}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="zoneName">Nombre de la Zona*</Label>
-                  <Input 
-                    id="zoneName" 
-                    value={zoneForm.name} 
-                    onChange={(e) => setZoneForm({...zoneForm, name: e.target.value})}
-                    placeholder="Ej. Zona Norte"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zoneDescription">Descripción</Label>
-                  <Textarea 
-                    id="zoneDescription" 
-                    value={zoneForm.description} 
-                    onChange={(e) => setZoneForm({...zoneForm, description: e.target.value})}
-                    placeholder="Descripción de la zona de trabajo"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="supervisorId">Supervisor ID</Label>
-                  <Input 
-                    id="supervisorId" 
-                    type="number"
-                    value={zoneForm.supervisorId} 
-                    onChange={(e) => setZoneForm({...zoneForm, supervisorId: e.target.value})}
-                    placeholder="Ej. 12345"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                  <div>
-                    <span className="block">Latitud:</span>
-                    <span>{tempZone.lat.toFixed(6)}</span>
-                  </div>
-                  <div>
-                    <span className="block">Longitud:</span>
-                    <span>{tempZone.lng.toFixed(6)}</span>
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={cancelZoneCreation}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    disabled={!zoneForm.name || loading} 
-                    onClick={tempZone.saved ? saveZone : confirmTempZone}
-                  >
-                    {loading ? "Guardando..." : tempZone.saved ? "Guardar en BD" : "Crear Zona"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
       </CardContent>
+
+      {/* Modales */}
+      <MaterialAssignmentModal
+        isOpen={showMaterialAssignmentModal}
+        onClose={() => setShowMaterialAssignmentModal(false)}
+        onAssign={handleAssignMaterials}
+        materials={availableMaterials.map(material => ({
+          id: String(material.id),
+          name: material.name,
+          available: material.quantity,
+          description: material.description,
+          image: material.image_url
+        }))}
+        zoneId={selectedZone?.id ? String(selectedZone.id) : undefined}
+      />
+
+      <ViewMaterialsModal
+        isOpen={showViewMaterialsModal}
+        onClose={() => setShowViewMaterialsModal(false)}
+        materials={zoneMaterials}
+        zoneName={selectedZone?.name}
+      />
+
+      <UseMaterialsModal
+        isOpen={showUseMaterialsModal}
+        onClose={() => setShowUseMaterialsModal(false)}
+        onUse={handleUseMaterials}
+        materials={zoneMaterials}
+        zoneName={selectedZone?.name}
+      />
     </Card>
   );
 }

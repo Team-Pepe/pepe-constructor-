@@ -8,10 +8,11 @@ const API_ENDPOINTS = {
   DASHBOARD_METRICS: '/api/dashboard/metrics',
   PROJECTS_PROGRESS: '/api/dashboard/projects-progress',
   ATTENDANCE: '/api/dashboard/attendance',
-  MATERIALS: '/api/dashboard/materials',
+  MATERIALS: '/api/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
   WORK_ZONES: '/api/work-zones',
+  MATERIAL_ZONE: '/api/material-zone',
 };
 
 export const apiClient = axios.create({
@@ -50,9 +51,6 @@ export const fetchProjectsProgress = () =>
 export const fetchAttendance = () => 
   apiClient.get(API_ENDPOINTS.ATTENDANCE, { headers: getAuthHeaders() });
 
-export const fetchMaterials = () => 
-  apiClient.get(API_ENDPOINTS.MATERIALS, { headers: getAuthHeaders() });
-
 export const fetchRecentActivities = () => 
   apiClient.get(API_ENDPOINTS.RECENT_ACTIVITIES, { headers: getAuthHeaders() });
 
@@ -62,8 +60,48 @@ export const fetchWorkers = () =>
 export const fetchWorkZones = () =>
   apiClient.get(API_ENDPOINTS.WORK_ZONES, { headers: getAuthHeaders() });
 
-export const postWorkZone = (data) =>
+export const createWorkZone = (data) =>
   apiClient.post(API_ENDPOINTS.WORK_ZONES, data, { headers: getAuthHeaders() });
+
+export const updateWorkZone = (id, data) =>
+  apiClient.put(`${API_ENDPOINTS.WORK_ZONES}/${id}`, data, { headers: getAuthHeaders() });
+
+export const deleteWorkZone = (id) =>
+  apiClient.delete(`${API_ENDPOINTS.WORK_ZONES}/${id}`, { headers: getAuthHeaders() });
+
+// Materials CRUD operations
+export const fetchMaterials = () => 
+  apiClient.get(API_ENDPOINTS.MATERIALS, { headers: getAuthHeaders() });
+
+export const createMaterial = (formData) => 
+  apiClient.post(API_ENDPOINTS.MATERIALS, formData, { 
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
+export const updateMaterial = (id, formData) => 
+  apiClient.put(`${API_ENDPOINTS.MATERIALS}/${id}`, formData, { 
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'multipart/form-data',
+      'Accept': 'application/json'
+    }
+  });
+
+export const deleteMaterial = (id) => 
+  apiClient.delete(`${API_ENDPOINTS.MATERIALS}/${id}`, { headers: getAuthHeaders() });
+
+// Material Zone operations
+export const fetchZoneMaterials = (zoneId) =>
+  apiClient.get(`${API_ENDPOINTS.MATERIAL_ZONE}/${zoneId}`, { headers: getAuthHeaders() });
+
+export const assignMaterialsToZone = (data) =>
+  apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/assign`, data, { headers: getAuthHeaders() });
+
+export const useMaterialsFromZone = (data) =>
+  apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/use`, data, { headers: getAuthHeaders() });
 
 // Function to fetch all dashboard data at once
 export const fetchAllDashboardData = async () => {

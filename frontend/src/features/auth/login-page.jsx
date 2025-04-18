@@ -42,6 +42,11 @@ export default function LoginPage() {
         setIsAuthenticated(true);
         setRoleId(response.data.user.roleId);
 
+        // Guardar el token de autenticación
+        if (response.data.token) {
+          document.cookie = `token=${response.data.token}; path=/`;
+        }
+
         if (response.data.csrfToken) {
           setCsrfToken(response.data.csrfToken);
           localStorage.setItem("csrfToken", response.data.csrfToken);

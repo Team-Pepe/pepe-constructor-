@@ -11,6 +11,7 @@ const authRouter = require('./routes/authRouter');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
+const materialAssignmentsRoutes = require('./routes/materialAssignments');
 const { authenticateToken, verifyCSRF } = require('./middleware/authMiddleware');
 
 // Requerir las utilidades de archivos para crear los directorios necesarios al inicio
@@ -108,6 +109,7 @@ app.use('/api/auth', authRouter);
 // Rutas protegidas
 app.use('/api/dashboard', authenticateToken, verifyCSRF, dashboardRoutes);
 app.use('/api/dashboard-empleados', authenticateToken, verifyCSRF, dashboardEmpleadosRoutes);
+app.use('/api/material-assignments', authenticateToken, verifyCSRF, materialAssignmentsRoutes);
 app.use('/api', authenticateToken, verifyCSRF, apiRoutes);
 
 // Manejador de errores global

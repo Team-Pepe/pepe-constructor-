@@ -161,9 +161,9 @@ export default function Dashboard() {
                                                 <MaterialCard
                                                     key={material.id}
                                                     name={material.name}
-                                                    used={material.used}
-                                                    total={material.total}
-                                                    unit={material.unit}
+                                                    used={material.used || 0}
+                                                    total={material.quantity}
+                                                    unit={"Unidades"}
                                                 />
                                             ))}
                                         </div>

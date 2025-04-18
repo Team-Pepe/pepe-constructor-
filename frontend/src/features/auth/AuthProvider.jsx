@@ -43,10 +43,11 @@ export function AuthProvider({ children }) {
         return axios({
             ...config,
             withCredentials: true,
-            headers: {
-                ...config.headers,
-                'X-CSRF-Token': csrfToken
-            }
+            // Comentamos temporalmente el header CSRF
+            // headers: {
+            //     ...config.headers,
+            //     'X-CSRF-Token': csrfToken
+            // }
         });
     };
 

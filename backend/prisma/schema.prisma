@@ -42,6 +42,7 @@ model WorkZone {
   metrics      Metric[]
   tasks        Task[]
   supervisor   User     @relation(fields: [supervisorId], references: [id])
+  materiales   MaterialZone[]
 
   @@map("work_zones")
 }
@@ -67,6 +68,7 @@ model Material {
   quantity    Int
   image_url   String?   @unique
   requests    Request[]
+  zonas       MaterialZone[]
 
   @@map("materials")
 }
@@ -115,4 +117,15 @@ model Metric {
   workZone   WorkZone @relation(fields: [workZoneId], references: [id])
 
   @@map("metrics")
+}
+
+model ZonaMaterial {
+  id               Int      @id @default(autoincrement())
+  id_zona          Int      @map("id_zona")
+  id_material      Int      @map("id_material")
+  cantidad_asignada Int      @map("cantidad_asignada")
+  workZone         WorkZone @relation(fields: [id_zona], references: [id])
+  material         Material @relation(fields: [id_material], references: [id])
+
+  @@map("material_zone")
 }

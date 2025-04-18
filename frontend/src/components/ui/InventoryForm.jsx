@@ -139,15 +139,7 @@ export function InventoryForm({ onSubmit, initialData = null, isEditing = false 
       submitFormData.append('name', formData.name);
       submitFormData.append('description', formData.description || '');
       submitFormData.append('quantity', parseFloat(formData.quantity));
-      
-      // Si hay un archivo seleccionado, enviarlo
-      if (selectedFile) {
-        submitFormData.append('image', selectedFile);
-      }
-      // Si estamos editando y hay una URL de imagen existente, enviarla
-      else if (formData.image_url) {
-        submitFormData.append('image_url', formData.image_url);
-      }
+      submitFormData.append('image_url', formData.image_url);
       
       // Si estamos editando, incluir el ID
       if (isEditing && initialData?.id) {
@@ -158,8 +150,8 @@ export function InventoryForm({ onSubmit, initialData = null, isEditing = false 
         name: formData.name,
         description: formData.description,
         quantity: formData.quantity,
-        hasFile: !!selectedFile,
-        image_url: formData.image_url
+        image_url: formData.image_url,
+        id: isEditing ? initialData.id : null
       });
       
       await onSubmit(submitFormData);
