@@ -17,25 +17,34 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-function EmployeeMap({ workers = [], defaultCenter = [4.8133, -75.6961], defaultZoom = 13, savedZones = [] }) {
+// Actualizar la definición del componente
+function EmployeeMap({ 
+  workers = [], 
+  defaultCenter = [4.8133, -75.6961], 
+  defaultZoom = 13, 
+  savedZones = []  // Parámetro por defecto aquí
+}) {
   const [selectedWorkers, setSelectedWorkers] = useState([]);
 
   // Función para verificar si un trabajador está dentro de una zona
   const checkWorkersInZones = () => {
-    if (!workers || workers.length === 0 || savedZones.length === 0) {
+    // Validar estructura de datos antes de procesar
+    if (!workers || workers.length === 0 || !savedZones || savedZones.length === 0) {
       return workers ? workers.map(worker => ({ ...worker, inZone: false })) : [];
     }
 
     return workers.map(worker => {
-      if (!worker.location) return { ...worker, inZone: false };
+      if (!worker?.location) return { ...worker, inZone: false };
 
       const point = L.latLng(worker.location.lat, worker.location.lng);
 
-      // Verificar si el trabajador está en alguna zona guardada
       const isInSavedZone = savedZones.some(zone => {
+        // Validar estructura de la zona
+        if (!zone?.lat || !zone?.lng) return false;
+        
         const center = L.latLng(zone.lat, zone.lng);
         const distance = point.distanceTo(center);
-        return distance <= (zone.radius || 500); // Radio por defecto: 500m
+        return distance <= (zone.radius || 500);
       });
 
       return {
@@ -68,28 +77,35 @@ function EmployeeMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
         />
 
         {/* Renderizar zonas guardadas en la base de datos */}
-        {savedZones.map((zone) => (
-          <Circle
-            key={zone.id}
-            center={[zone.lat, zone.lng]}
-            radius={zone.radius || 500}
-            pathOptions={{
-              fillColor: "#10B981",
-              fillOpacity: 0.4,
-              color: "#FFFFFF", // Borde blanco
-              weight: 2,
-            }}
-          >
-            <Popup>
-              <div className="text-center">
-                <p className="font-semibold">{zone.name}</p>
-                {zone.description && <p className="text-sm">{zone.description}</p>}
-                <p>Radio: {zone.radius || 500}m</p>
-              </div>
-            </Popup>
-          </Circle>
-        ))}
-
+        // Modificar el mapeo de zonas en el renderizado
+        {savedZones.map((zone) => {
+          if (!zone.lat || !zone.lng) { // Cambiar !zone.lat repetido por !zone.lng
+            console.warn('Zona inválida:', zone);
+            return null;
+          }
+          
+          return (
+            <Circle
+              key={zone.id}
+              center={[zone.lat, zone.lng]}
+              radius={zone.radius || 500}
+              pathOptions={{
+                fillColor: "#10B981",
+                fillOpacity: 0.4,
+                color: "#FFFFFF",
+                weight: 2,
+              }}
+            >
+              <Popup>
+                <div className="text-center">
+                  <p className="font-semibold">{zone.name}</p>
+                  {zone.description && <p className="text-sm">{zone.description}</p>}
+                  <p>Radio: {zone.radius || 500}m</p>
+                </div>
+              </Popup>
+            </Circle>
+          );  // <-- Faltaba este punto y coma y paréntesis de cierre
+        })}
         {/* Renderizar trabajadores en el mapa */}
         {selectedWorkers.map((worker) => {
           if (!worker.location) return null;
@@ -137,13 +153,18 @@ EmployeeMap.propTypes = {
   savedZones: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      lat: PropTypes.number.isRequired,
-      lng: PropTypes.number.isRequired,
+      lat: PropTypes.number, // Cambiar a no requerido temporalmente
+      lng: PropTypes.number, // Cambiar a no requerido
       name: PropTypes.string,
       description: PropTypes.string,
       radius: PropTypes.number,
     })
   ),
 };
+
+// Eliminar esta sección al final del archivo:
+// EmployeeMap.defaultProps = {
+//   savedZones: []
+// };
 
 export default EmployeeMap;
