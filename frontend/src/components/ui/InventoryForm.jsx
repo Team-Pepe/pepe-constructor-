@@ -134,27 +134,47 @@ export function InventoryForm({ onSubmit, initialData = null, isEditing = false 
     setIsUploading(true);
     
     try {
-      // Crear FormData para enviar al servidor
-      const submitFormData = new FormData();
-      submitFormData.append('name', formData.name);
-      submitFormData.append('description', formData.description || '');
-      submitFormData.append('quantity', parseFloat(formData.quantity));
-      submitFormData.append('image_url', formData.image_url);
-      
-      // Si estamos editando, incluir el ID
-      if (isEditing && initialData?.id) {
-        submitFormData.append('id', initialData.id);
+      if (isEditing) {
+        // Para edición, crear un FormData con el ID y todos los datos
+        const submitFormData = new FormData();
+        
+        // Añadir campos obligatorios, asegurando valores no nulos
+        submitFormData.append('id', initialData.id.toString());
+        submitFormData.append('name', formData.name.trim());
+        submitFormData.append('description', formData.description || '');
+        submitFormData.append('quantity', parseFloat(formData.quantity));
+        
+        // Añadir imagen si existe
+        if (formData.image_url) {
+          submitFormData.append('image_url', formData.image_url);
+        }
+        
+        console.log('Enviando datos de edición:', 
+          Object.fromEntries([...submitFormData.entries()]));
+        
+        await onSubmit(submitFormData);
+      } else {
+        // Para creación, usar FormData
+        const submitFormData = new FormData();
+        
+        // Añadir campos obligatorios
+        submitFormData.append('name', formData.name.trim());
+        submitFormData.append('description', formData.description || '');
+        submitFormData.append('quantity', parseFloat(formData.quantity));
+        submitFormData.append('image_url', formData.image_url || '');
+        
+        // Si hay un archivo seleccionado, añadirlo
+        if (selectedFile) {
+          submitFormData.append('image', selectedFile);
+        } else if (formData.image_url) {
+          submitFormData.append('image_url', formData.image_url);
+        }
+        
+        console.log('Enviando datos de nuevo material:', 
+          Object.fromEntries([...submitFormData.entries()]));
+          
+        await onSubmit(submitFormData);
       }
-      
-      console.log('Enviando datos al servidor:', {
-        name: formData.name,
-        description: formData.description,
-        quantity: formData.quantity,
-        image_url: formData.image_url,
-        id: isEditing ? initialData.id : null
-      });
-      
-      await onSubmit(submitFormData);
       
       // Reset form if not editing
       if (!isEditing) {

@@ -80,10 +80,26 @@ export default function Inventory() {
   const handleEditMaterial = async (formData) => {
     setIsLoading(true);
     try {
-      console.log('Editando material con datos:', Object.fromEntries(formData.entries()));
-      
+      // Extraer el ID del formData
       const materialId = formData.get('id');
-      const response = await updateMaterial(materialId, formData);
+      
+      // Crear un objeto JSON plano para enviar al backend
+      const materialData = {
+        name: formData.get('name'),
+        description: formData.get('description') || '',
+        quantity: parseFloat(formData.get('quantity')),
+        image_url: formData.get('image_url')
+      };
+      
+      // Filtrar cualquier valor undefined o null
+      Object.keys(materialData).forEach(key => 
+        (materialData[key] === undefined || materialData[key] === null) && delete materialData[key]
+      );
+      
+      console.log('Editando material ID:', materialId, 'con datos JSON:', materialData);
+      
+      // Llamar a la API con el ID como parámetro y los datos JSON en el cuerpo
+      const response = await updateMaterial(materialId, materialData);
       
       const updatedData = response.data;
       console.log('Respuesta del servidor:', updatedData);

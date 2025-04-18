@@ -270,6 +270,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, quantity, image_url } = req.body;
+    console.log(req);
     
     console.log('📝 Actualizando material:', { id, name, description, quantity, image_url });
     

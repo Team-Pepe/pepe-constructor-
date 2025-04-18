@@ -81,12 +81,11 @@ export const createMaterial = (formData) =>
     }
   });
 
-export const updateMaterial = (id, formData) => 
-  apiClient.put(`${API_ENDPOINTS.MATERIALS}/${id}`, formData, { 
+export const updateMaterial = (id, data) => 
+  apiClient.put(`${API_ENDPOINTS.MATERIALS}/${id}`, data, { 
     headers: {
       ...getAuthHeaders(),
-      'Content-Type': 'multipart/form-data',
-      'Accept': 'application/json'
+      'Content-Type': 'application/json',
     }
   });
 
