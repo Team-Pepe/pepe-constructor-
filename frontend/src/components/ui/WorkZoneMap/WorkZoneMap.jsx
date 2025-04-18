@@ -144,47 +144,48 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   // Función para verificar si un trabajador está dentro de una zona
   const checkWorkersInZones = () => {
     if (!workers || workers.length === 0 || (workZones.length === 0 && savedZones.length === 0)) {
-      return workers ? workers.map(worker => ({ ...worker, inZone: false })) : [];
+      return workers ? workers.filter(worker => worker.location).map(worker => ({ ...worker, inZone: false })) : [];
     }
 
-    return workers.map(worker => {
-      if (!worker.location) return { ...worker, inZone: false };
-      
-      const point = turf.point([worker.location.lng, worker.location.lat]);
-      
-      // Verificar si el trabajador está en alguna zona temporal
-      const isInTempZone = workZones.some(zone => {
-        const center = turf.point([zone.lng, zone.lat]);
-        const distance = turf.distance(point, center, { units: 'meters' });
-        return distance <= (zone.radius || zoneRadius);
-      });
-      
-      // Verificar si el trabajador está en alguna zona guardada
-      const isInSavedZone = savedZones.some(zone => {
-        const center = turf.point([zone.lng, zone.lat]);
-        const distance = turf.distance(point, center, { units: 'meters' });
-        return distance <= (zone.radius || zoneRadius);
-      });
-      
-      // Incluir información de la zona en la que está el trabajador para mostrarla
-      let workerZones = [];
-      if (isInTempZone || isInSavedZone) {
-        // Encontrar todas las zonas en las que está el trabajador
-        [...workZones, ...savedZones].forEach(zone => {
+    // Filtrar solo trabajadores con ubicación válida
+    return workers
+      .filter(worker => worker.location && worker.location.lat && worker.location.lng)
+      .map(worker => {
+        const point = turf.point([worker.location.lng, worker.location.lat]);
+        
+        // Verificar si el trabajador está en alguna zona temporal
+        const isInTempZone = workZones.some(zone => {
           const center = turf.point([zone.lng, zone.lat]);
           const distance = turf.distance(point, center, { units: 'meters' });
-          if (distance <= (zone.radius || zoneRadius)) {
-            workerZones.push(zone.name || 'Zona sin nombre');
-          }
+          return distance <= (zone.radius || zoneRadius);
         });
-      }
-      
-      return { 
-        ...worker, 
-        inZone: isInTempZone || isInSavedZone,
-        zones: workerZones
-      };
-    });
+        
+        // Verificar si el trabajador está en alguna zona guardada
+        const isInSavedZone = savedZones.some(zone => {
+          const center = turf.point([zone.lng, zone.lat]);
+          const distance = turf.distance(point, center, { units: 'meters' });
+          return distance <= (zone.radius || zoneRadius);
+        });
+        
+        // Incluir información de la zona en la que está el trabajador para mostrarla
+        let workerZones = [];
+        if (isInTempZone || isInSavedZone) {
+          // Encontrar todas las zonas en las que está el trabajador
+          [...workZones, ...savedZones].forEach(zone => {
+            const center = turf.point([zone.lng, zone.lat]);
+            const distance = turf.distance(point, center, { units: 'meters' });
+            if (distance <= (zone.radius || zoneRadius)) {
+              workerZones.push(zone.name || 'Zona sin nombre');
+            }
+          });
+        }
+        
+        return { 
+          ...worker, 
+          inZone: isInTempZone || isInSavedZone,
+          zones: workerZones
+        };
+      });
   };
 
   // Actualizar los trabajadores cuando cambian las zonas
@@ -768,7 +769,11 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                 
                 {/* Renderizar trabajadores en el mapa */}
                 {selectedWorkers.map((worker) => {
-                  if (!worker.location) return null;
+                  // Si el trabajador no tiene ubicación, no mostrar marcador
+                  if (!worker.location || !worker.location.lat || !worker.location.lng) return null;
+                  
+                  // Determinar el color del marcador basado en si está en zona
+                  const markerColor = worker.inZone ? '#10B981' : '#EF4444'; // Verde o rojo
                   
                   return (
                     <Marker
@@ -776,16 +781,30 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                       position={[worker.location.lat, worker.location.lng]}
                       icon={L.divIcon({
                         className: 'custom-div-icon',
-                        html: `<div style="background-color: ${worker.inZone ? '#10B981' : '#EF4444'}; 
-                                width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
-                        iconSize: [15, 15],
+                        html: `<div style="
+                          background-color: ${markerColor}; 
+                          width: 18px; 
+                          height: 18px; 
+                          border-radius: 50%; 
+                          border: 2px solid white;
+                          box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+                        "></div>`,
+                        iconSize: [18, 18],
                       })}
                     >
                       <Popup>
-                        <div>
+                        <div className="p-1">
                           <p className="font-semibold">{worker.name}</p>
                           <p className={worker.inZone ? "text-green-600" : "text-red-600"}>
                             {worker.inZone ? "✅ Dentro de la zona" : "❌ Fuera de la zona"}
+                          </p>
+                          {worker.zones && worker.zones.length > 0 && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Zonas: {worker.zones.join(', ')}
+                            </p>
+                          )}
+                          <p className="text-xs text-blue-600 mt-1">
+                            Ubicación en tiempo real
                           </p>
                         </div>
                       </Popup>
@@ -875,6 +894,17 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
                     <span>Zona en creación</span>
+                  </div>
+                  <div className="mt-3 border-t pt-2 border-slate-700">
+                    <p className="font-medium mb-1">Ubicación de trabajadores</p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-4 h-4 rounded-full bg-green-600 border-2 border-white box-content mr-2"></div>
+                      <span>Ubicación real (en zona)</span>
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white box-content mr-2"></div>
+                      <span>Ubicación real (fuera de zona)</span>
+                    </div>
                   </div>
                 </div>
               </div>

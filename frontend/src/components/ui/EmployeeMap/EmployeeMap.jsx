@@ -33,25 +33,25 @@ function EmployeeMap({
       return workers ? workers.map(worker => ({ ...worker, inZone: false })) : [];
     }
 
-    return workers.map(worker => {
-      if (!worker?.location) return { ...worker, inZone: false };
+    return workers
+      .filter(worker => worker?.location && worker.location.lat && worker.location.lng)
+      .map(worker => {
+        const point = L.latLng(worker.location.lat, worker.location.lng);
 
-      const point = L.latLng(worker.location.lat, worker.location.lng);
+        const isInSavedZone = savedZones.some(zone => {
+          // Validar estructura de la zona
+          if (!zone?.lat || !zone?.lng) return false;
+          
+          const center = L.latLng(zone.lat, zone.lng);
+          const distance = point.distanceTo(center);
+          return distance <= (zone.radius || 500);
+        });
 
-      const isInSavedZone = savedZones.some(zone => {
-        // Validar estructura de la zona
-        if (!zone?.lat || !zone?.lng) return false;
-        
-        const center = L.latLng(zone.lat, zone.lng);
-        const distance = point.distanceTo(center);
-        return distance <= (zone.radius || 500);
+        return {
+          ...worker,
+          inZone: isInSavedZone,
+        };
       });
-
-      return {
-        ...worker,
-        inZone: isInSavedZone,
-      };
-    });
   };
 
   // Actualizar los trabajadores cuando cambian las zonas
@@ -116,16 +116,25 @@ function EmployeeMap({
               position={[worker.location.lat, worker.location.lng]}
               icon={L.divIcon({
                 className: "custom-div-icon",
-                html: `<div style="background-color: ${worker.inZone ? "#10B981" : "#EF4444"}; 
-                        width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
-                iconSize: [15, 15],
+                html: `<div style="
+                  background-color: ${worker.inZone ? "#10B981" : "#EF4444"}; 
+                  width: 20px; 
+                  height: 20px; 
+                  border-radius: 50%; 
+                  border: 3px solid white;
+                  box-shadow: 0 0 0 2px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
               })}
             >
               <Popup>
-                <div>
-                  <p className="font-semibold">{worker.name}</p>
-                  <p className={worker.inZone ? "text-green-600" : "text-red-600"}>
+                <div className="p-2">
+                  <p className="font-semibold text-md">{worker.name}</p>
+                  <p className={worker.inZone ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
                     {worker.inZone ? "✅ Dentro de la zona" : "❌ Fuera de la zona"}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Ubicación en tiempo real
                   </p>
                 </div>
               </Popup>

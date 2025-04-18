@@ -577,4 +577,167 @@ router.get('/storage-config', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/users/location:
+ *   put:
+ *     summary: Actualiza la ubicación de un usuario
+ *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 description: Latitud de la ubicación
+ *               longitude:
+ *                 type: number
+ *                 description: Longitud de la ubicación
+ *     responses:
+ *       200:
+ *         description: Ubicación actualizada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Ubicación actualizada correctamente
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put('/users/location', async (req, res) => {
+  try {
+    console.log('📍 Recibida solicitud de actualización de ubicación');
+    
+    // Verificar que el usuario esté autenticado
+    if (!req.user || !req.user.id) {
+      console.log('❌ Usuario no autenticado');
+      return res.status(401).json({
+        status: 'error',
+        message: 'Usuario no autenticado'
+      });
+    }
+
+    console.log(`🔍 Usuario autenticado con ID: ${req.user.id}`);
+    
+    // Obtener y validar los datos de ubicación
+    const { latitude, longitude } = req.body;
+    console.log('📊 Datos recibidos:', { latitude, longitude });
+
+    if (latitude === undefined || longitude === undefined) {
+      console.log('❌ Datos de ubicación incompletos');
+      return res.status(400).json({
+        status: 'error',
+        message: 'La latitud y longitud son requeridas'
+      });
+    }
+
+    // Convertir a números flotantes
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    // Verificar que sean números válidos
+    if (isNaN(lat) || isNaN(lng)) {
+      console.log('❌ Valores de ubicación inválidos');
+      return res.status(400).json({
+        status: 'error',
+        message: 'La latitud y longitud deben ser números válidos'
+      });
+    }
+
+    // Verificar que el usuario exista en la base de datos
+    const user = await prisma.User.findUnique({
+      where: { id: parseInt(req.user.id) }
+    });
+
+    if (!user) {
+      console.log(`❌ Usuario con ID ${req.user.id} no encontrado en la base de datos`);
+      return res.status(404).json({
+        status: 'error',
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    console.log(`🧑‍💼 Usuario encontrado: ${user.username || user.email}, roleId: ${user.roleId}`);
+
+    // Verificar que el usuario sea un trabajador (roleId = 2)
+    if (user.roleId !== 2) {
+      console.log(`❌ Usuario con rol ${user.roleId} no autorizado (se requiere roleId = 2)`);
+      return res.status(403).json({
+        status: 'error',
+        message: 'Solo los trabajadores pueden actualizar su ubicación'
+      });
+    }
+
+    console.log(`💾 Actualizando ubicación para el usuario ${req.user.id}: [${lat}, ${lng}]`);
+    
+    // Actualizar la ubicación del usuario utilizando el método update de Prisma
+    const updatedUser = await prisma.User.update({
+      where: { id: parseInt(req.user.id) },
+      data: {
+        latitude: lat,
+        longitude: lng
+      }
+    });
+
+    console.log('✅ Ubicación actualizada correctamente');
+    
+    res.json({
+      status: 'success',
+      message: 'Ubicación actualizada correctamente',
+      data: {
+        userId: updatedUser.id,
+        latitude: updatedUser.latitude,
+        longitude: updatedUser.longitude
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al actualizar ubicación del usuario:', error);
+    console.error('Stack trace completo:', error.stack);
+    
+    // Respuesta más detallada para ayudar a diagnosticar
+    res.status(500).json({
+      status: 'error',
+      message: 'Error al actualizar ubicación del usuario',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 module.exports = router; 

@@ -1,30 +1,155 @@
 import React, { useState, useEffect } from "react";
 import ZonasDeTrabajo from "./zonas-de-trabajo";
 import Inventario from "./inventario";
-import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap"; // Importamos el nuevo componente
+import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
+import { MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import axios from "axios";
-import fondo2 from "../../assets/fondo2.jpg"; // 👈 Importamos la imagen de fondo
+import fondo2 from "../../assets/fondo2.jpg";
+import { useAuth } from "@/features/auth";
+import { updateUserLocation } from "@/services/dashboardService";
 
 function DashboardEmpleados() {
+  const { user, roleId } = useAuth();
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [workerLocation, setWorkerLocation] = useState(null);
   const [savedZones, setSavedZones] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false); // Estado para controlar si el menú está abierto o cerrado
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Estados para el modal de ubicación
+  const [showLocationModal, setShowLocationModal] = useState(true);
+  const [locationStatus, setLocationStatus] = useState(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
-  // Establecer ubicación fija del trabajador actual
+  // Solicitar permiso de ubicación al iniciar
   useEffect(() => {
-    setWorkerLocation({
-      lat: 4.8133,
-      lng: -75.6961,
-    });
+    // Mostrar modal al iniciar
+    setShowLocationModal(true);
   }, []);
+
+  // Función para solicitar permiso de ubicación
+  const requestLocationPermission = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationStatus('Solicitando acceso a ubicación...');
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          console.log('Ubicación obtenida:', { latitude, longitude });
+          
+          // Actualizar la ubicación en el estado local
+          setWorkerLocation({
+            lat: latitude,
+            lng: longitude
+          });
+
+          // Enviar ubicación al backend
+          try {
+            await updateUserLocation({ latitude, longitude });
+            
+            // Actualizar el estado y cerrar el modal
+            setLocationStatus('Ubicación actualizada correctamente');
+            setShowLocationModal(false);
+            
+            // Configurar un intervalo para actualizar la ubicación cada 5 minutos
+            const locationInterval = setInterval(() => updateLocation(), 5 * 60 * 1000);
+            
+            // Devolver función de limpieza
+            return () => clearInterval(locationInterval);
+          } catch (apiError) {
+            console.error('Error al llamar a la API:', apiError);
+            
+            // Mostrar mensaje de error específico si es posible, pero aun así continuar usando la aplicación
+            if (apiError.response?.status === 500) {
+              setLocationStatus('El servidor no pudo guardar tu ubicación, pero seguirás viendo el mapa. Por favor, contacta al administrador.');
+              // A pesar del error, cerramos el modal después de unos segundos para no bloquear al usuario
+              setTimeout(() => setShowLocationModal(false), 5000);
+            } else {
+              setLocationStatus('Error al actualizar ubicación en el servidor. Inténtalo de nuevo.');
+            }
+          }
+        } catch (error) {
+          console.error('Error general al procesar ubicación:', error);
+          setLocationStatus('Error al procesar tu ubicación. Inténtalo de nuevo.');
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Error al obtener ubicación:', error);
+        setLocationLoading(false);
+        
+        // Marcar que el permiso fue denegado
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermissionDenied(true);
+        }
+        
+        // Mensajes personalizados según el error
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationStatus('Se requiere permiso para acceder a la ubicación');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationStatus('Información de ubicación no disponible');
+            break;
+          case error.TIMEOUT:
+            setLocationStatus('Tiempo de espera agotado para obtener ubicación');
+            break;
+          default:
+            setLocationStatus('Error desconocido al obtener ubicación');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  // Función para actualizar la ubicación periódicamente
+  const updateLocation = () => {
+    if (!navigator.geolocation || locationPermissionDenied) return;
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Actualizar la ubicación en el estado local
+          setWorkerLocation({
+            lat: latitude,
+            lng: longitude
+          });
+
+          // Enviar ubicación al backend
+          try {
+            await updateUserLocation({ latitude, longitude });
+            console.log('Ubicación actualizada en segundo plano');
+          } catch (apiError) {
+            console.error('Error al llamar a la API para actualizar ubicación:', apiError);
+            // No mostramos notificación al usuario para no interrumpir su trabajo
+            // pero registramos el error en la consola para diagnóstico
+          }
+        } catch (error) {
+          console.error('Error general al procesar ubicación periódica:', error);
+        }
+      },
+      (error) => {
+        console.error('Error al obtener ubicación en segundo plano:', error);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   // Cargar zonas de trabajo guardadas
   useEffect(() => {
@@ -75,12 +200,102 @@ function DashboardEmpleados() {
     ? [
         {
           id: "current",
-          name: "Mi ubicación",
+          name: `${user?.username || user?.name || "Mi ubicación"}`,
           location: workerLocation,
           inZone: false,
         },
       ]
     : [];
+
+  // Renderizar el modal de ubicación
+  const renderLocationModal = () => {
+    if (!showLocationModal) return null;
+    
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80">
+        <div className="bg-slate-800 border-2 border-orange-500 p-6 rounded-lg max-w-md w-full shadow-xl">
+          <div className="flex items-center justify-center text-orange-500 mb-4">
+            <MapPin size={48} />
+          </div>
+          <h2 className="text-2xl font-bold text-white text-center mb-4">
+            Acceso a ubicación requerido
+          </h2>
+          <p className="text-slate-300 mb-6 text-center">
+            Para poder utilizar el sistema correctamente, necesitamos acceder a tu ubicación. 
+            Esto nos permite ubicarte en el mapa de trabajo y gestionar la asignación de tareas.
+          </p>
+          
+          {locationStatus && (
+            <div className={`p-4 mb-4 rounded-md ${
+              locationStatus.includes('Error') 
+                ? 'bg-red-900/50 border border-red-500 text-red-200' 
+                : locationStatus.includes('no pudo guardar')
+                  ? 'bg-yellow-900/50 border border-yellow-500 text-yellow-200'
+                  : 'bg-blue-900/50 border border-blue-500 text-blue-200'
+            }`}>
+              <p className="text-sm">
+                {locationStatus}
+              </p>
+            </div>
+          )}
+          
+          {locationPermissionDenied && (
+            <div className="bg-red-900/50 border border-red-500 rounded-md p-4 mb-4">
+              <div className="flex items-start">
+                <AlertTriangle className="text-red-500 mt-0.5 mr-2 flex-shrink-0" size={20} />
+                <p className="text-red-200 text-sm">
+                  Has rechazado el permiso de ubicación. Por favor, habilita los permisos de ubicación en la configuración de tu navegador y recarga la página.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {/* Si hay un error de servidor pero la ubicación se obtuvo */}
+          {locationStatus && locationStatus.includes('no pudo guardar') && workerLocation && (
+            <div className="bg-green-900/50 border border-green-500 rounded-md p-4 mb-4">
+              <p className="text-green-200 text-sm">
+                ✅ Ubicación obtenida con éxito: Se usará localmente en el mapa.
+              </p>
+            </div>
+          )}
+          
+          <div className="flex flex-col space-y-4">
+            <Button 
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3"
+              onClick={requestLocationPermission}
+              disabled={locationLoading || locationPermissionDenied}
+              size="lg"
+            >
+              {locationLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Obteniendo ubicación...
+                </>
+              ) : (
+                <>
+                  <MapPin className="mr-2 h-5 w-5" />
+                  {locationStatus && locationStatus.includes('Error') 
+                    ? 'Intentar de nuevo' 
+                    : 'Permitir acceso a ubicación'}
+                </>
+              )}
+            </Button>
+            
+            {/* Permitir continuar incluso si hay errores de backend pero ubicación está disponible */}
+            {(locationPermissionDenied || (locationStatus && locationStatus.includes('servidor') && workerLocation)) && (
+              <Button
+                variant="outline"
+                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                onClick={() => setShowLocationModal(false)}
+              >
+                Continuar {workerLocation ? 'con ubicación local' : 'sin ubicación'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -94,6 +309,9 @@ function DashboardEmpleados() {
         height: "100vh",
       }}
     >
+      {/* Modal de ubicación */}
+      {renderLocationModal()}
+
       {/* Botón para abrir/cerrar el menú */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
@@ -116,8 +334,8 @@ function DashboardEmpleados() {
           {/* Carnet de empleado */}
           <div className="p-4">
             <EmployeeCard
-              name="Juan Pérez"
-              email="juan.perez@pepe.com"
+              name={user?.username || user?.name || "Empleado"}
+              email={user?.email || ""}
               role="Trabajador de Obra"
             />
           </div>
@@ -236,6 +454,28 @@ function DashboardEmpleados() {
               defaultZoom={15}
               savedZones={savedZones}
             />
+            
+            {!workerLocation && (
+              <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-md text-yellow-200">
+                <div className="flex items-start">
+                  <AlertTriangle className="text-yellow-500 mt-0.5 mr-2 flex-shrink-0" size={20} />
+                  <div>
+                    <p className="font-medium">No se ha detectado tu ubicación</p>
+                    <p className="text-sm mt-1">
+                      Para ver tu ubicación en el mapa, debes permitir el acceso a la geolocalización.
+                    </p>
+                    <Button
+                      className="mt-2 bg-yellow-600 hover:bg-yellow-700 text-white"
+                      size="sm"
+                      onClick={() => setShowLocationModal(true)}
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      Activar ubicación
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -247,43 +487,31 @@ function DashboardEmpleados() {
               <div className="flex justify-center items-center h-48">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
               </div>
-            ) : (
+            ) : savedZones.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {savedZones.length === 0 ? (
-                  <p className="text-gray-500 col-span-full text-center">No hay zonas de trabajo guardadas.</p>
-                ) : (
-                  savedZones.map((zone) => (
-                    <Card key={zone.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">{zone.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {zone.description || "Sin descripción"}
-                        </p>
-                        // En el renderizado de tarjetas de zonas:
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                          <div>
-                            <span className="font-semibold">Latitud:</span>{" "}
-                            {zone.lat?.toFixed(6) || zone.latitud?.toFixed(6)}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Longitud:</span>{" "}
-                            {zone.lng?.toFixed(6) || zone.longitud?.toFixed(6)}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => {
-                            setActiveSection("mapa");
-                          }}
-                          className="mt-4 w-full"
-                        >
-                          Ver en mapa
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                {savedZones.map((zone) => (
+                  <Card key={zone.id} className="bg-white shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                      <CardTitle>{zone.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <p>{zone.description}</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        <strong>Radio:</strong> {zone.radius || 500}m
+                      </p>
+                      <Button
+                        onClick={() => setSelectedZone(zone.name)}
+                        className="mt-4 w-full"
+                      >
+                        Ver detalles
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                <p className="text-gray-500">No hay zonas de trabajo guardadas disponibles.</p>
               </div>
             )}
           </section>
