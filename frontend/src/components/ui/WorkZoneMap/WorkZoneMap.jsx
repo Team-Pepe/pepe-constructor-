@@ -5,7 +5,7 @@ import * as turf from "@turf/turf";
 import PropTypes from "prop-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target, Package, List, FileInput } from "lucide-react";
+import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target, Package, List, FileInput, Loader2 } from "lucide-react";
 import { fetchWorkZones, createWorkZone, deleteWorkZone, fetchZoneMaterials, assignMaterialsToZone, useMaterialsFromZone, fetchMaterials } from "@/services/dashboardService";
 import { useAuth } from "@/features/auth";
 import { MaterialAssignmentModal } from "./MaterialAssignmentModal";
@@ -196,7 +196,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const handleMapClick = (e) => {
     const { lat, lng } = e.latlng;
     
-    // Solo mostrar el modal después de que la zona temporal está configurada
+    // Crear la zona temporal
     setTempZone({
       lat,
       lng,
@@ -204,11 +204,13 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       saved: false
     });
     
-    // Mostrar el modal después de un pequeño retraso para permitir que la zona temporal se renderice primero
+    console.log("Creando zona temporal en:", lat, lng);
+    
+    // Mostrar el modal para completar los datos de la zona
     setTimeout(() => {
       setShowModal(true);
       setCreationMode(false); // Desactivar el modo de creación después de un clic
-    }, 10);
+    }, 100);
   };
 
   // Función para guardar la zona en la base de datos o localStorage
@@ -217,14 +219,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     
     setLoading(true);
     
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      console.error("No se encontró token de autenticación");
-      setLoading(false);
-      return;
-    }
-  
-    // 2. Crear objeto newZone
+    // Crear objeto newZone
     const newZone = {
       ...tempZone,
       name: zoneForm.name,
@@ -244,16 +239,19 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
         longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
         radius: zoneRadius
       }
-      const response = await createWorkZone(data)
-      console.log("response");
       
-      console.log(response);
+      console.log("Enviando datos de la zona:", data);
+      
+      const response = await createWorkZone(data);
+      
+      console.log("Respuesta del servidor:", response);
       
       // Si la creación fue exitosa, usar el ID de la API
-      if (response.data.newWorkZone && response.data.newWorkZone.id) {
-      console.log("test#3");
+      if (response.data && response.data.newWorkZone && response.data.newWorkZone.id) {
+        console.log("Zona creada exitosamente con ID:", response.data.newWorkZone.id);
         newZone.id = response.data.newWorkZone.id;
       }
+      
       // Actualizar estado y localStorage
       const updatedZones = [...savedZones, newZone];
       setSavedZones(updatedZones);
@@ -265,19 +263,30 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       setShowModal(false);
   
     } catch (error) {
-      // 5. Manejar errores específicos
+      console.error("Error al crear zona:", error);
+      
+      // Manejo de errores específicos
       if (error.response?.status === 401) {
         console.error("Sesión expirada - Redirigiendo a login...");
-        window.location.href = '/login';
+        setAuthError("Sesión expirada. Redirigiendo al inicio de sesión...");
+        setTimeout(() => window.location.href = '/login', 2000);
       } else if (error.response?.status === 403) {
-        console.error("Error CSRF - Recargando página para obtener nuevo token...");
-        window.location.reload();
+        console.error("Error de permisos - Recargando página para obtener nuevo token...");
+        setAuthError("Error de permisos. Recargando la página...");
+        setTimeout(() => window.location.reload(), 2000);
       } else {
         // Guardar en localStorage como respaldo
+        setAuthError(`Error al crear zona: ${error.message || 'Error desconocido'}`);
+        
+        // Aún así, guardar en localStorage para no perder el trabajo del usuario
         const updatedZones = [...savedZones, newZone];
         setSavedZones(updatedZones);
         localStorage.setItem('workZones', JSON.stringify(updatedZones));
-        alert("API no disponible. La zona se ha guardado localmente.");
+        
+        setTimeout(() => {
+          setAuthError("");
+          setShowModal(false);
+        }, 3000);
       }
     } finally {
       setLoading(false);
@@ -345,16 +354,6 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     setTempZone(null);
     setZoneForm({ name: "", description: "", supervisorId: "" });
     setShowModal(false);
-  };
-
-  // Función para verificar y obtener el token
-  const getAuthToken = () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      setAuthError("No se encontró el token de autenticación. Por favor, inicie sesión nuevamente.");
-      return null;
-    }
-    return token;
   };
 
   // Función para manejar errores de autenticación
@@ -493,6 +492,116 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     );
   };
 
+  // Al final antes del return, agregaremos el modal que falta
+  const renderZoneFormModal = () => {
+    return (
+      <div className={`fixed inset-0 z-[1000] flex items-center justify-center ${showModal ? "" : "hidden"}`}>
+        <div className="absolute inset-0 backdrop-blur-sm bg-black/30" onClick={cancelZoneCreation}></div>
+        <div className="relative bg-white rounded-lg w-full max-w-md mx-4 p-6 shadow-xl z-[1001]">
+          <h3 className="text-xl font-bold mb-4 text-gray-900">
+            {tempZone?.saved ? "Editar zona" : "Crear nueva zona"}
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Nombre de la zona*
+              </label>
+              <input
+                type="text"
+                value={zoneForm.name}
+                onChange={(e) => setZoneForm({...zoneForm, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Ej. Zona Norte"
+                required
+                autoFocus
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Descripción
+              </label>
+              <textarea
+                value={zoneForm.description}
+                onChange={(e) => setZoneForm({...zoneForm, description: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Describe el propósito de esta zona"
+                rows="3"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                ID del supervisor*
+              </label>
+              <input
+                type="number"
+                value={zoneForm.supervisorId}
+                onChange={(e) => setZoneForm({...zoneForm, supervisorId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Ej. 1"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={cancelZoneCreation}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancelar
+            </button>
+            
+            {!tempZone?.saved ? (
+              <button
+                type="button"
+                onClick={handleSaveZone}
+                disabled={!zoneForm.name || !zoneForm.supervisorId || loading}
+                className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  !zoneForm.name || !zoneForm.supervisorId || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="inline-block mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Zona"
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={confirmTempZone}
+                disabled={!zoneForm.name || loading}
+                className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  !zoneForm.name || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="inline-block mr-2 animate-spin" />
+                    Actualizando...
+                  </>
+                ) : (
+                  "Actualizar"
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card className="w-full bg-slate-800/80 text-white border-slate-700/50 hover:border-orange-500/30 transition-colors">
       <CardHeader className="bg-slate-800/80">
@@ -504,7 +613,9 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
               size="sm"
               onClick={() => setCreationMode(!creationMode)}
               title={creationMode ? "Cancelar creación" : "Crear nueva zona"}
-              className={creationMode ? "bg-green-600 hover:bg-green-700 text-white" : "border-white text-white hover:bg-white/20"}
+              className={creationMode 
+                ? "bg-green-600 hover:bg-green-700 text-white" 
+                : "bg-slate-700 border-orange-500 text-white hover:bg-slate-600"}
             >
               {creationMode ? (
                 <>
@@ -772,6 +883,9 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
         </div>
       </CardContent>
 
+      {/* Agregar el modal de creación de zona */}
+      {renderZoneFormModal()}
+      
       {/* Modales */}
       <MaterialAssignmentModal
         isOpen={showMaterialAssignmentModal}
