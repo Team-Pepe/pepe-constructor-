@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fondo
-import { requestPasswordReset } from './services/passwordService';
+import { requestPasswordReset } from "../../services/passwordService"; // Asegúrate de que esta función esté definida en tu servicio de autenticación
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

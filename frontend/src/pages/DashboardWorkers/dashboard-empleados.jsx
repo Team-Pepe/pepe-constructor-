@@ -212,17 +212,17 @@ function DashboardEmpleados() {
   // Renderizar el modal de ubicación
   const renderLocationModal = () => {
     if (!showLocationModal) return null;
-    
+  
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80">
-        <div className="bg-slate-800 border-2 border-orange-500 p-6 rounded-lg max-w-md w-full shadow-xl">
-          <div className="flex items-center justify-center text-orange-500 mb-4">
+        <div className="bg-black border-2 border-gray-700 p-6 rounded-lg max-w-md w-full shadow-xl">
+          <div className="flex items-center justify-center text-white mb-4">
             <MapPin size={48} />
           </div>
           <h2 className="text-2xl font-bold text-white text-center mb-4">
             Acceso a ubicación requerido
           </h2>
-          <p className="text-slate-300 mb-6 text-center">
+          <p className="text-gray-300 mb-6 text-center">
             Para poder utilizar el sistema correctamente, necesitamos acceder a tu ubicación. 
             Esto nos permite ubicarte en el mapa de trabajo y gestionar la asignación de tareas.
           </p>
@@ -230,10 +230,10 @@ function DashboardEmpleados() {
           {locationStatus && (
             <div className={`p-4 mb-4 rounded-md ${
               locationStatus.includes('Error') 
-                ? 'bg-red-900/50 border border-red-500 text-red-200' 
+                ? 'bg-red-800 border border-red-600 text-red-300' 
                 : locationStatus.includes('no pudo guardar')
-                  ? 'bg-yellow-900/50 border border-yellow-500 text-yellow-200'
-                  : 'bg-blue-900/50 border border-blue-500 text-blue-200'
+                  ? 'bg-gray-700 border border-gray-600 text-gray-300'
+                  : 'bg-gray-700 border border-gray-600 text-gray-300'
             }`}>
               <p className="text-sm">
                 {locationStatus}
@@ -242,10 +242,10 @@ function DashboardEmpleados() {
           )}
           
           {locationPermissionDenied && (
-            <div className="bg-red-900/50 border border-red-500 rounded-md p-4 mb-4">
+            <div className="bg-red-800 border border-red-600 rounded-md p-4 mb-4">
               <div className="flex items-start">
                 <AlertTriangle className="text-red-500 mt-0.5 mr-2 flex-shrink-0" size={20} />
-                <p className="text-red-200 text-sm">
+                <p className="text-red-300 text-sm">
                   Has rechazado el permiso de ubicación. Por favor, habilita los permisos de ubicación en la configuración de tu navegador y recarga la página.
                 </p>
               </div>
@@ -254,8 +254,8 @@ function DashboardEmpleados() {
           
           {/* Si hay un error de servidor pero la ubicación se obtuvo */}
           {locationStatus && locationStatus.includes('no pudo guardar') && workerLocation && (
-            <div className="bg-green-900/50 border border-green-500 rounded-md p-4 mb-4">
-              <p className="text-green-200 text-sm">
+            <div className="bg-gray-700 border border-gray-600 rounded-md p-4 mb-4">
+              <p className="text-gray-300 text-sm">
                 ✅ Ubicación obtenida con éxito: Se usará localmente en el mapa.
               </p>
             </div>
@@ -263,7 +263,7 @@ function DashboardEmpleados() {
           
           <div className="flex flex-col space-y-4">
             <Button 
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3"
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3"
               onClick={requestLocationPermission}
               disabled={locationLoading || locationPermissionDenied}
               size="lg"
@@ -287,7 +287,7 @@ function DashboardEmpleados() {
             {(locationPermissionDenied || (locationStatus && locationStatus.includes('servidor') && workerLocation)) && (
               <Button
                 variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                 onClick={() => setShowLocationModal(false)}
               >
                 Continuar {workerLocation ? 'con ubicación local' : 'sin ubicación'}
@@ -488,18 +488,18 @@ function DashboardEmpleados() {
 
             {loading ? (
               <div className="flex justify-center items-center h-48">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white-500"></div>
               </div>
             ) : savedZones.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {savedZones.map((zone) => (
-                  <Card key={zone.id} className="bg-white shadow-md hover:shadow-lg transition-shadow">
-                    <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                  <Card key={zone.id} className="bg-black shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="bg-gradient-to-r from-white-500 to-gray-600 text-white">
                       <CardTitle>{zone.name}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4">
+                    <CardContent className="p-4 bg-white">
                       <p>{zone.description}</p>
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-sm text-gray mt-2">
                         <strong>Radio:</strong> {zone.radius || 500}m
                       </p>
                       <Button
