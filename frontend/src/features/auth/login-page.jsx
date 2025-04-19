@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, Lock, Mail, Eye, EyeOff } from "lucide-react"; // Importamos los íconos Eye y EyeOff
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setIsAuthenticated, setRoleId, setCsrfToken } = useAuth();
+
+  useEffect(() => {
+    setIsAuthenticated(false);
+    setRoleId(null);
+    setCsrfToken(null);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("csrfToken");
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +54,7 @@ export default function LoginPage() {
         // Guardar el token de autenticación
         if (response.data.token) {
           document.cookie = `token=${response.data.token}; path=/`;
+          localStorage.setItem("authToken", response.data.token); // <-- Agrega esta línea
         }
 
         if (response.data.csrfToken) {

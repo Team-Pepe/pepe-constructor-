@@ -10,15 +10,17 @@ import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
 import { updateUserLocation } from "@/services/dashboardService";
+import { useNavigate } from "react-router-dom";
 
 function DashboardEmpleados() {
-  const { user, roleId } = useAuth();
+  const { user, roleId, logout } = useAuth();
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [workerLocation, setWorkerLocation] = useState(null);
   const [savedZones, setSavedZones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Estados para el modal de ubicación
   const [showLocationModal, setShowLocationModal] = useState(true);
@@ -406,23 +408,8 @@ function DashboardEmpleados() {
         <div className="p-4">
           <button
             onClick={() => {
-              // Eliminar token JWT del localStorage
-              localStorage.removeItem("authToken");
-              
-              // Eliminar datos de usuario
-              localStorage.removeItem("user");
-              
-              // Eliminar cualquier otra información de sesión
-              sessionStorage.clear();
-              
-              // Limpiar cookies relacionadas con la autenticación
-              document.cookie.split(";").forEach(cookie => {
-                const [name] = cookie.trim().split("=");
-                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-              });
-              
-              // Redirigir a la página de login
-              window.location.href = "/login";
+              logout(); // limpia el contexto y storage
+              navigate("/login"); // redirige al login
             }}
             className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
               activeSection === "inventario" ? "bg-gray-100" : ""

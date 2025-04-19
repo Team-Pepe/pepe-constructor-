@@ -1,4 +1,3 @@
-// Modificar esta línea
 import { useContext, createContext, useState, useEffect } from "react";
 import axios from "axios";
 
@@ -51,6 +50,16 @@ export function AuthProvider({ children }) {
         });
     };
 
+    // Función global de logout
+    const logout = () => {
+        setIsAuthenticated(false);
+        setRoleId(null);
+        setCsrfToken(null);
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("csrfToken");
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    };
+
     return (
         <AuthContext.Provider value={{ 
             isAuthenticated, 
@@ -59,7 +68,8 @@ export function AuthProvider({ children }) {
             setRoleId,
             csrfToken,
             setCsrfToken,
-            authRequest
+            authRequest,
+            logout // <-- Exporta logout en el contexto
         }}>
             {!isLoading && children} {/* Renderizar solo cuando carga completa */}
         </AuthContext.Provider>
