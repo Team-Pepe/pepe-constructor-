@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fondo
+import { requestPasswordReset } from './services/passwordService';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -17,12 +18,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate password reset request
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await requestPasswordReset(email);
       setIsSubmitted(true);
     } catch (error) {
       console.error("Password reset error:", error);
+      // Aquí podrías mostrar un mensaje de error
     } finally {
       setIsLoading(false);
     }
