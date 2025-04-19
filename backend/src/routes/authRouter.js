@@ -1,7 +1,7 @@
 // filepath: backend/src/routes/authRouter.js
 const express = require("express");
 const { login, register } = require("../controllers/authController");
-// Quitar la definición duplicada del middleware
+const { requestPasswordReset, resetPassword } = require("../controllers/passwordController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -197,5 +197,74 @@ router.post("/logout", (req, res) => {
     res.clearCookie("token");
     res.json({ message: "Sesión cerrada exitosamente" });
 });
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Solicita recuperación de contraseña
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email del usuario
+ *     responses:
+ *       200:
+ *         description: Solicitud procesada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Si el correo existe, recibirás un enlace de recuperación
+ *       429:
+ *         description: Demasiadas solicitudes
+ *       500:
+ *         description: Error del servidor
+ */
+router.post("/forgot-password", requestPasswordReset);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Restablece la contraseña usando el token
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token de recuperación
+ *               newPassword:
+ *                 type: string
+ *                 description: Nueva contraseña
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada exitosamente
+ *       400:
+ *         description: Token inválido o expirado
+ *       500:
+ *         description: Error del servidor
+ */
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

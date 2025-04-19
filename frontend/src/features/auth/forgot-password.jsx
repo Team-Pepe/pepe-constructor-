@@ -7,23 +7,30 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fondo
-import { requestPasswordReset } from './services/passwordService';
+import { requestPasswordReset } from '../../services/passwordService';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState(""); // Agregar estado para el error
+  const [email, setEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(""); // Limpiar error previo
 
     try {
       await requestPasswordReset(email);
       setIsSubmitted(true);
     } catch (error) {
       console.error("Password reset error:", error);
-      // Aquí podrías mostrar un mensaje de error
+      // Mostrar mensaje de error específico
+      if (error.isRateLimit) {
+        setError(error.message);
+      } else {
+        setError("Hubo un problema al procesar tu solicitud. Por favor intenta más tarde.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -31,7 +38,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+      className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{
         backgroundImage: `url(${fondo})`, // 👈 Aplicamos la imagen de fondo
         backgroundSize: "cover",
@@ -77,6 +84,11 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
               </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Enviando..." : "Enviar Enlace de Recuperación"}
               </Button>

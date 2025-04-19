@@ -13,6 +13,7 @@ const apiRoutes = require('./routes/api');
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
 const materialAssignmentsRoutes = require('./routes/materialAssignments');
 const { authenticateToken, verifyCSRF } = require('./middleware/authMiddleware');
+const { testEmailConnection } = require('./services/emailService');
 
 // Requerir las utilidades de archivos para crear los directorios necesarios al inicio
 require('./utils/fileUtils');
@@ -92,6 +93,13 @@ async function testDatabaseConnection() {
     return false;
   }
 }
+
+// Probar conexión email al iniciar
+testEmailConnection().then(isConnected => {
+  if (!isConnected) {
+    console.error('❌ Error: No se pudo establecer conexión con el servidor de correo');
+  }
+});
 
 // Rutas públicas
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

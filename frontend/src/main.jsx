@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom"
 
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage, Register, ForgotPassword as FPassword } from "@/features/auth";
+import ResetPassword from "@/features/auth/reset-password"; // Importa el nuevo componente
 import Dashboard from "@/pages/Dashboard/dashboard";
 import DashboardEmpleados from "@/pages/DashboardWorkers/dashboard-empleados";
 import ProtectedRoute from "@/pages/routers/protectedRoute";
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
   {
     path: "/forgot-password",
     element: <FPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   {
     element: <ProtectedRoute />,

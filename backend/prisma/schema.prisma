@@ -22,6 +22,8 @@ model User {
   assignedTasks    Task[]     @relation("AssignedTasks")
   role             Role       @relation(fields: [roleId], references: [id])
   supervisedZones  WorkZone[]
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   @@map("users")
 }
