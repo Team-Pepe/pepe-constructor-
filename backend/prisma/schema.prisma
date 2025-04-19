@@ -13,6 +13,7 @@ model User {
   username         String?
   roleId           Int        @map("role_id")
   password         String
+  bloodType        String? 
   latitude         Float?
   longitude        Float?
   receivedMessages Message[]  @relation("ReceiverMessages")

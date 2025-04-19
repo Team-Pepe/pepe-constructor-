@@ -19,25 +19,58 @@ export default function RegisterPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // Estado para alternar visibilidad de la contraseña
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [documentError, setDocumentError] = useState("");
   const navigate = useNavigate();
+
+  // Valida documento colombiano (6 a 10 dígitos, solo números)
+  const validateDocument = (value) => {
+    const regex = /^[0-9]{6,10}$/;
+    return regex.test(value);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setDocumentError("");
+
+    if (!validateDocument(document)) {
+      setDocumentError("Ingresa un número de documento válido (6 a 10 dígitos, solo números).");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await axios.post("http://localhost:3000/api/auth/register", {
+        id: parseInt(document), // Documento como id (Int)
         email,
         password,
-        username: name,
+        username: name, // El nombre se envía como username
+        bloodType,
         roleId: 2,
       });
 
       navigate("/login");
     } catch (err) {
-      console.error("Error al registrar usuario:", err);
-      setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+      // Revisa si el backend devuelve un error de duplicado
+      if (err.response && err.response.data) {
+        if (err.response.data.code === "P2002") {
+          // Prisma error de unique constraint
+          if (err.response.data.meta && err.response.data.meta.target.includes("id")) {
+            setDocumentError("Ya existe un usuario con este documento.");
+          } else if (err.response.data.meta && err.response.data.meta.target.includes("email")) {
+            setError("Ya existe un usuario con este correo.");
+          } else {
+            setError("Ya existe un usuario con estos datos.");
+          }
+        } else if (typeof err.response.data === "string" && err.response.data.includes("ya existe")) {
+          setError(err.response.data);
+        } else {
+          setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+        }
+      } else {
+        setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -87,17 +120,27 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="document">Número de Documento</Label>
                 <div className="relative">
-                <span className="absolute left-3 top-1.5 text-muted-foreground">Cc</span>
+                  <span className="absolute left-3 top-1.5 text-muted-foreground">Cc</span>
                   <Input
                     id="document"
                     type="text"
                     placeholder="123456789"
                     className="pl-10"
                     value={document}
-                    onChange={(e) => setDocument(e.target.value)}
+                    onChange={(e) => {
+                      // Solo permite números
+                      const value = e.target.value.replace(/\D/g, "");
+                      setDocument(value);
+                      setDocumentError("");
+                    }}
                     required
+                    maxLength={10}
+                    minLength={6}
+                    pattern="[0-9]{6,10}"
+                    inputMode="numeric"
                   />
                 </div>
+                {documentError && <p className="text-red-500 text-xs">{documentError}</p>}
               </div>
             </div>
 

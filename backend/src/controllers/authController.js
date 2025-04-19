@@ -67,16 +67,34 @@ exports.login = async (req, res) => {
 
 // Añadir esta función de registro
 exports.register = async (req, res) => {
-    const { email, password, username } = req.body;
+    const { id, email, password, username, bloodType } = req.body;
 
     try {
         // Verificar si el usuario ya existe
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email },
+                    { id }
+                ]
+            }
         });
 
         if (existingUser) {
-            return res.status(400).json({ message: "El usuario ya existe" });
+            if (existingUser.id === id) {
+                return res.status(400).json({ 
+                    code: "P2002",
+                    meta: { target: ["id"] },
+                    message: "Ya existe un usuario con este documento" 
+                });
+            }
+            if (existingUser.email === email) {
+                return res.status(400).json({ 
+                    code: "P2002",
+                    meta: { target: ["email"] },
+                    message: "Ya existe un usuario con este correo" 
+                });
+            }
         }
 
         // Encriptar contraseña
@@ -85,10 +103,12 @@ exports.register = async (req, res) => {
         // Crear nuevo usuario
         const newUser = await prisma.user.create({
             data: {
+                id,              // Agregamos el id (documento)
                 email,
                 username,
                 password: hashedPassword,
-                roleId: 2 // Asignar rol por defecto (empleado)
+                bloodType,
+                roleId: 2       // Rol por defecto (empleado)
             },
             include: { role: true }
         });
@@ -104,6 +124,11 @@ exports.register = async (req, res) => {
 
     } catch (error) {
         console.error("Error en el registro:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        if (error.code === "P2002") {
+            // Error de unique constraint
+            res.status(400).json(error);
+        } else {
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
     }
 };
