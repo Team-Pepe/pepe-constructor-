@@ -406,7 +406,23 @@ function DashboardEmpleados() {
         <div className="p-4">
           <button
             onClick={() => {
-              console.log("Cerrar sesión");
+              // Eliminar token JWT del localStorage
+              localStorage.removeItem("authToken");
+              
+              // Eliminar datos de usuario
+              localStorage.removeItem("user");
+              
+              // Eliminar cualquier otra información de sesión
+              sessionStorage.clear();
+              
+              // Limpiar cookies relacionadas con la autenticación
+              document.cookie.split(";").forEach(cookie => {
+                const [name] = cookie.trim().split("=");
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+              });
+              
+              // Redirigir a la página de login
+              window.location.href = "/login";
             }}
             className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
               activeSection === "inventario" ? "bg-gray-100" : ""
