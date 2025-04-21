@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,12 @@ export const MaterialAssignmentModal = ({ isOpen, onClose, onAssign, materials =
     e.preventDefault();
     if (!selectedMaterial || !quantity) {
       setError("Por favor complete todos los campos");
+      return;
+    }
+
+    // Safety check for materials array
+    if (!Array.isArray(materials)) {
+      setError("Error al cargar la lista de materiales");
       return;
     }
 
@@ -54,6 +60,9 @@ export const MaterialAssignmentModal = ({ isOpen, onClose, onAssign, materials =
       <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
         <DialogHeader>
           <DialogTitle>Asignar Materiales a la Zona</DialogTitle>
+          <DialogDescription className="text-slate-300">
+            Seleccione un material y la cantidad a asignar a esta zona de trabajo.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -66,24 +75,30 @@ export const MaterialAssignmentModal = ({ isOpen, onClose, onAssign, materials =
                 <SelectValue placeholder="Selecciona un material" />
               </SelectTrigger>
               <SelectContent className="bg-slate-700 text-white">
-                {materials.map((material) => (
-                  <SelectItem 
-                    key={material.id} 
-                    value={material.id}
-                    className="hover:bg-slate-600 focus:bg-slate-600"
-                  >
-                    <div className="flex items-center space-x-2">
-                      {material.image && (
-                        <img 
-                          src={material.image} 
-                          alt={material.name} 
-                          className="w-6 h-6 object-cover rounded"
-                        />
-                      )}
-                      <span>{material.name}</span>
-                    </div>
+                {Array.isArray(materials) && materials.length > 0 ? (
+                  materials.map((material) => (
+                    <SelectItem 
+                      key={material.id} 
+                      value={material.id}
+                      className="hover:bg-slate-600 focus:bg-slate-600"
+                    >
+                      <div className="flex items-center space-x-2">
+                        {material.image && (
+                          <img 
+                            src={material.image} 
+                            alt={material.name} 
+                            className="w-6 h-6 object-cover rounded"
+                          />
+                        )}
+                        <span>{material.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-materials" disabled>
+                    No hay materiales disponibles
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -133,7 +148,7 @@ MaterialAssignmentModal.propTypes = {
   onAssign: PropTypes.func.isRequired,
   materials: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       available: PropTypes.number.isRequired,
       description: PropTypes.string,

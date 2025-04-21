@@ -71,10 +71,12 @@ const prisma = new PrismaClient();
  */
 router.post('/', async (req, res) => {
   try {
+    console.log('Datos recibidos en materialAssignments:', req.body);
     const { id_zona, id_material, cantidad_asignada } = req.body;
 
     // Validar datos requeridos
     if (!id_zona || !id_material || !cantidad_asignada) {
+      console.log('Datos faltantes:', { id_zona, id_material, cantidad_asignada });
       return res.status(400).json({
         status: 'error',
         message: 'Se requieren id_zona, id_material y cantidad_asignada'
@@ -113,7 +115,7 @@ router.post('/', async (req, res) => {
     }
 
     // Verificar si ya existe una asignación para esta zona y material
-    const existingAssignment = await prisma.MaterialZone.findFirst({
+    const existingAssignment = await prisma.ZonaMaterial.findFirst({
       where: {
         id_zona: parseInt(id_zona),
         id_material: parseInt(id_material)
@@ -121,12 +123,12 @@ router.post('/', async (req, res) => {
     });
 
     // Iniciar transacción para asegurar consistencia
-    const result = await prisma.$transaction(async (prisma) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Actualizar o crear la asignación
       let zonaMaterial;
       if (existingAssignment) {
         // Actualizar asignación existente
-        zonaMaterial = await prisma.MaterialZone.update({
+        zonaMaterial = await tx.ZonaMaterial.update({
           where: { id: existingAssignment.id },
           data: {
             cantidad_asignada: existingAssignment.cantidad_asignada + parseInt(cantidad_asignada)
@@ -134,7 +136,7 @@ router.post('/', async (req, res) => {
         });
       } else {
         // Crear nueva asignación
-        zonaMaterial = await prisma.MaterialZone.create({
+        zonaMaterial = await tx.ZonaMaterial.create({
           data: {
             id_zona: parseInt(id_zona),
             id_material: parseInt(id_material),
@@ -144,7 +146,7 @@ router.post('/', async (req, res) => {
       }
 
       // Descontar del inventario general
-      await prisma.Material.update({
+      await tx.Material.update({
         where: { id: parseInt(id_material) },
         data: {
           quantity: material.quantity - parseInt(cantidad_asignada)
@@ -249,7 +251,7 @@ router.get('/zona/:id_zona', async (req, res) => {
     }
 
     // Obtener materiales asignados a la zona
-    const materialesAsignados = await prisma.MaterialZone.findMany({
+    const materialesAsignados = await prisma.ZonaMaterial.findMany({
       where: { id_zona: parseInt(id_zona) },
       include: {
         material: {
@@ -380,7 +382,7 @@ router.post('/uso', async (req, res) => {
     }
 
     // Verificar si existe una asignación para esta zona y material
-    const asignacion = await prisma.MaterialZone.findFirst({
+    const asignacion = await prisma.ZonaMaterial.findFirst({
       where: {
         id_zona: parseInt(id_zona),
         id_material: parseInt(id_material)
@@ -403,7 +405,7 @@ router.post('/uso', async (req, res) => {
     }
 
     // Actualizar la cantidad asignada
-    const updatedAsignacion = await prisma.MaterialZone.update({
+    const updatedAsignacion = await prisma.ZonaMaterial.update({
       where: { id: asignacion.id },
       data: {
         cantidad_asignada: asignacion.cantidad_asignada - parseInt(cantidad_utilizada)

@@ -132,10 +132,102 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   useEffect(() => {
     const loadAvailableMaterials = async () => {
       try {
+        console.log("Solicitando materiales disponibles...");
         const response = await fetchMaterials();
-        setAvailableMaterials(response.data);
+        console.log("Respuesta completa de fetchMaterials:", response);
+        
+        // Intentamos acceder a los datos de diferentes maneras según la estructura de respuesta
+        let materialsData = null;
+        
+        if (response && response.data) {
+          // Caso 1: response.data es directamente el array de materiales
+          if (Array.isArray(response.data)) {
+            materialsData = response.data;
+            console.log("Caso 1: response.data es un array");
+          } 
+          // Caso 2: Los materiales están anidados en una propiedad de response.data
+          else if (typeof response.data === 'object') {
+            console.log("Caso 2: explorando objeto response.data");
+            
+            // Revisar las propiedades más comunes donde podrían estar los materiales
+            const possiblePaths = ['materials', 'items', 'results', 'data'];
+            
+            for (const path of possiblePaths) {
+              if (response.data[path] && Array.isArray(response.data[path])) {
+                materialsData = response.data[path];
+                console.log(`Encontrado array en response.data.${path}`);
+                break;
+              }
+            }
+            
+            // Si no encontramos en las rutas comunes, intentamos encontrar cualquier array
+            if (!materialsData) {
+              for (const key in response.data) {
+                if (Array.isArray(response.data[key])) {
+                  materialsData = response.data[key];
+                  console.log(`Encontrado array en response.data.${key}`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Si no pudimos encontrar los datos de ninguna manera, establecemos un array vacío
+        if (!materialsData) {
+          console.error("No se pudo encontrar un array en la respuesta:", response);
+          materialsData = [];
+        }
+        
+        // Transformar los datos para asegurar que tengan la estructura correcta
+        const transformedMaterials = materialsData.map(material => {
+          // Intenta identificar cada propiedad haciendo log de sus valores
+          console.log("Procesando material:", material);
+          
+          // Buscar propiedades anidadas (por ejemplo, material.material.name)
+          let nestedMaterial = null;
+          if (material.material && typeof material.material === 'object') {
+            console.log("Encontrado objeto anidado 'material':", material.material);
+            nestedMaterial = material.material;
+          }
+          
+          console.log("ID:", material.id, material.id_material, material.material_id, nestedMaterial?.id);
+          console.log("Nombre:", material.name, material.nombre, material.material_name, nestedMaterial?.name, nestedMaterial?.nombre);
+          console.log("Cantidad:", material.quantity, material.cantidad, material.cantidad_disponible, material.cantidad_asignada, material.available_quantity, nestedMaterial?.quantity);
+          
+          // Extraer la cantidad correctamente, priorizando la cantidad de la zona
+          const quantity = 
+            // Primero las propiedades directas más probables
+            material.cantidad_disponible || 
+            material.cantidad_asignada || 
+            material.cantidad || 
+            material.quantity || 
+            material.available_quantity ||
+            // Luego propiedades anidadas
+            nestedMaterial?.cantidad_disponible ||
+            nestedMaterial?.cantidad ||
+            nestedMaterial?.quantity ||
+            0;
+          
+          // Material transformado con todas las posibles fuentes de datos
+          const transformedMaterial = {
+            id: material.id || material.id_material || material.material_id || nestedMaterial?.id || '0',
+            name: material.nombre || material.name || material.material_name || nestedMaterial?.name || nestedMaterial?.nombre || 'Material sin nombre',
+            quantity: quantity,
+            unit: material.unidad || material.unit || material.units || nestedMaterial?.unidad || nestedMaterial?.unit || 'unidades',
+            description: material.descripcion || material.description || material.desc || nestedMaterial?.descripcion || nestedMaterial?.description || '',
+            raw: material // Guardamos el objeto original para depuración
+          };
+          
+          console.log("Material transformado:", transformedMaterial);
+          return transformedMaterial;
+        });
+        
+        console.log("Materiales encontrados (transformados):", transformedMaterials);
+        setAvailableMaterials(transformedMaterials);
       } catch (error) {
         console.error("Error al cargar materiales disponibles:", error);
+        setAvailableMaterials([]);
       }
     };
     loadAvailableMaterials();
@@ -369,14 +461,125 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     }
   };
 
-  // Modificar loadZoneMaterials para usar las nuevas funciones de autenticación
+  // Modificar loadZoneMaterials para manejar la estructura correcta del response
   const loadZoneMaterials = async (zoneId) => {
     try {
       setAuthError(""); // Limpiar errores previos
+      console.log("Solicitando materiales para zona:", zoneId);
       const response = await fetchZoneMaterials(zoneId);
-      setZoneMaterials(response.data);
+      console.log("Respuesta completa de fetchZoneMaterials:", response);
+      
+      // Examinamos cada capa de la respuesta para entender la estructura
+      if (response && response.data) {
+        console.log("Contenido de response.data:", response.data);
+        
+        if (typeof response.data === 'object' && !Array.isArray(response.data)) {
+          // Inspeccionar cada propiedad del objeto response.data
+          Object.keys(response.data).forEach(key => {
+            console.log(`Examinando response.data.${key}:`, response.data[key]);
+          });
+        }
+      }
+      
+      // Intentamos acceder a los datos de diferentes maneras según la estructura de respuesta
+      let materialsData = null;
+      
+      if (response && response.data) {
+        // Caso 1: response.data es directamente el array de materiales
+        if (Array.isArray(response.data)) {
+          materialsData = response.data;
+          console.log("Caso 1: response.data es un array");
+        } 
+        // Caso 2: Los materiales están anidados en una propiedad de response.data
+        else if (typeof response.data === 'object') {
+          console.log("Caso 2: explorando objeto response.data");
+          
+          // Revisar las propiedades más comunes donde podrían estar los materiales
+          const possiblePaths = ['materials', 'items', 'results', 'data', 'zoneMaterials', 'zonaMateriales', 'materiales'];
+          
+          for (const path of possiblePaths) {
+            if (response.data[path] && Array.isArray(response.data[path])) {
+              materialsData = response.data[path];
+              console.log(`Encontrado array en response.data.${path}`);
+              break;
+            }
+          }
+          
+          // Si no encontramos en las rutas comunes, intentamos encontrar cualquier array
+          if (!materialsData) {
+            for (const key in response.data) {
+              if (Array.isArray(response.data[key])) {
+                materialsData = response.data[key];
+                console.log(`Encontrado array en response.data.${key}`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Si no pudimos encontrar los datos de ninguna manera, establecemos un array vacío
+      if (!materialsData) {
+        console.error("No se pudo encontrar un array en la respuesta:", response);
+        materialsData = [];
+      } else {
+        // Mostrar el primer elemento para entender su estructura exacta
+        if (materialsData.length > 0) {
+          console.log("Primer elemento del array de materiales:", materialsData[0]);
+          console.log("Todas las claves del primer elemento:", Object.keys(materialsData[0]));
+        }
+      }
+      
+      // Transformar los datos para asegurar que tengan la estructura correcta
+      const transformedMaterials = materialsData.map(material => {
+        // Intenta identificar cada propiedad haciendo log de sus valores
+        console.log("Procesando material:", material);
+        
+        // Buscar propiedades anidadas (por ejemplo, material.material.name)
+        let nestedMaterial = null;
+        if (material.material && typeof material.material === 'object') {
+          console.log("Encontrado objeto anidado 'material':", material.material);
+          nestedMaterial = material.material;
+        }
+        
+        console.log("ID:", material.id, material.id_material, material.material_id, nestedMaterial?.id);
+        console.log("Nombre:", material.name, material.nombre, material.material_name, nestedMaterial?.name, nestedMaterial?.nombre);
+        console.log("Cantidad:", material.quantity, material.cantidad, material.cantidad_disponible, material.cantidad_asignada, material.available_quantity, nestedMaterial?.quantity);
+        
+        // Extraer la cantidad correctamente, priorizando la cantidad de la zona
+        const quantity = 
+          // Primero las propiedades directas más probables
+          material.cantidad_disponible || 
+          material.cantidad_asignada || 
+          material.cantidad || 
+          material.quantity || 
+          material.available_quantity ||
+          // Luego propiedades anidadas
+          nestedMaterial?.cantidad_disponible ||
+          nestedMaterial?.cantidad ||
+          nestedMaterial?.quantity ||
+          0;
+        
+        // Material transformado con todas las posibles fuentes de datos
+        const transformedMaterial = {
+          id: material.id || material.id_material || material.material_id || nestedMaterial?.id || '0',
+          name: material.nombre || material.name || material.material_name || nestedMaterial?.name || nestedMaterial?.nombre || 'Material sin nombre',
+          quantity: quantity,
+          unit: material.unidad || material.unit || material.units || nestedMaterial?.unidad || nestedMaterial?.unit || 'unidades',
+          description: material.descripcion || material.description || material.desc || nestedMaterial?.descripcion || nestedMaterial?.description || '',
+          raw: material // Guardamos el objeto original para depuración
+        };
+        
+        console.log("Material transformado:", transformedMaterial);
+        return transformedMaterial;
+      });
+      
+      console.log("Materiales encontrados (transformados):", transformedMaterials);
+      setZoneMaterials(transformedMaterials);
     } catch (error) {
+      console.error("Error al cargar materiales de zona:", error);
       handleAuthError(error);
+      setZoneMaterials([]);
     }
   };
 
@@ -384,15 +587,22 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const handleAssignMaterials = async (data) => {
     try {
       setAuthError(""); // Limpiar errores previos
+      console.log("Asignando materiales con datos:", {
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity)
+      });
+      
       await assignMaterialsToZone({
-        zoneId: selectedZone.id,
-        materialId: data.materialId,
-        quantity: data.quantity
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity)
       });
 
       await loadZoneMaterials(selectedZone.id);
       setShowMaterialAssignmentModal(false);
     } catch (error) {
+      console.error("Error al asignar materiales:", error);
       handleAuthError(error);
     }
   };
@@ -401,16 +611,24 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const handleUseMaterials = async (data) => {
     try {
       setAuthError(""); // Limpiar errores previos
+      console.log("Registrando uso de materiales con datos:", {
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity),
+        notes: data.notes
+      });
+      
       await useMaterialsFromZone({
-        zoneId: selectedZone.id,
-        materialId: data.materialId,
-        quantity: data.quantity,
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity),
         notes: data.notes
       });
 
       await loadZoneMaterials(selectedZone.id);
       setShowUseMaterialsModal(false);
     } catch (error) {
+      console.error("Error al registrar uso de materiales:", error);
       handleAuthError(error);
     }
   };
@@ -921,14 +1139,14 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
         isOpen={showMaterialAssignmentModal}
         onClose={() => setShowMaterialAssignmentModal(false)}
         onAssign={handleAssignMaterials}
-        materials={availableMaterials.map(material => ({
-          id: String(material.id),
-          name: material.name,
-          available: material.quantity,
-          description: material.description,
-          image: material.image_url
-        }))}
-        zoneId={selectedZone?.id ? String(selectedZone.id) : undefined}
+        materials={Array.isArray(availableMaterials) ? availableMaterials.map(material => ({
+          id: String(material.id || '0'),
+          name: material.name || 'Material sin nombre',
+          available: material.available || material.quantity || 0,
+          description: material.description || '',
+          image: material.image_url || ''
+        })) : []}
+        zoneId={selectedZone?.id ? String(selectedZone.id) : '0'}
       />
 
       <ViewMaterialsModal

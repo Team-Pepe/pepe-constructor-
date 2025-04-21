@@ -1,20 +1,31 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ViewMaterialsModal({ isOpen, onClose, materials = [], zoneName = "Zona" }) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
-        <h3 className="text-lg font-semibold mb-4 text-white">
-          Materiales en {zoneName}
-        </h3>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-slate-800 text-white">
+        <DialogHeader>
+          <DialogTitle>Materiales en {zoneName}</DialogTitle>
+          <DialogDescription className="text-slate-300">
+            Lista de materiales asignados a esta zona de trabajo.
+          </DialogDescription>
+        </DialogHeader>
         
         <ScrollArea className="h-[300px] rounded-md border border-slate-700 p-4">
-          {materials.length === 0 ? (
+          {!Array.isArray(materials) ? (
+            <p className="text-slate-400 text-center">Error al cargar materiales</p>
+          ) : materials.length === 0 ? (
             <p className="text-slate-400 text-center">No hay materiales asignados a esta zona</p>
           ) : (
             <div className="space-y-3">
@@ -27,7 +38,7 @@ export function ViewMaterialsModal({ isOpen, onClose, materials = [], zoneName =
                     <div>
                       <h4 className="font-medium text-white">{material.name}</h4>
                       <p className="text-sm text-slate-400">
-                        Cantidad disponible: {material.quantity} {material.unit}
+                        Cantidad disponible: {material.quantity} {material.unit || 'unidades'}
                       </p>
                     </div>
                   </div>
@@ -37,13 +48,13 @@ export function ViewMaterialsModal({ isOpen, onClose, materials = [], zoneName =
           )}
         </ScrollArea>
 
-        <div className="flex justify-end mt-4">
+        <DialogFooter>
           <Button onClick={onClose}>
             Cerrar
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -52,10 +63,10 @@ ViewMaterialsModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   materials: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       quantity: PropTypes.number.isRequired,
-      unit: PropTypes.string.isRequired,
+      unit: PropTypes.string
     })
   ).isRequired,
   zoneName: PropTypes.string,

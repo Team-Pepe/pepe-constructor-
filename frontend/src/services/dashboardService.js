@@ -12,7 +12,7 @@ const API_ENDPOINTS = {
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
   WORK_ZONES: '/api/work-zones',
-  MATERIAL_ZONE: '/api/material-zone',
+  MATERIAL_ZONE: '/api/material-assignments',
 };
 
 export const apiClient = axios.create({
@@ -70,8 +70,25 @@ export const deleteWorkZone = (id) =>
   apiClient.delete(`${API_ENDPOINTS.WORK_ZONES}/${id}`, { headers: getAuthHeaders() });
 
 // Materials CRUD operations
-export const fetchMaterials = () => 
-  apiClient.get(API_ENDPOINTS.MATERIALS, { headers: getAuthHeaders() });
+export const fetchMaterials = async () => { 
+  try {
+    console.log("Solicitando lista de materiales disponibles...");
+    const response = await apiClient.get(API_ENDPOINTS.MATERIALS, { 
+      headers: getAuthHeaders() 
+    });
+    console.log("Respuesta de API de materials:", response);
+    return response;
+  } catch (error) {
+    console.error("Error al recuperar materiales:", error);
+    if (error.response) {
+      console.error("Respuesta de error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    throw error;
+  }
+};
 
 export const createMaterial = (formData) => 
   apiClient.post(API_ENDPOINTS.MATERIALS, formData, { 
@@ -93,14 +110,94 @@ export const deleteMaterial = (id) =>
   apiClient.delete(`${API_ENDPOINTS.MATERIALS}/${id}`, { headers: getAuthHeaders() });
 
 // Material Zone operations
-export const fetchZoneMaterials = (zoneId) =>
-  apiClient.get(`${API_ENDPOINTS.MATERIAL_ZONE}/${zoneId}`, { headers: getAuthHeaders() });
+export const fetchZoneMaterials = async (zoneId) => {
+  try {
+    console.log(`Solicitando materiales para la zona ${zoneId}...`);
+    const response = await apiClient.get(`${API_ENDPOINTS.MATERIAL_ZONE}/zona/${zoneId}`, { 
+      headers: getAuthHeaders() 
+    });
+    console.log(`Respuesta de API de zona ${zoneId} (completa):`, response);
+    console.log(`Estructura de la respuesta de zona ${zoneId}:`, {
+      status: response.status,
+      headers: response.headers,
+      dataType: typeof response.data,
+      isArray: Array.isArray(response.data),
+      dataKeys: response.data ? (typeof response.data === 'object' ? Object.keys(response.data) : 'no es un objeto') : 'no hay data'
+    });
+    
+    // Si es un objeto y no un array, examinamos más a fondo
+    if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+      // Examinamos cada propiedad del response.data para buscar arrays o información relevante
+      Object.keys(response.data).forEach(key => {
+        const value = response.data[key];
+        console.log(`Propiedad '${key}' en response.data:`, {
+          tipo: typeof value,
+          esArray: Array.isArray(value),
+          longitud: Array.isArray(value) ? value.length : null,
+          muestra: Array.isArray(value) && value.length > 0 ? value[0] : value
+        });
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    console.error(`Error al recuperar materiales de zona ${zoneId}:`, error);
+    if (error.response) {
+      console.error("Respuesta de error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    throw error;
+  }
+};
 
-export const assignMaterialsToZone = (data) =>
-  apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/assign`, data, { headers: getAuthHeaders() });
+export const assignMaterialsToZone = async (data) => {
+  try {
+    console.log("Enviando datos al servidor:", {
+      id_zona: parseInt(data.zoneId),
+      id_material: parseInt(data.materialId),
+      cantidad_asignada: parseInt(data.quantity)
+    });
+    
+    return await apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}`, {
+      id_zona: parseInt(data.zoneId),
+      id_material: parseInt(data.materialId),
+      cantidad_asignada: parseInt(data.quantity)
+    }, { 
+      headers: getAuthHeaders() 
+    });
+  } catch (error) {
+    console.error("Error en la asignación de materiales:", error);
+    if (error.response) {
+      console.error("Respuesta del servidor:", error.response.data);
+      console.error("Estado HTTP:", error.response.status);
+    }
+    throw error;
+  }
+};
 
-export const useMaterialsFromZone = (data) =>
-  apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/use`, data, { headers: getAuthHeaders() });
+export const useMaterialsFromZone = async (data) => {
+  try {
+    console.log("Enviando datos de uso de materiales:", data);
+    
+    return await apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/uso`, {
+      id_zona: parseInt(data.zoneId),
+      id_material: parseInt(data.materialId),
+      cantidad_usada: parseInt(data.quantity),
+      notas: data.notes || ""
+    }, { 
+      headers: getAuthHeaders() 
+    });
+  } catch (error) {
+    console.error("Error en el uso de materiales:", error);
+    if (error.response) {
+      console.error("Respuesta del servidor:", error.response.data);
+      console.error("Estado HTTP:", error.response.status);
+    }
+    throw error;
+  }
+};
 
 // User location update
 export const updateUserLocation = async ({ latitude, longitude }) => {
