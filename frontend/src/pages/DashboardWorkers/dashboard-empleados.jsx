@@ -5,6 +5,7 @@ import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap"; // Importamos
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
+import { MapPin, AlertTriangle, Loader2, Package } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg"; // 👈 Importamos la imagen de fondo
 
@@ -14,6 +15,20 @@ function DashboardEmpleados() {
   const [workerLocation, setWorkerLocation] = useState(null);
   const [savedZones, setSavedZones] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
+  const userRoleId = Number(roleId);
+  const canRequestMaterials = userRoleId === 3;
+  
+  console.log("Dashboard empleados - Rol del usuario:", userRoleId, "- Puede solicitar materiales:", canRequestMaterials);
+
+  // Estados para el modal de ubicación
+  const [showLocationModal, setShowLocationModal] = useState(true);
+  const [locationStatus, setLocationStatus] = useState(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
@@ -156,19 +171,45 @@ function DashboardEmpleados() {
             Zonas Guardadas
           </button>
 
-          {/* Botón para el inventario */}
+            <button
+              onClick={() => {
+                setActiveSection("inventario");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "inventario" ? "bg-gray-100" : ""
+              }`}
+            >
+              Inventario
+            </button>
+
+            {canRequestMaterials && (
+              <button
+                onClick={() => {
+                  navigate("/solicitar-materiales");
+                }}
+                className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center bg-blue-50`}
+              >
+                <Package className="mr-2 h-4 w-4" />
+                Solicitar Materiales
+              </button>
+            )}
+          </nav>
+        </div>
+
+        <div className="p-4">
           <button
             onClick={() => {
-              setActiveSection("inventario");
-              setSelectedZone(null);
+              logout(); // limpia el contexto y storage
+              navigate("/login"); // redirige al login
             }}
             className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
               activeSection === "inventario" ? "bg-gray-100" : ""
             }`}
           >
-            Inventario
+            Cerrar Sesión
           </button>
-        </nav>
+        </div>
       </aside>
 
       {/* Contenido principal */}
@@ -285,6 +326,16 @@ function DashboardEmpleados() {
                   <h4 className="font-medium text-black-700">Zonas Guardadas</h4>
                   <p className="text-sm text-gray-500">Ver todas las zonas de trabajo asignadas</p>
                 </div>
+
+                {canRequestMaterials && (
+                  <div
+                    onClick={() => navigate("/solicitar-materiales")}
+                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50 mt-4 bg-blue-100 border-blue-300 col-span-2"
+                  >
+                    <h4 className="font-medium text-black-700">Solicitar Materiales</h4>
+                    <p className="text-sm text-gray-500">Realiza solicitudes de materiales para tu zona de trabajo</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

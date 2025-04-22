@@ -6,6 +6,7 @@ import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage, Register, ForgotPassword as FPassword } from "@/features/auth";
 import Dashboard from "@/pages/Dashboard/dashboard";
 import DashboardEmpleados from "@/pages/DashboardWorkers/dashboard-empleados";
+import SolicitarMateriales from "@/pages/DashboardWorkers/solicitar-materiales";
 import ProtectedRoute from "@/pages/routers/protectedRoute";
 
 import "./styles/global.css";
@@ -40,6 +41,12 @@ const router = createBrowserRouter([
       {
         path: "dashboard-empleados",
         element: <DashboardEmpleados />,
+        handle: { requiredRole: [2, 3] }  // Permitir tanto rol 2 como rol 3
+      },
+      {
+        path: "solicitar-materiales",
+        element: <SolicitarMateriales />,
+        handle: { requiredRole: 3 }  // Solo permitir rol 3
       },
     ],
   },

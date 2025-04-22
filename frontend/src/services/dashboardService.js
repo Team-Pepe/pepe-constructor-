@@ -11,6 +11,10 @@ const API_ENDPOINTS = {
   MATERIALS: '/api/dashboard/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
+  WORK_ZONES: '/api/work-zones',
+  MATERIAL_ZONE: '/api/material-assignments',
+  MATERIAL_REQUESTS: '/api/material-assignments/request',
+  MATERIAL_REQUESTS_ALL: '/api/material-assignments/requests',
 };
 
 export const apiClient = axios.create({
@@ -84,20 +88,110 @@ export const fetchAllDashboardData = async () => {
 const addLocationToWorkers = (workers) => {
   if (!workers) return [];
   
-  const fixedLocations = [
-    { lat: 4.8133, lng: -75.6961 },
-    { lat: 4.8182, lng: -75.6923 },
-    { lat: 4.8056, lng: -75.7056 },
-    { lat: 4.8240, lng: -75.6845 },
-    { lat: 4.8050, lng: -75.6845 },
-    { lat: 4.8150, lng: -75.7100 }
-  ];
-  
-  return workers.map((worker, index) => ({
-    ...worker,
-    name: worker.username || worker.name || `Trabajador ${index + 1}`,
-    location: fixedLocations[index % fixedLocations.length]
-  }));
+  // Crear una copia segura de la lista de trabajadores y filtrar solo los que tienen ubicación real
+  return workers.map((worker, index) => {
+    // Si el trabajador ya tiene una ubicación real (latitude y longitude), usarla
+    if (worker.latitude && worker.longitude) {
+      return {
+        ...worker,
+        name: worker.username || worker.name || `Trabajador ${index + 1}`,
+        location: {
+          lat: parseFloat(worker.latitude),
+          lng: parseFloat(worker.longitude)
+        },
+        // Marcar explícitamente que es una ubicación real
+        locationIsSimulated: false
+      };
+    }
+    
+    // Si no hay ubicación real, devolver el trabajador sin el campo location
+    return {
+      ...worker,
+      name: worker.username || worker.name || `Trabajador ${index + 1}`
+      // No incluir el campo location para que no aparezca en el mapa
+    };
+  });
 };
 
 export default apiClient;
+// Material Request operations
+export const createMaterialRequest = async (data) => {
+  try {
+    console.log("Enviando solicitud de materiales:", {
+      user_id: data.userId,
+      zone_id: data.zoneId,
+      message: data.message,
+      quantity_requested: parseInt(data.quantityRequested),
+      material_id: data.materialId || null
+    });
+    
+    return await apiClient.post(API_ENDPOINTS.MATERIAL_REQUESTS, {
+      user_id: data.userId,
+      zone_id: data.zoneId,
+      message: data.message,
+      quantity_requested: parseInt(data.quantityRequested),
+      material_id: data.materialId || null
+    }, { 
+      headers: getAuthHeaders() 
+    });
+  } catch (error) {
+    console.error("Error al crear solicitud de materiales:", error);
+    if (error.response) {
+      console.error("Respuesta del servidor:", error.response.data);
+      console.error("Estado HTTP:", error.response.status);
+    }
+    throw error;
+  }
+};
+
+export const fetchMaterialRequests = async (status = null) => {
+  try {
+    const url = status 
+      ? `${API_ENDPOINTS.MATERIAL_REQUESTS_ALL}?status=${status}`
+      : API_ENDPOINTS.MATERIAL_REQUESTS_ALL;
+    
+    console.log(`Solicitando lista de peticiones de materiales${status ? ` con estado ${status}` : ''}...`);
+    
+    const response = await apiClient.get(url, { 
+      headers: getAuthHeaders() 
+    });
+    
+    console.log("Respuesta de API de solicitudes de materiales:", response);
+    return response;
+  } catch (error) {
+    console.error("Error al recuperar solicitudes de materiales:", error);
+    if (error.response) {
+      console.error("Respuesta de error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    throw error;
+  }
+};
+
+export const updateMaterialRequestStatus = async (requestId, status, adminComment = "") => {
+  try {
+    console.log(`Actualizando estado de solicitud ${requestId} a "${status}"`);
+    
+    const data = {
+      status: status
+    };
+    
+    if (adminComment) {
+      data.admin_comment = adminComment;
+    }
+    
+    return await apiClient.patch(`${API_ENDPOINTS.MATERIAL_REQUESTS}/${requestId}/status`, data, { 
+      headers: getAuthHeaders() 
+    });
+  } catch (error) {
+    console.error(`Error al actualizar estado de solicitud ${requestId}:`, error);
+    if (error.response) {
+      console.error("Respuesta del servidor:", error.response.data);
+      console.error("Estado HTTP:", error.response.status);
+    }
+    throw error;
+  }
+};
+

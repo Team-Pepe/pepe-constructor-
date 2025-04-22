@@ -8,6 +8,10 @@ import {
     MessageSquare,
     Settings,
     Users,
+    MapPin,
+    AlertTriangle,
+    LogOut,
+    PackageOpen
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +30,8 @@ import {
     AttendanceCard,
     MaterialCard,
     ActionButton,
-    ActivityItem
+    ActivityItem,
+    MaterialRequestsCard
 } from "./components";
 
 import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
@@ -71,6 +76,13 @@ export default function Dashboard() {
         switch (activeSection) {
             case "inventario":
                 return <Inventory />;
+            case "solicitudes":
+                return (
+                    <div className="grid gap-6">
+                        <h2 className="text-xl font-bold">Solicitudes de Materiales</h2>
+                        <MaterialRequestsCard onRefresh={loadDashboardData} />
+                    </div>
+                );
             case "resumen":
             default:
                 return (
@@ -126,6 +138,12 @@ export default function Dashboard() {
                                         >
                                             Inventario
                                         </TabsTrigger>
+                                        <TabsTrigger
+                                            value="requests"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Solicitudes
+                                        </TabsTrigger>
                                     </TabsList>
                                 </CardHeader>
                                 <CardContent className="p-6">
@@ -166,6 +184,11 @@ export default function Dashboard() {
                                                     unit={material.unit}
                                                 />
                                             ))}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="requests">
+                                        <div className="space-y-4">
+                                            <MaterialRequestsCard onRefresh={loadDashboardData} />
                                         </div>
                                     </TabsContent>
                                 </CardContent>
@@ -215,43 +238,61 @@ export default function Dashboard() {
                     <div className="col-span-12 md:col-span-3 lg:col-span-2">
                         <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm h-full">
                             <CardContent className="p-4">
-                                <nav className="space-y-2">
-                                    <NavItem 
-                                        icon={Activity} 
-                                        label="Resumen" 
-                                        active={activeSection === "resumen"}
-                                        onClick={() => setActiveSection("resumen")}
-                                    />
-                                    <NavItem 
-                                        icon={Users} 
-                                        label="Asistencia"
-                                        active={activeSection === "asistencia"}
-                                        onClick={() => setActiveSection("asistencia")}
-                                    />
-                                    <NavItem 
-                                        icon={HardDrive} 
-                                        label="Inventario"
-                                        active={activeSection === "inventario"}
-                                        onClick={() => setActiveSection("inventario")}
-                                    />
-                                    <NavItem 
-                                        icon={ClipboardList} 
-                                        label="Tareas"
-                                        active={activeSection === "tareas"}
-                                        onClick={() => setActiveSection("tareas")}
-                                    />
-                                    <NavItem 
-                                        icon={Calendar} 
-                                        label="Calendario"
-                                        active={activeSection === "calendario"}
-                                        onClick={() => setActiveSection("calendario")}
-                                    />
-                                    <NavItem 
-                                        icon={FileText} 
-                                        label="Reportes"
-                                        active={activeSection === "reportes"}
-                                        onClick={() => setActiveSection("reportes")}
-                                    />
+                                <nav className="flex flex-col h-full justify-between">
+                                    <div className="space-y-2">
+                                        <NavItem 
+                                            icon={Activity} 
+                                            label="Resumen" 
+                                            active={activeSection === "resumen"}
+                                            onClick={() => setActiveSection("resumen")}
+                                        />
+                                        <NavItem 
+                                            icon={Users} 
+                                            label="Asistencia"
+                                            active={activeSection === "asistencia"}
+                                            onClick={() => setActiveSection("asistencia")}
+                                        />
+                                        <NavItem 
+                                            icon={HardDrive} 
+                                            label="Inventario"
+                                            active={activeSection === "inventario"}
+                                            onClick={() => setActiveSection("inventario")}
+                                        />
+                                        <NavItem 
+                                            icon={PackageOpen} 
+                                            label="Solicitudes"
+                                            active={activeSection === "solicitudes"}
+                                            onClick={() => setActiveSection("solicitudes")}
+                                        />
+                                        <NavItem 
+                                            icon={ClipboardList} 
+                                            label="Tareas"
+                                            active={activeSection === "tareas"}
+                                            onClick={() => setActiveSection("tareas")}
+                                        />
+                                        <NavItem 
+                                            icon={Calendar} 
+                                            label="Calendario"
+                                            active={activeSection === "calendario"}
+                                            onClick={() => setActiveSection("calendario")}
+                                        />
+                                        <NavItem 
+                                            icon={FileText} 
+                                            label="Reportes"
+                                            active={activeSection === "reportes"}
+                                            onClick={() => setActiveSection("reportes")}
+                                        />
+                                    </div>
+                                    
+                                    {/* Botón de Cerrar Sesión */}
+                                    <div className="pt-4 mt-4 border-t border-slate-700/50">
+                                        <NavItem 
+                                            icon={LogOut} 
+                                            label="Cerrar Sesión"
+                                            onClick={handleLogout}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                        />
+                                    </div>
                                 </nav>
                             </CardContent>
                         </Card>

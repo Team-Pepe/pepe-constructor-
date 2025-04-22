@@ -22,9 +22,14 @@ model User {
   role            Role        @relation(fields: [roleId], references: [id])
   sentMessages    Message[]   @relation("SenderMessages")
   receivedMessages Message[]  @relation("ReceiverMessages")
-  assignedTasks   Task[]      @relation("AssignedTasks")
-  requests        Request[]
-  supervisedZones WorkZone[]
+  sentMessages     Message[]  @relation("SenderMessages")
+  requests         Request[]
+  assignedTasks    Task[]     @relation("AssignedTasks")
+  role             Role       @relation(fields: [roleId], references: [id])
+  supervisedZones  WorkZone[]
+  materialRequests MaterialRequest[]
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   @@map("users")
 }
@@ -39,15 +44,17 @@ model Role {
 }
 
 model WorkZone {
-  id           Int       @id @default(autoincrement())
-  name         String    @db.VarChar
-  description  String?
-  supervisorId Int       @map("supervisor_id")
-  supervisor   User      @relation(fields: [supervisorId], references: [id])
-  tasks        Task[]
-  metrics      Metric[]
-  latitud      Float?
-  longitud     Float?
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar
+  description      String?
+  supervisorId     Int               @map("supervisor_id")
+  latitud          Float?            @db.Real
+  longitud         Float?            @db.Real
+  metrics          Metric[]
+  tasks            Task[]
+  supervisor       User              @relation(fields: [supervisorId], references: [id])
+  materiales       ZonaMaterial[]
+  materialRequests MaterialRequest[]
 
   @@map("work_zones")
 }
@@ -67,12 +74,14 @@ model Task {
 }
 
 model Material {
-  id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar
-  description String?
-  quantity    Int
-  requests    Request[]
-  image_url   String?
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar
+  description      String?
+  quantity         Int
+  image_url        String?           @unique
+  requests         Request[]
+  zonas            ZonaMaterial[]
+  materialRequests MaterialRequest[]
 
   @@map("materials")
 }
@@ -121,4 +130,33 @@ model Metric {
   workZone    WorkZone  @relation(fields: [workZoneId], references: [id])
 
   @@map("metrics")
+}
+
+model ZonaMaterial {
+  id               Int      @id @default(autoincrement())
+  id_zona          Int      @map("id_zona")
+  id_material      Int      @map("id_material")
+  cantidad_asignada Int      @map("cantidad_asignada")
+  workZone         WorkZone @relation(fields: [id_zona], references: [id])
+  material         Material @relation(fields: [id_material], references: [id])
+
+  @@map("material_zone")
+}
+
+model MaterialRequest {
+  id                 Int       @id @default(autoincrement())
+  user_id            Int
+  zone_id            Int
+  material_id        Int?
+  message            String
+  quantity_requested Int
+  status             String    @default("pending")
+  admin_comment      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [user_id], references: [id])
+  zone               WorkZone  @relation(fields: [zone_id], references: [id])
+  material           Material? @relation(fields: [material_id], references: [id])
+
+  @@map("material_requests")
 }

@@ -172,18 +172,8 @@ export default function Inventario() {
             <ScrollArea className="h-[calc(100vh-220px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
                 {filteredMaterials.map(material => (
-                  <div key={material.id} className="relative group">
+                  <div key={material.id}>
                     <InventoryCard {...material} />
-                    
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button 
-                        onClick={() => handleRequestMaterial(material)}
-                        className="flex items-center gap-2"
-                      >
-                        <ShoppingCart size={16} />
-                        <span>Solicitar</span>
-                      </Button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -206,18 +196,8 @@ export default function Inventario() {
                 {filteredMaterials
                   .filter(material => material.quantity > 0)
                   .map(material => (
-                    <div key={material.id} className="relative group">
+                    <div key={material.id}>
                       <InventoryCard {...material} />
-                      
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button 
-                          onClick={() => handleRequestMaterial(material)}
-                          className="flex items-center gap-2"
-                        >
-                          <ShoppingCart size={16} />
-                          <span>Solicitar</span>
-                        </Button>
-                      </div>
                     </div>
                   ))}
               </div>

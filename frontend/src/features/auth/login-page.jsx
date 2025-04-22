@@ -23,18 +23,50 @@ export default function LoginPage() {
   
     try {
       axios.defaults.withCredentials = true;
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
-        email,
-        password,
-      });
-  
-      // Verifica que la respuesta tenga el roleId
-      if (response.data?.roleId) {
-        const roleId = Number(response.data.roleId);
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_ENDPOINT}/api/auth/login`,
+        { email, password },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.data?.user?.roleId) {
+        setIsAuthenticated(true);
+        setRoleId(response.data.user.roleId);
+
+        // Guardar el token de autenticación
+        if (response.data.token) {
+          document.cookie = `token=${response.data.token}; path=/`;
+          localStorage.setItem("authToken", response.data.token); // <-- Agrega esta línea
+        }
+
+        if (response.data.csrfToken) {
+          setCsrfToken(response.data.csrfToken);
+          localStorage.setItem("csrfToken", response.data.csrfToken);
+        }
+
+        const roleId = Number(response.data.user.roleId);
+        // Guardar el roleId en localStorage para conservarlo en la sesión
+        localStorage.setItem('roleId', roleId.toString());
+        
+        // También guardar userId si está disponible
+        if (response.data.user.id) {
+          localStorage.setItem('userId', response.data.user.id.toString());
+        }
+        
+        console.log("Usuario autenticado con rol:", roleId);
         
         if (roleId === 1) {
+          // Rol 1: Administrador/Supervisor
           navigate("/dashboard");
-        } else if (roleId === 2) {
+        } else if (roleId === 2 || roleId === 3) {
+          // Roles 2 y 3: Trabajadores (3 con permiso de solicitar materiales)
+          console.log("Redirigiendo a dashboard de empleados...");
           navigate("/dashboard-empleados");
         } else {
           setError("Rol no válido");
