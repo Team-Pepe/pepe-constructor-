@@ -392,11 +392,11 @@ El proyecto sigue el formato convencional de commits:
 
 Puedes consultar el historial completo de cambios realizados en las ramas a través del siguiente enlace:
 
-🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/commits/main/)
+🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)
 </div>
 
 ## 📚 Documentación del Código
 
 Puedes consultar la documentación detallada del código fuente, estructuras, funcionalidades y módulos del proyecto en el siguiente enlace:
 
-🔗 [Ver documentación del código](https://github.com/Team-Pepe/pepe-constructor-/tree/main/document)
+🔗 [Ver documentación del código](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)
