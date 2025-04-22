@@ -1,21 +1,44 @@
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
-
-function authenticateToken(req, res, next) {
-    const token = req.cookies.token; // Leer el token de las cookies
-
+exports.authenticateToken = (req, res, next) => {
+    // Obtener token de cookies o headers
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    
     if (!token) {
-        return res.status(401).json({ message: "No autenticado" });
+        return res.status(401).json({ message: "No autenticado - Token no proporcionado" });
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET); // Verificar el token
-        req.user = decoded; // Agregar los datos del usuario al objeto `req`
-        next(); // Continuar con la ejecución de la ruta
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
     } catch (error) {
-        res.status(401).json({ message: "Token inválido o expirado" });
+        console.error("Error al verificar token:", error);
+        
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({ message: "Token expirado" });
+        }
+        if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({ message: "Token inválido" });
+        }
+        
+        res.status(401).json({ message: "Error de autenticación" });
     }
-}
+};
 
-module.exports = authenticateToken;
+exports.verifyCSRF = (req, res, next) => {
+    // Solo verificar CSRF en métodos no seguros (POST, PUT, DELETE, etc.)
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        return next();
+    }
+
+    const csrfToken = req.headers['x-csrf-token'] || req.body.csrfToken;
+    
+    if (!csrfToken) {
+        return res.status(403).json({ message: "Token CSRF no proporcionado" });
+    }
+
+    // Aquí normalmente verificarías contra el token CSRF almacenado
+    // Por ahora solo verificamos que exista
+    next();
+};

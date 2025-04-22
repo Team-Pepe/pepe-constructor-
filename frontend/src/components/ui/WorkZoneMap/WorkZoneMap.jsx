@@ -5,11 +5,12 @@ import * as turf from "@turf/turf";
 import PropTypes from "prop-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import axios from "axios";
+import { Trash2, ZoomIn, ZoomOut, Save, Plus, Target, Package, List, FileInput, Loader2 } from "lucide-react";
+import { fetchWorkZones, createWorkZone, deleteWorkZone, fetchZoneMaterials, assignMaterialsToZone, useMaterialsFromZone, fetchMaterials } from "@/services/dashboardService";
+import { useAuth } from "@/features/auth";
+import { MaterialAssignmentModal } from "./MaterialAssignmentModal";
+import { ViewMaterialsModal } from "./ViewMaterialsModal";
+import { UseMaterialsModal } from "./UseMaterialsModal";
 
 // Importaciones necesarias para los estilos de Leaflet
 import "leaflet/dist/leaflet.css";
@@ -63,6 +64,7 @@ ZoomController.propTypes = {
 };
 
 function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], defaultZoom = 13 }) {
+  const { roleId } = useAuth();
   const [workZones, setWorkZones] = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [zoneRadius, setZoneRadius] = useState(500); // Radio en metros
@@ -76,7 +78,13 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const [loading, setLoading] = useState(false);
   const [savedZones, setSavedZones] = useState([]);
   const [creationMode, setCreationMode] = useState(false);
-  const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
+  const [showMaterialAssignmentModal, setShowMaterialAssignmentModal] = useState(false);
+  const [showViewMaterialsModal, setShowViewMaterialsModal] = useState(false);
+  const [showUseMaterialsModal, setShowUseMaterialsModal] = useState(false);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [zoneMaterials, setZoneMaterials] = useState([]);
+  const [authError, setAuthError] = useState("");
+  const [availableMaterials, setAvailableMaterials] = useState([]);
   
   // Funciones para el zoom
   const [zoomIn, setZoomIn] = useState(() => () => {});
@@ -86,8 +94,8 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   useEffect(() => {
     const fetchSavedZones = async () => {
       try {
-        // Intentar cargar desde la API
-        const response = await axios.get(`${apiEndpoint}/api/work-zones`);
+        console.log("Cargando zonas guardadas...");
+        const response = await fetchWorkZones();
         if (response.data) {
           const zones = response.data.map(zone => ({
             id: zone.id,
@@ -98,15 +106,12 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             radius: 500, // Valor por defecto
             saved: true
           }));
-          
           setSavedZones(zones);
           // Guardar en localStorage como respaldo
           localStorage.setItem('workZones', JSON.stringify(zones));
         }
       } catch (error) {
         console.error("Error al cargar zonas de trabajo desde API:", error);
-        
-        // Si la API falla, cargar desde localStorage
         const savedZonesFromStorage = localStorage.getItem('workZones');
         if (savedZonesFromStorage) {
           try {
@@ -117,56 +122,162 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             console.error("Error al parsear zonas de trabajo desde localStorage:", parseError);
           }
         }
+
+      }
+    }
+    fetchSavedZones();    
+  }, []);
+
+  // Cargar materiales disponibles al iniciar
+  useEffect(() => {
+    const loadAvailableMaterials = async () => {
+      try {
+        console.log("Solicitando materiales disponibles...");
+        const response = await fetchMaterials();
+        console.log("Respuesta completa de fetchMaterials:", response);
+        
+        // Intentamos acceder a los datos de diferentes maneras según la estructura de respuesta
+        let materialsData = null;
+        
+        if (response && response.data) {
+          // Caso 1: response.data es directamente el array de materiales
+          if (Array.isArray(response.data)) {
+            materialsData = response.data;
+            console.log("Caso 1: response.data es un array");
+          } 
+          // Caso 2: Los materiales están anidados en una propiedad de response.data
+          else if (typeof response.data === 'object') {
+            console.log("Caso 2: explorando objeto response.data");
+            
+            // Revisar las propiedades más comunes donde podrían estar los materiales
+            const possiblePaths = ['materials', 'items', 'results', 'data'];
+            
+            for (const path of possiblePaths) {
+              if (response.data[path] && Array.isArray(response.data[path])) {
+                materialsData = response.data[path];
+                console.log(`Encontrado array en response.data.${path}`);
+                break;
+              }
+            }
+            
+            // Si no encontramos en las rutas comunes, intentamos encontrar cualquier array
+            if (!materialsData) {
+              for (const key in response.data) {
+                if (Array.isArray(response.data[key])) {
+                  materialsData = response.data[key];
+                  console.log(`Encontrado array en response.data.${key}`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Si no pudimos encontrar los datos de ninguna manera, establecemos un array vacío
+        if (!materialsData) {
+          console.error("No se pudo encontrar un array en la respuesta:", response);
+          materialsData = [];
+        }
+        
+        // Transformar los datos para asegurar que tengan la estructura correcta
+        const transformedMaterials = materialsData.map(material => {
+          // Intenta identificar cada propiedad haciendo log de sus valores
+          console.log("Procesando material:", material);
+          
+          // Buscar propiedades anidadas (por ejemplo, material.material.name)
+          let nestedMaterial = null;
+          if (material.material && typeof material.material === 'object') {
+            console.log("Encontrado objeto anidado 'material':", material.material);
+            nestedMaterial = material.material;
+          }
+          
+          console.log("ID:", material.id, material.id_material, material.material_id, nestedMaterial?.id);
+          console.log("Nombre:", material.name, material.nombre, material.material_name, nestedMaterial?.name, nestedMaterial?.nombre);
+          console.log("Cantidad:", material.quantity, material.cantidad, material.cantidad_disponible, material.cantidad_asignada, material.available_quantity, nestedMaterial?.quantity);
+          
+          // Extraer la cantidad correctamente, priorizando la cantidad de la zona
+          const quantity = 
+            // Primero las propiedades directas más probables
+            material.cantidad_disponible || 
+            material.cantidad_asignada || 
+            material.cantidad || 
+            material.quantity || 
+            material.available_quantity ||
+            // Luego propiedades anidadas
+            nestedMaterial?.cantidad_disponible ||
+            nestedMaterial?.cantidad ||
+            nestedMaterial?.quantity ||
+            0;
+          
+          // Material transformado con todas las posibles fuentes de datos
+          const transformedMaterial = {
+            id: material.id || material.id_material || material.material_id || nestedMaterial?.id || '0',
+            name: material.nombre || material.name || material.material_name || nestedMaterial?.name || nestedMaterial?.nombre || 'Material sin nombre',
+            quantity: quantity,
+            unit: material.unidad || material.unit || material.units || nestedMaterial?.unidad || nestedMaterial?.unit || 'unidades',
+            description: material.descripcion || material.description || material.desc || nestedMaterial?.descripcion || nestedMaterial?.description || '',
+            raw: material // Guardamos el objeto original para depuración
+          };
+          
+          console.log("Material transformado:", transformedMaterial);
+          return transformedMaterial;
+        });
+        
+        console.log("Materiales encontrados (transformados):", transformedMaterials);
+        setAvailableMaterials(transformedMaterials);
+      } catch (error) {
+        console.error("Error al cargar materiales disponibles:", error);
+        setAvailableMaterials([]);
       }
     };
-    
-    fetchSavedZones();
-  }, [apiEndpoint]);
+    loadAvailableMaterials();
+  }, []);
 
   // Función para verificar si un trabajador está dentro de una zona
   const checkWorkersInZones = () => {
     if (!workers || workers.length === 0 || (workZones.length === 0 && savedZones.length === 0)) {
-      return workers ? workers.map(worker => ({ ...worker, inZone: false })) : [];
+      return workers ? workers.filter(worker => worker.location).map(worker => ({ ...worker, inZone: false })) : [];
     }
 
-    return workers.map(worker => {
-      if (!worker.location) return { ...worker, inZone: false };
-      
-      const point = turf.point([worker.location.lng, worker.location.lat]);
-      
-      // Verificar si el trabajador está en alguna zona temporal
-      const isInTempZone = workZones.some(zone => {
-        const center = turf.point([zone.lng, zone.lat]);
-        const distance = turf.distance(point, center, { units: 'meters' });
-        return distance <= (zone.radius || zoneRadius);
-      });
-      
-      // Verificar si el trabajador está en alguna zona guardada
-      const isInSavedZone = savedZones.some(zone => {
-        const center = turf.point([zone.lng, zone.lat]);
-        const distance = turf.distance(point, center, { units: 'meters' });
-        return distance <= (zone.radius || zoneRadius);
-      });
-      
-      // Incluir información de la zona en la que está el trabajador para mostrarla
-      let workerZones = [];
-      if (isInTempZone || isInSavedZone) {
-        // Encontrar todas las zonas en las que está el trabajador
-        [...workZones, ...savedZones].forEach(zone => {
+    // Filtrar solo trabajadores con ubicación válida
+    return workers
+      .filter(worker => worker.location && worker.location.lat && worker.location.lng)
+      .map(worker => {
+        const point = turf.point([worker.location.lng, worker.location.lat]);
+        
+        // Verificar si el trabajador está en alguna zona temporal
+        const isInTempZone = workZones.some(zone => {
           const center = turf.point([zone.lng, zone.lat]);
           const distance = turf.distance(point, center, { units: 'meters' });
-          if (distance <= (zone.radius || zoneRadius)) {
-            workerZones.push(zone.name || 'Zona sin nombre');
-          }
+          return distance <= (zone.radius || zoneRadius);
         });
-      }
-      
-      return { 
-        ...worker, 
-        inZone: isInTempZone || isInSavedZone,
-        zones: workerZones
-      };
-    });
+        
+        // Verificar si el trabajador está en alguna zona guardada
+        const isInSavedZone = savedZones.some(zone => {
+          const center = turf.point([zone.lng, zone.lat]);
+          const distance = turf.distance(point, center, { units: 'meters' });
+          return distance <= (zone.radius || zoneRadius);
+        });
+        
+        // Incluir información de la zona en la que está el trabajador para mostrarla
+        let workerZones = [];
+        if (isInTempZone || isInSavedZone) {
+          // Encontrar todas las zonas en las que está el trabajador
+          [...workZones, ...savedZones].forEach(zone => {
+            const center = turf.point([zone.lng, zone.lat]);
+            const distance = turf.distance(point, center, { units: 'meters' });
+            if (distance <= (zone.radius || zoneRadius)) {
+              workerZones.push(zone.name || 'Zona sin nombre');
+            }
+          });
+        }
+        
+        return { 
+          ...worker, 
+          inZone: isInTempZone || isInSavedZone,
+          zones: workerZones
+        };
+      });
   };
 
   // Actualizar los trabajadores cuando cambian las zonas
@@ -178,7 +289,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
   const handleMapClick = (e) => {
     const { lat, lng } = e.latlng;
     
-    // Solo mostrar el modal después de que la zona temporal está configurada
+    // Crear la zona temporal
     setTempZone({
       lat,
       lng,
@@ -186,55 +297,52 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       saved: false
     });
     
-    // Mostrar el modal después de un pequeño retraso para permitir que la zona temporal se renderice primero
+    console.log("Creando zona temporal en:", lat, lng);
+    
+    // Mostrar el modal para completar los datos de la zona
     setTimeout(() => {
       setShowModal(true);
       setCreationMode(false); // Desactivar el modo de creación después de un clic
-    }, 10);
+    }, 100);
   };
 
   // Función para guardar la zona en la base de datos o localStorage
-  const saveZone = async () => {
+  const handleSaveZone = async () => {
     if (!tempZone || !zoneForm.name || !zoneForm.supervisorId) return;
     
     setLoading(true);
     
-    // Crear el objeto de zona
+    // Crear objeto newZone
     const newZone = {
       ...tempZone,
       name: zoneForm.name,
       description: zoneForm.description,
-      supervisorId: parseInt(zoneForm.supervisorId), // Convertir supervisorId a entero
-      id: Date.now(), // ID temporal
+      supervisorId: parseInt(zoneForm.supervisorId),
+      id: Date.now(),
       radius: zoneRadius,
       saved: true
     };
     
     try {
-      // Obtener el token de autenticación
-      const token = localStorage.getItem("authToken");
+      const data = {
+        name: zoneForm.name,
+        description: zoneForm.description,
+        supervisorId: parseInt(zoneForm.supervisorId), // Convertir a entero
+        latitude: parseFloat(tempZone.lat), // Asegurar que latitude es float
+        longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
+        radius: zoneRadius
+      }
       
-      // Intentar crear la zona en la API
-      const response = await axios.post(
-        `${apiEndpoint}/api/work-zones`,
-        {
-          name: zoneForm.name,
-          description: zoneForm.description,
-          supervisorId: parseInt(zoneForm.supervisorId), // Convertir a entero
-          latitude: parseFloat(tempZone.lat), // Asegurar que latitude es float
-          longitude: parseFloat(tempZone.lng), // Asegurar que longitude es float
-          radius: zoneRadius
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      console.log("Enviando datos de la zona:", data);
+      
+      const response = await createWorkZone(data);
+      
+      console.log("Respuesta del servidor:", response);
       
       // Si la creación fue exitosa, usar el ID de la API
-      if (response.data && response.data.id) {
-        newZone.id = response.data.id;
+      if (response.data && response.data.newWorkZone && response.data.newWorkZone.id) {
+        console.log("Zona creada exitosamente con ID:", response.data.newWorkZone.id);
+        newZone.id = response.data.newWorkZone.id;
       }
       
       // Actualizar estado y localStorage
@@ -246,21 +354,33 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       setTempZone(null);
       setZoneForm({ name: "", description: "", supervisorId: "" });
       setShowModal(false);
-      
+  
     } catch (error) {
-      console.error("Error al guardar la zona de trabajo en API:", error);
+      console.error("Error al crear zona:", error);
       
-      // Guardar solo en localStorage si la API falla
-      const updatedZones = [...savedZones, newZone];
-      setSavedZones(updatedZones);
-      localStorage.setItem('workZones', JSON.stringify(updatedZones));
-      
-      // Limpiar el formulario y el temporal
-      setTempZone(null);
-      setZoneForm({ name: "", description: "", supervisorId: "" });
-      setShowModal(false);
-      
-      alert("API no disponible. La zona se ha guardado localmente.");
+      // Manejo de errores específicos
+      if (error.response?.status === 401) {
+        console.error("Sesión expirada - Redirigiendo a login...");
+        setAuthError("Sesión expirada. Redirigiendo al inicio de sesión...");
+        setTimeout(() => window.location.href = '/login', 2000);
+      } else if (error.response?.status === 403) {
+        console.error("Error de permisos - Recargando página para obtener nuevo token...");
+        setAuthError("Error de permisos. Recargando la página...");
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        // Guardar en localStorage como respaldo
+        setAuthError(`Error al crear zona: ${error.message || 'Error desconocido'}`);
+        
+        // Aún así, guardar en localStorage para no perder el trabajo del usuario
+        const updatedZones = [...savedZones, newZone];
+        setSavedZones(updatedZones);
+        localStorage.setItem('workZones', JSON.stringify(updatedZones));
+        
+        setTimeout(() => {
+          setAuthError("");
+          setShowModal(false);
+        }, 3000);
+      }
     } finally {
       setLoading(false);
     }
@@ -279,13 +399,8 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
       
       if (!isLocalId) {
         // Solo intentar eliminar en la API si es un ID de la base de datos
-        const token = localStorage.getItem("authToken");
         try {
-          await axios.delete(`${apiEndpoint}/api/work-zones/${id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
+          await deleteWorkZone(id);
           console.log("Zona eliminada exitosamente en la API");
         } catch (apiError) {
           console.error("Error al eliminar en API, continuando con eliminación local:", apiError.message);
@@ -334,10 +449,382 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
     setShowModal(false);
   };
 
+  // Función para manejar errores de autenticación
+  const handleAuthError = (error) => {
+    console.error("Error de autenticación:", error);
+    if (error.response?.status === 401) {
+      setAuthError("Sesión expirada. Por favor, inicie sesión nuevamente.");
+      // Redirigir al login
+      window.location.href = '/login';
+    } else {
+      setAuthError(error.message || "Error de autenticación");
+    }
+  };
+
+  // Modificar loadZoneMaterials para manejar la estructura correcta del response
+  const loadZoneMaterials = async (zoneId) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      console.log("Solicitando materiales para zona:", zoneId);
+      const response = await fetchZoneMaterials(zoneId);
+      console.log("Respuesta completa de fetchZoneMaterials:", response);
+      
+      // Examinamos cada capa de la respuesta para entender la estructura
+      if (response && response.data) {
+        console.log("Contenido de response.data:", response.data);
+        
+        if (typeof response.data === 'object' && !Array.isArray(response.data)) {
+          // Inspeccionar cada propiedad del objeto response.data
+          Object.keys(response.data).forEach(key => {
+            console.log(`Examinando response.data.${key}:`, response.data[key]);
+          });
+        }
+      }
+      
+      // Intentamos acceder a los datos de diferentes maneras según la estructura de respuesta
+      let materialsData = null;
+      
+      if (response && response.data) {
+        // Caso 1: response.data es directamente el array de materiales
+        if (Array.isArray(response.data)) {
+          materialsData = response.data;
+          console.log("Caso 1: response.data es un array");
+        } 
+        // Caso 2: Los materiales están anidados en una propiedad de response.data
+        else if (typeof response.data === 'object') {
+          console.log("Caso 2: explorando objeto response.data");
+          
+          // Revisar las propiedades más comunes donde podrían estar los materiales
+          const possiblePaths = ['materials', 'items', 'results', 'data', 'zoneMaterials', 'zonaMateriales', 'materiales'];
+          
+          for (const path of possiblePaths) {
+            if (response.data[path] && Array.isArray(response.data[path])) {
+              materialsData = response.data[path];
+              console.log(`Encontrado array en response.data.${path}`);
+              break;
+            }
+          }
+          
+          // Si no encontramos en las rutas comunes, intentamos encontrar cualquier array
+          if (!materialsData) {
+            for (const key in response.data) {
+              if (Array.isArray(response.data[key])) {
+                materialsData = response.data[key];
+                console.log(`Encontrado array en response.data.${key}`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Si no pudimos encontrar los datos de ninguna manera, establecemos un array vacío
+      if (!materialsData) {
+        console.error("No se pudo encontrar un array en la respuesta:", response);
+        materialsData = [];
+      } else {
+        // Mostrar el primer elemento para entender su estructura exacta
+        if (materialsData.length > 0) {
+          console.log("Primer elemento del array de materiales:", materialsData[0]);
+          console.log("Todas las claves del primer elemento:", Object.keys(materialsData[0]));
+        }
+      }
+      
+      // Transformar los datos para asegurar que tengan la estructura correcta
+      const transformedMaterials = materialsData.map(material => {
+        // Intenta identificar cada propiedad haciendo log de sus valores
+        console.log("Procesando material:", material);
+        
+        // Buscar propiedades anidadas (por ejemplo, material.material.name)
+        let nestedMaterial = null;
+        if (material.material && typeof material.material === 'object') {
+          console.log("Encontrado objeto anidado 'material':", material.material);
+          nestedMaterial = material.material;
+        }
+        
+        console.log("ID:", material.id, material.id_material, material.material_id, nestedMaterial?.id);
+        console.log("Nombre:", material.name, material.nombre, material.material_name, nestedMaterial?.name, nestedMaterial?.nombre);
+        console.log("Cantidad:", material.quantity, material.cantidad, material.cantidad_disponible, material.cantidad_asignada, material.available_quantity, nestedMaterial?.quantity);
+        
+        // Extraer la cantidad correctamente, priorizando la cantidad de la zona
+        const quantity = 
+          // Primero las propiedades directas más probables
+          material.cantidad_disponible || 
+          material.cantidad_asignada || 
+          material.cantidad || 
+          material.quantity || 
+          material.available_quantity ||
+          // Luego propiedades anidadas
+          nestedMaterial?.cantidad_disponible ||
+          nestedMaterial?.cantidad ||
+          nestedMaterial?.quantity ||
+          0;
+        
+        // Material transformado con todas las posibles fuentes de datos
+        const transformedMaterial = {
+          id: material.id || material.id_material || material.material_id || nestedMaterial?.id || '0',
+          name: material.nombre || material.name || material.material_name || nestedMaterial?.name || nestedMaterial?.nombre || 'Material sin nombre',
+          quantity: quantity,
+          unit: material.unidad || material.unit || material.units || nestedMaterial?.unidad || nestedMaterial?.unit || 'unidades',
+          description: material.descripcion || material.description || material.desc || nestedMaterial?.descripcion || nestedMaterial?.description || '',
+          raw: material // Guardamos el objeto original para depuración
+        };
+        
+        console.log("Material transformado:", transformedMaterial);
+        return transformedMaterial;
+      });
+      
+      console.log("Materiales encontrados (transformados):", transformedMaterials);
+      setZoneMaterials(transformedMaterials);
+    } catch (error) {
+      console.error("Error al cargar materiales de zona:", error);
+      handleAuthError(error);
+      setZoneMaterials([]);
+    }
+  };
+
+  // Modificar handleAssignMaterials para usar las nuevas funciones de autenticación
+  const handleAssignMaterials = async (data) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      console.log("Asignando materiales con datos:", {
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity)
+      });
+      
+      await assignMaterialsToZone({
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity)
+      });
+
+      await loadZoneMaterials(selectedZone.id);
+      setShowMaterialAssignmentModal(false);
+    } catch (error) {
+      console.error("Error al asignar materiales:", error);
+      handleAuthError(error);
+    }
+  };
+
+  // Modificar handleUseMaterials para usar las nuevas funciones de autenticación
+  const handleUseMaterials = async (data) => {
+    try {
+      setAuthError(""); // Limpiar errores previos
+      console.log("Registrando uso de materiales con datos:", {
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity),
+        notes: data.notes
+      });
+      
+      await useMaterialsFromZone({
+        zoneId: parseInt(selectedZone.id),
+        materialId: parseInt(data.materialId),
+        quantity: parseInt(data.quantity),
+        notes: data.notes
+      });
+
+      await loadZoneMaterials(selectedZone.id);
+      setShowUseMaterialsModal(false);
+    } catch (error) {
+      console.error("Error al registrar uso de materiales:", error);
+      handleAuthError(error);
+    }
+  };
+
+  // Renderizar los botones según el rol
+  const renderZoneButtons = (zone) => {
+    const buttons = [];
+
+    // Supervisor (roleId = 1)
+    if (roleId === 1) {
+      buttons.push(
+        <Button
+          key="assign"
+          variant="default"
+          size="sm"
+          onClick={() => {
+            setSelectedZone(zone);
+            setShowMaterialAssignmentModal(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <Package size={14} className="mr-1" /> Agregar materiales
+        </Button>
+      );
+    }
+
+    // Botón de eliminar zona (común para todos)
+    buttons.push(
+      <Button
+        key="delete"
+        variant="destructive"
+        size="sm"
+        onClick={() => deleteSavedZone(zone.id)}
+        className="bg-red-600 hover:bg-red-700 text-white"
+      >
+        <Trash2 size={14} className="mr-1" /> Eliminar zona
+      </Button>
+    );
+
+    // Común para todos los roles
+    buttons.push(
+      <Button
+        key="view"
+        variant="default"
+        size="sm"
+        onClick={() => {
+          setSelectedZone(zone);
+          loadZoneMaterials(zone.id);
+          setShowViewMaterialsModal(true);
+        }}
+        className="bg-green-600 hover:bg-green-700 text-white"
+      >
+        <List size={14} className="mr-1" /> Ver materiales
+      </Button>
+    );
+
+    // Empleado que descuenta materiales (roleId = 3)
+    if (roleId === 3) {
+      buttons.push(
+        <Button
+          key="use"
+          variant="default"
+          size="sm"
+          onClick={() => {
+            setSelectedZone(zone);
+            loadZoneMaterials(zone.id);
+            setShowUseMaterialsModal(true);
+          }}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white"
+        >
+          <FileInput size={14} className="mr-1" /> Registrar uso
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex flex-col space-y-2 mt-2">
+        {buttons}
+      </div>
+    );
+  };
+
+  // Al final antes del return, agregaremos el modal que falta
+  const renderZoneFormModal = () => {
+    return (
+      <div className={`fixed inset-0 z-[1000] flex items-center justify-center ${showModal ? "" : "hidden"}`}>
+        <div className="absolute inset-0 backdrop-blur-sm bg-black/30" onClick={cancelZoneCreation}></div>
+        <div className="relative bg-white rounded-lg w-full max-w-md mx-4 p-6 shadow-xl z-[1001]">
+          <h3 className="text-xl font-bold mb-4 text-gray-900">
+            {tempZone?.saved ? "Editar zona" : "Crear nueva zona"}
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Nombre de la zona*
+              </label>
+              <input
+                type="text"
+                value={zoneForm.name}
+                onChange={(e) => setZoneForm({...zoneForm, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Ej. Zona Norte"
+                required
+                autoFocus
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Descripción
+              </label>
+              <textarea
+                value={zoneForm.description}
+                onChange={(e) => setZoneForm({...zoneForm, description: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Describe el propósito de esta zona"
+                rows="3"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                ID del supervisor*
+              </label>
+              <input
+                type="number"
+                value={zoneForm.supervisorId}
+                onChange={(e) => setZoneForm({...zoneForm, supervisorId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="Ej. 1"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={cancelZoneCreation}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancelar
+            </button>
+            
+            {!tempZone?.saved ? (
+              <button
+                type="button"
+                onClick={handleSaveZone}
+                disabled={!zoneForm.name || !zoneForm.supervisorId || loading}
+                className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  !zoneForm.name || !zoneForm.supervisorId || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="inline-block mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Zona"
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={confirmTempZone}
+                disabled={!zoneForm.name || loading}
+                className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  !zoneForm.name || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="inline-block mr-2 animate-spin" />
+                    Actualizando...
+                  </>
+                ) : (
+                  "Actualizar"
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
+    <Card className="w-full bg-slate-800/80 text-white border-slate-700/50 hover:border-orange-500/30 transition-colors">
+      <CardHeader className="bg-slate-800/80">
+        <CardTitle className="flex justify-between items-center text-white">
           <span>Zonas de Trabajo - Pereira</span>
           <div className="flex space-x-2">
             <Button 
@@ -345,7 +832,9 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
               size="sm"
               onClick={() => setCreationMode(!creationMode)}
               title={creationMode ? "Cancelar creación" : "Crear nueva zona"}
-              className={creationMode ? "bg-green-600 hover:bg-green-700" : ""}
+              className={creationMode 
+                ? "bg-green-600 hover:bg-green-700 text-white" 
+                : "bg-slate-700 border-orange-500 text-white hover:bg-slate-600"}
             >
               {creationMode ? (
                 <>
@@ -360,12 +849,21 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-slate-800/80">
         {creationMode && (
           <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm">
             <p className="flex items-center">
               <Target size={16} className="mr-2" /> 
               <strong>Modo creación activo:</strong> Haz clic en cualquier lugar del mapa para crear una nueva zona de trabajo.
+            </p>
+          </div>
+        )}
+        
+        {authError && (
+          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+            <p className="flex items-center">
+              <span className="mr-2">⚠️</span>
+              {authError}
             </p>
           </div>
         )}
@@ -472,7 +970,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                     pathOptions={{
                       fillColor: "#10B981",
                       fillOpacity: 0.4,
-                      color: "#FFFFFF", // Borde blanco
+                      color: "#FFFFFF",
                       weight: 2
                     }}
                   >
@@ -481,14 +979,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                         <p className="font-semibold">{zone.name}</p>
                         {zone.description && <p className="text-sm">{zone.description}</p>}
                         <p>Radio: {zone.radius || zoneRadius}m</p>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => deleteSavedZone(zone.id)}
-                        >
-                          <Trash2 size={14} className="mr-1" /> Eliminar zona
-                        </Button>
+                        {renderZoneButtons(zone)}
                       </div>
                     </Popup>
                   </Circle>
@@ -496,7 +987,11 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                 
                 {/* Renderizar trabajadores en el mapa */}
                 {selectedWorkers.map((worker) => {
-                  if (!worker.location) return null;
+                  // Si el trabajador no tiene ubicación, no mostrar marcador
+                  if (!worker.location || !worker.location.lat || !worker.location.lng) return null;
+                  
+                  // Determinar el color del marcador basado en si está en zona
+                  const markerColor = worker.inZone ? '#10B981' : '#EF4444'; // Verde o rojo
                   
                   return (
                     <Marker
@@ -504,16 +999,30 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                       position={[worker.location.lat, worker.location.lng]}
                       icon={L.divIcon({
                         className: 'custom-div-icon',
-                        html: `<div style="background-color: ${worker.inZone ? '#10B981' : '#EF4444'}; 
-                                width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
-                        iconSize: [15, 15],
+                        html: `<div style="
+                          background-color: ${markerColor}; 
+                          width: 18px; 
+                          height: 18px; 
+                          border-radius: 50%; 
+                          border: 2px solid white;
+                          box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+                        "></div>`,
+                        iconSize: [18, 18],
                       })}
                     >
                       <Popup>
-                        <div>
+                        <div className="p-1">
                           <p className="font-semibold">{worker.name}</p>
                           <p className={worker.inZone ? "text-green-600" : "text-red-600"}>
                             {worker.inZone ? "✅ Dentro de la zona" : "❌ Fuera de la zona"}
+                          </p>
+                          {worker.zones && worker.zones.length > 0 && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Zonas: {worker.zones.join(', ')}
+                            </p>
+                          )}
+                          <p className="text-xs text-blue-600 mt-1">
+                            Ubicación en tiempo real
                           </p>
                         </div>
                       </Popup>
@@ -604,77 +1113,56 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
                     <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
                     <span>Zona en creación</span>
                   </div>
+                  <div className="mt-3 border-t pt-2 border-slate-700">
+                    <p className="font-medium mb-1">Ubicación de trabajadores</p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-4 h-4 rounded-full bg-green-600 border-2 border-white box-content mr-2"></div>
+                      <span>Ubicación real (en zona)</span>
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white box-content mr-2"></div>
+                      <span>Ubicación real (fuera de zona)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Modal de creación/edición de zona */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-              <h3 className="text-lg font-semibold mb-4">
-                {tempZone.saved ? "Editar Zona de Trabajo" : "Nueva Zona de Trabajo"}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="zoneName">Nombre de la Zona*</Label>
-                  <Input 
-                    id="zoneName" 
-                    value={zoneForm.name} 
-                    onChange={(e) => setZoneForm({...zoneForm, name: e.target.value})}
-                    placeholder="Ej. Zona Norte"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zoneDescription">Descripción</Label>
-                  <Textarea 
-                    id="zoneDescription" 
-                    value={zoneForm.description} 
-                    onChange={(e) => setZoneForm({...zoneForm, description: e.target.value})}
-                    placeholder="Descripción de la zona de trabajo"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="supervisorId">Supervisor ID</Label>
-                  <Input 
-                    id="supervisorId" 
-                    type="number"
-                    value={zoneForm.supervisorId} 
-                    onChange={(e) => setZoneForm({...zoneForm, supervisorId: e.target.value})}
-                    placeholder="Ej. 12345"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                  <div>
-                    <span className="block">Latitud:</span>
-                    <span>{tempZone.lat.toFixed(6)}</span>
-                  </div>
-                  <div>
-                    <span className="block">Longitud:</span>
-                    <span>{tempZone.lng.toFixed(6)}</span>
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={cancelZoneCreation}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    disabled={!zoneForm.name || loading} 
-                    onClick={tempZone.saved ? saveZone : confirmTempZone}
-                  >
-                    {loading ? "Guardando..." : tempZone.saved ? "Guardar en BD" : "Crear Zona"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
       </CardContent>
+
+      {/* Agregar el modal de creación de zona */}
+      {renderZoneFormModal()}
+      
+      {/* Modales */}
+      <MaterialAssignmentModal
+        isOpen={showMaterialAssignmentModal}
+        onClose={() => setShowMaterialAssignmentModal(false)}
+        onAssign={handleAssignMaterials}
+        materials={Array.isArray(availableMaterials) ? availableMaterials.map(material => ({
+          id: String(material.id || '0'),
+          name: material.name || 'Material sin nombre',
+          available: material.available || material.quantity || 0,
+          description: material.description || '',
+          image: material.image_url || ''
+        })) : []}
+        zoneId={selectedZone?.id ? String(selectedZone.id) : '0'}
+      />
+
+      <ViewMaterialsModal
+        isOpen={showViewMaterialsModal}
+        onClose={() => setShowViewMaterialsModal(false)}
+        materials={zoneMaterials}
+        zoneName={selectedZone?.name}
+      />
+
+      <UseMaterialsModal
+        isOpen={showUseMaterialsModal}
+        onClose={() => setShowUseMaterialsModal(false)}
+        onUse={handleUseMaterials}
+        materials={zoneMaterials}
+        zoneName={selectedZone?.name}
+      />
     </Card>
   );
 }
@@ -694,4 +1182,4 @@ WorkZoneMap.propTypes = {
   defaultZoom: PropTypes.number
 };
 
-export default WorkZoneMap; 
+export default WorkZoneMap;

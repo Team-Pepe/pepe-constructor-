@@ -1,8 +1,13 @@
 const express = require('express');
 const { prisma } = require('../config/db');
 const router = express.Router();
-const path = require('path');
-const { upload, processImage, deleteFile } = require('../utils/fileUtils');
+
+
+// Import materials routes
+const materialsRouter = require('./materials');
+
+// Register materials routes
+router.use('/materials', materialsRouter);
 
 /**
  * @swagger
@@ -100,17 +105,57 @@ router.get('/users/:id', async (req, res) => {
  * @swagger
  * /api/work-zones:
  *   post:
- *     summary: Obtiene todas las zonas de trabajo
+ *     summary: Crea una nueva zona de trabajo
  *     tags: [Zonas de Trabajo]
+ *     security:
+ *       - cookieAuth: []
+ *       - csrfToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - supervisorId
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la zona de trabajo
+ *               description:
+ *                 type: string
+ *                 description: Descripción de la zona de trabajo
+ *               supervisorId:
+ *                 type: integer
+ *                 description: ID del supervisor de la zona
+ *               latitude:
+ *                 type: number
+ *                 format: float
+ *                 description: Latitud de la ubicación de la zona
+ *               longitude:
+ *                 type: number
+ *                 format: float
+ *                 description: Longitud de la ubicación de la zona
  *     responses:
- *       200:
- *         description: Lista de zonas de trabajo
+ *       201:
+ *         description: Zona de trabajo creada exitosamente
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/WorkZone'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/WorkZone'
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
  *         content:
@@ -146,7 +191,7 @@ router.post('/work-zones', async (req, res) => {
 
     res.status(201).json({ 
       status: 'success', 
-      data: newWorkZone 
+      newWorkZone 
     });
   } catch (error) {
     console.error('Error al crear zona de trabajo:', error);
@@ -306,419 +351,6 @@ router.get('/tasks', async (req, res) => {
   } catch (error) {
     console.error('Error al obtener tareas:', error);
     res.status(500).json({ status: 'error', message: 'Error al obtener tareas' });
-  }
-});
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     Material:
- *       type: object
- *       required:
- *         - name
- *         - quantity
- *       properties:
- *         id:
- *           type: integer
- *           description: ID único del material
- *         name:
- *           type: string
- *           description: Nombre del material
- *         description:
- *           type: string
- *           description: Descripción del material
- *         quantity:
- *           type: integer
- *           description: Cantidad disponible en inventario
- *         image_url:
- *           type: string
- *           description: URL de la imagen del material en Supabase Storage
- *       example:
- *         id: 1
- *         name: "Cemento"
- *         description: "Cemento Portland de alta resistencia"
- *         quantity: 50
- *         image_url: "https://deveoqcczffdpsjopgwg.supabase.co/storage/v1/object/public/images/materials/123e4567-e89b-12d3-a456-426614174000-cemento.jpg"
- */
-
-/**
- * @swagger
- * /api/materials:
- *   post:
- *     summary: Crea un nuevo material con imagen en Supabase Storage
- *     tags: [Materiales]
- *     description: Crea un nuevo material en la base de datos y sube la imagen a Supabase Storage
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - quantity
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nombre del material
- *               description:
- *                 type: string
- *                 description: Descripción del material
- *               quantity:
- *                 type: integer
- *                 description: Cantidad disponible
- *               image:
- *                 type: string
- *                 format: binary
- *                 description: Imagen del material (soporta jpg, jpeg, png, gif)
- *     responses:
- *       201:
- *         description: Material creado exitosamente con imagen subida a Supabase Storage
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Material'
- *       400:
- *         description: Datos inválidos o archivo de imagen no válido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Se requieren nombre y cantidad para crear un material
- *       500:
- *         description: Error del servidor o error al subir a Supabase Storage
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                 error:
- *                   type: string
- *                 stack:
- *                   type: string
- */
-router.post('/materials', upload.single('image'), async (req, res) => {
-  try {
-    console.log('📝 Datos recibidos:', {
-      name: req.body.name,
-      description: req.body.description,
-      quantity: req.body.quantity,
-      file: req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file'
-    });
-
-    const { name, description, quantity } = req.body;
-    
-    // Validar datos requeridos
-    if (!name || quantity === undefined) {
-      console.log('❌ Faltan datos requeridos');
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Se requieren nombre y cantidad para crear un material' 
-      });
-    }
-
-    // Procesar la imagen y subirla a Supabase si existe
-    let imageUrl = null;
-    if (req.file) {
-      try {
-        console.log('🖼️ Procesando imagen y subiendo a Supabase...');
-        const processResult = await processImage(req.file, 'materials');
-        
-        if (processResult.success) {
-          imageUrl = processResult.url;
-          console.log('✅ Imagen subida a Supabase:', imageUrl);
-        } else {
-          console.error('❌ Error al procesar imagen:', processResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Error al procesar la imagen:', error);
-        // Continuar sin imagen si falla el procesamiento
-      }
-    } else {
-      console.log('⚠️ No se recibió imagen');
-    }
-
-    console.log('💾 Guardando material en la base de datos...');
-    const newMaterial = await prisma.Material.create({
-      data: {
-        name,
-        description,
-        quantity: parseInt(quantity),
-        image_url: imageUrl
-      }
-    });
-
-    console.log('✅ Material creado:', newMaterial);
-    res.status(201).json(newMaterial);
-  } catch (error) {
-    console.error('❌ Error al crear material:', error);
-    console.error('Stack trace completo:', error.stack);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Error al crear material',
-      error: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-/**
- * @swagger
- * /api/materials:
- *   get:
- *     summary: Obtiene todos los materiales
- *     tags: [Materiales]
- *     responses:
- *       200:
- *         description: Lista de materiales
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Material'
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/materials', async (req, res) => {
-  try {
-    const materials = await prisma.Material.findMany();
-    res.json(materials);
-  } catch (error) {
-    console.error('Error al obtener materiales:', error);
-    res.status(500).json({ status: 'error', message: 'Error al obtener materiales' });
-  }
-});
-
-/**
- * @swagger
- * /api/materials/{id}:
- *   delete:
- *     summary: Elimina un material por su ID y su imagen de Supabase Storage
- *     tags: [Materiales]
- *     description: Elimina un material de la base de datos y también elimina su imagen asociada de Supabase Storage
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID del material a eliminar
- *     responses:
- *       200:
- *         description: Material e imagen eliminados exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Material eliminado correctamente
- *       404:
- *         description: Material no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Material no encontrado
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                 error:
- *                   type: string
- */
-router.delete('/materials/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Verificar si el material existe
-    const material = await prisma.Material.findUnique({
-      where: { id: parseInt(id) }
-    });
-    
-    if (!material) {
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Material no encontrado' 
-      });
-    }
-    
-    // Eliminar la imagen asociada de Supabase si existe
-    if (material.image_url) {
-      try {
-        const deleted = await deleteFile(material.image_url);
-        if (deleted) {
-          console.log(`✅ Imagen eliminada de Supabase: ${material.image_url}`);
-        } else {
-          console.log(`⚠️ No se pudo eliminar la imagen de Supabase: ${material.image_url}`);
-        }
-      } catch (error) {
-        console.error('❌ Error al eliminar imagen de Supabase:', error);
-        // Continuar con la eliminación del material incluso si falla la eliminación de la imagen
-      }
-    }
-    
-    // Eliminar el material
-    await prisma.Material.delete({
-      where: { id: parseInt(id) }
-    });
-    
-    res.json({ 
-      status: 'success', 
-      message: 'Material eliminado correctamente' 
-    });
-  } catch (error) {
-    console.error('❌ Error al eliminar material:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Error al eliminar material',
-      error: error.message
-    });
-  }
-});
-
-/**
- * @swagger
- * /api/materials/update/{id}:
- *   put:
- *     summary: Actualiza un material existente
- *     tags: [Materiales]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID del material a actualizar
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nombre del material
- *               description:
- *                 type: string
- *                 description: Descripción del material
- *               quantity:
- *                 type: integer
- *                 description: Cantidad disponible
- *               image_url:
- *                 type: string
- *                 description: URL de la imagen del material
- *     responses:
- *       200:
- *         description: Material actualizado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Material'
- *       404:
- *         description: Material no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Material no encontrado
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                 error:
- *                   type: string
- */
-router.put('/api/materials/update/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, description, quantity, image_url } = req.body;
-    
-    console.log('📝 Actualizando material:', { id, name, description, quantity, image_url });
-    
-    // Verificar si el material existe
-    const existingMaterial = await prisma.Material.findUnique({
-      where: { id: parseInt(id) }
-    });
-    
-    if (!existingMaterial) {
-      console.log('❌ Material no encontrado:', id);
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Material no encontrado' 
-      });
-    }
-    
-    // Actualizar el material
-    const updatedMaterial = await prisma.Material.update({
-      where: { id: parseInt(id) },
-      data: {
-        name,
-        description,
-        quantity: parseInt(quantity),
-        image_url
-      }
-    });
-    
-    console.log('✅ Material actualizado:', updatedMaterial);
-    res.json(updatedMaterial);
-  } catch (error) {
-    console.error('❌ Error al actualizar material:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Error al actualizar material',
-      error: error.message
-    });
   }
 });
 
@@ -941,6 +573,169 @@ router.get('/storage-config', (req, res) => {
     res.status(500).json({ 
       status: 'error', 
       message: 'Error al obtener configuración de Supabase' 
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/location:
+ *   put:
+ *     summary: Actualiza la ubicación de un usuario
+ *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 description: Latitud de la ubicación
+ *               longitude:
+ *                 type: number
+ *                 description: Longitud de la ubicación
+ *     responses:
+ *       200:
+ *         description: Ubicación actualizada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Ubicación actualizada correctamente
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put('/users/location', async (req, res) => {
+  try {
+    console.log('📍 Recibida solicitud de actualización de ubicación');
+    
+    // Verificar que el usuario esté autenticado
+    if (!req.user || !req.user.id) {
+      console.log('❌ Usuario no autenticado');
+      return res.status(401).json({
+        status: 'error',
+        message: 'Usuario no autenticado'
+      });
+    }
+
+    console.log(`🔍 Usuario autenticado con ID: ${req.user.id}`);
+    
+    // Obtener y validar los datos de ubicación
+    const { latitude, longitude } = req.body;
+    console.log('📊 Datos recibidos:', { latitude, longitude });
+
+    if (latitude === undefined || longitude === undefined) {
+      console.log('❌ Datos de ubicación incompletos');
+      return res.status(400).json({
+        status: 'error',
+        message: 'La latitud y longitud son requeridas'
+      });
+    }
+
+    // Convertir a números flotantes
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    // Verificar que sean números válidos
+    if (isNaN(lat) || isNaN(lng)) {
+      console.log('❌ Valores de ubicación inválidos');
+      return res.status(400).json({
+        status: 'error',
+        message: 'La latitud y longitud deben ser números válidos'
+      });
+    }
+
+    // Verificar que el usuario exista en la base de datos
+    const user = await prisma.User.findUnique({
+      where: { id: parseInt(req.user.id) }
+    });
+
+    if (!user) {
+      console.log(`❌ Usuario con ID ${req.user.id} no encontrado en la base de datos`);
+      return res.status(404).json({
+        status: 'error',
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    console.log(`🧑‍💼 Usuario encontrado: ${user.username || user.email}, roleId: ${user.roleId}`);
+
+    // Verificar que el usuario sea un trabajador (roleId = 2)
+    if (user.roleId !== 2) {
+      console.log(`❌ Usuario con rol ${user.roleId} no autorizado (se requiere roleId = 2)`);
+      return res.status(403).json({
+        status: 'error',
+        message: 'Solo los trabajadores pueden actualizar su ubicación'
+      });
+    }
+
+    console.log(`💾 Actualizando ubicación para el usuario ${req.user.id}: [${lat}, ${lng}]`);
+    
+    // Actualizar la ubicación del usuario utilizando el método update de Prisma
+    const updatedUser = await prisma.User.update({
+      where: { id: parseInt(req.user.id) },
+      data: {
+        latitude: lat,
+        longitude: lng
+      }
+    });
+
+    console.log('✅ Ubicación actualizada correctamente');
+    
+    res.json({
+      status: 'success',
+      message: 'Ubicación actualizada correctamente',
+      data: {
+        userId: updatedUser.id,
+        latitude: updatedUser.latitude,
+        longitude: updatedUser.longitude
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al actualizar ubicación del usuario:', error);
+    console.error('Stack trace completo:', error.stack);
+    
+    // Respuesta más detallada para ayudar a diagnosticar
+    res.status(500).json({
+      status: 'error',
+      message: 'Error al actualizar ubicación del usuario',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

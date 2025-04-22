@@ -1,5 +1,7 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useMatches } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 
 export default function ProtectedRoute() {
   const { isAuthenticated, roleId, isLoading, logout } = useAuth();

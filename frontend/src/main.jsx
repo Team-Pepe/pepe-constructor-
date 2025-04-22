@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom"
 
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage, Register, ForgotPassword as FPassword } from "@/features/auth";
+import ResetPassword from "@/features/auth/reset-password"; // Importa el nuevo componente
 import Dashboard from "@/pages/Dashboard/dashboard";
 import DashboardEmpleados from "@/pages/DashboardWorkers/dashboard-empleados";
 import SolicitarMateriales from "@/pages/DashboardWorkers/solicitar-materiales";
@@ -16,7 +17,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     loader: () => redirect("/login"),
-    errorElement: <h1>Error cargando la página</h1>, // 👈 Captura errores
+    errorElement: <h1>Error cargando la página</h1>,
   },
   {
     path: "/login",
@@ -31,12 +32,17 @@ const router = createBrowserRouter([
     element: <FPassword />,
   },
   {
-    path: "/",
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
+  {
     element: <ProtectedRoute />,
     children: [
       {
         path: "dashboard",
         element: <Dashboard />,
+        // Añadir metadatos para el rol requerido
+        handle: { requiredRole: 1 }
       },
       {
         path: "dashboard-empleados",
@@ -50,6 +56,10 @@ const router = createBrowserRouter([
       },
     ],
   },
+  {
+    path: "*",
+    element: <h1>404 - Página no encontrada</h1>
+  }
 ]);
 
 // Renderiza la aplicación con AuthProvider y StrictMode

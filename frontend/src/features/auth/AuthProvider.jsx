@@ -102,4 +102,5 @@ export function AuthProvider({ children }) {
     );
 }
 
+// Añadir esta línea al final del archivo
 export const useAuth = () => useContext(AuthContext);

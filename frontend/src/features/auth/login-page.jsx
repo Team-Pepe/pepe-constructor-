@@ -1,26 +1,38 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Lock, Mail } from "lucide-react";
+import { Building2, Lock, Mail, Eye, EyeOff } from "lucide-react"; // Importamos los íconos Eye y EyeOff
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import axios from "axios";
-import fondo from "../../assets/fondo.jpg"
+import fondo from "../../assets/fondo.jpg";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // Estado para alternar visibilidad de la contraseña
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { setIsAuthenticated, setRoleId, setCsrfToken } = useAuth();
+
+  useEffect(() => {
+    setIsAuthenticated(false);
+    setRoleId(null);
+    setCsrfToken(null);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("csrfToken");
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-  
+
     try {
       axios.defaults.withCredentials = true;
 
@@ -76,7 +88,20 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      setError(err.response?.data?.message || "Error al iniciar sesión");
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError("Credenciales inválidas");
+        } else if (err.response.status === 403) {
+          setError("Acceso no autorizado");
+        } else {
+          setError(err.response?.data?.message || "Error al iniciar sesión");
+        }
+      } else if (err.request) {
+        setError("No se recibió respuesta del servidor");
+      } else {
+        setError("Error al configurar la solicitud");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +116,7 @@ export default function LoginPage() {
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         width: "100%",
-        height: "100vh"
+        height: "100vh",
       }}
     >
       <Card className="w-full max-w-md">
@@ -134,13 +159,20 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={isPasswordVisible ? "text" : "password"} // Alterna entre texto y contraseña
                   placeholder="••••••••"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordVisible(!isPasswordVisible)} // Alterna visibilidad
+                  className="absolute right-3 top-3 text-muted-foreground"
+                >
+                  {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -159,8 +191,12 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">Google</Button>
-            <Button variant="outline" className="w-full">Microsoft</Button>
+            <Button variant="outline" className="w-full">
+              Google
+            </Button>
+            <Button variant="outline" className="w-full">
+              Microsoft
+            </Button>
           </div>
           <div className="text-center text-sm">
             ¿No tienes una cuenta?{" "}

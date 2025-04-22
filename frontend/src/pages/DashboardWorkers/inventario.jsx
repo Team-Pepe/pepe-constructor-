@@ -8,50 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Datos de ejemplo (Mock data) - Reemplazar con llamadas a API
-const mockMaterials = [
-  {
-    id: "1",
-    name: "Cemento",
-    description: "Cemento Portland Tipo I, uso general para construcción.",
-    quantity: 500,
-    unit: "kg",
-    image: "https://i.imgur.com/XoTNlNN.jpg"
-  },
-  {
-    id: "2",
-    name: "Varilla de Acero",
-    description: "Varilla corrugada de acero de 3/8 pulgadas para refuerzo estructural.",
-    quantity: 1200,
-    unit: "kg",
-    image: "https://i.imgur.com/3o6NCZ3.jpg"
-  },
-  {
-    id: "3",
-    name: "Arena",
-    description: "Arena fina lavada para mezclas de concreto y mortero.",
-    quantity: 2000,
-    unit: "kg",
-    image: "https://i.imgur.com/J8UBbPB.jpg"
-  },
-  {
-    id: "4",
-    name: "Grava",
-    description: "Grava de 3/4 pulgada para fabricación de concreto.",
-    quantity: 1500,
-    unit: "kg",
-    image: "https://i.imgur.com/mCcFLib.jpg"
-  }
-];
-
-// Zonas de trabajo de ejemplo
-const mockZones = [
-  { id: "1", name: "Edificio Principal - Nivel 1" },
-  { id: "2", name: "Edificio Principal - Nivel 2" },
-  { id: "3", name: "Parqueadero" },
-  { id: "4", name: "Zona de Almacenamiento" }
-];
+import { fetchMaterials, fetchWorkZones } from "@/services/dashboardService";
 
 export default function Inventario() {
   const [materials, setMaterials] = useState([]);
@@ -69,19 +26,101 @@ export default function Inventario() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Aquí normalmente haríamos llamadas a API
-        // const materialsResponse = await fetch('api/materials');
-        // const zonesResponse = await fetch('api/workzones');
+        // Cargar materiales desde la API
+        const materialsResponse = await fetchMaterials();
+        console.log("Respuesta de materiales:", materialsResponse);
+
+        // Cargar zonas desde la API
+        const zonesResponse = await fetchWorkZones();
+        console.log("Respuesta de zonas:", zonesResponse);
+
+        // Procesar materiales
+        const processedMaterials = [];
+        if (materialsResponse && materialsResponse.data) {
+          let materialsData = null;
+          
+          // Caso 1: response.data es directamente el array de materiales
+          if (Array.isArray(materialsResponse.data)) {
+            materialsData = materialsResponse.data;
+          } 
+          // Caso 2: Los materiales están anidados en una propiedad de response.data
+          else if (typeof materialsResponse.data === 'object') {
+            // Revisar propiedades comunes
+            const possiblePaths = ['materials', 'items', 'results', 'data'];
+            
+            for (const path of possiblePaths) {
+              if (materialsResponse.data[path] && Array.isArray(materialsResponse.data[path])) {
+                materialsData = materialsResponse.data[path];
+                break;
+              }
+            }
+            
+            // Si no encontramos en las rutas comunes, intentamos encontrar cualquier array
+            if (!materialsData) {
+              for (const key in materialsResponse.data) {
+                if (Array.isArray(materialsResponse.data[key])) {
+                  materialsData = materialsResponse.data[key];
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Transformar los datos para asegurar que tengan la estructura correcta
+          if (Array.isArray(materialsData)) {
+            processedMaterials.push(...materialsData.map(material => {
+              // Buscar propiedades anidadas
+              let nestedMaterial = null;
+              if (material.material && typeof material.material === 'object') {
+                nestedMaterial = material.material;
+              }
+              
+              return {
+                id: material.id || material.id_material || nestedMaterial?.id || '0',
+                name: material.name || material.nombre || nestedMaterial?.name || nestedMaterial?.nombre || 'Material sin nombre',
+                description: material.description || material.descripcion || nestedMaterial?.description || nestedMaterial?.descripcion || 'Sin descripción',
+                quantity: material.quantity || material.cantidad || material.cantidad_disponible || nestedMaterial?.quantity || nestedMaterial?.cantidad || 0,
+                unit: material.unit || material.unidad || nestedMaterial?.unit || nestedMaterial?.unidad || 'unidades',
+                image: material.image || material.image_url || material.imagen || nestedMaterial?.image || nestedMaterial?.image_url || 'https://i.imgur.com/XoTNlNN.jpg'
+              };
+            }));
+          }
+        }
         
-        // Simulando carga de datos con un retraso
-        setTimeout(() => {
-          setMaterials(mockMaterials);
-          setZones(mockZones);
-          setIsLoading(false);
-        }, 800);
+        // Procesar zonas
+        const processedZones = [];
+        if (zonesResponse && zonesResponse.data) {
+          let zonesData = null;
+          
+          if (Array.isArray(zonesResponse.data)) {
+            zonesData = zonesResponse.data;
+          } else if (typeof zonesResponse.data === 'object') {
+            // Buscar array de zonas en respuesta
+            for (const key in zonesResponse.data) {
+              if (Array.isArray(zonesResponse.data[key])) {
+                zonesData = zonesResponse.data[key];
+                break;
+              }
+            }
+          }
+          
+          if (Array.isArray(zonesData)) {
+            processedZones.push(...zonesData.map(zone => ({
+              id: zone.id || '0',
+              name: zone.name || zone.nombre || 'Zona sin nombre'
+            })));
+          }
+        }
+        
+        console.log("Materiales procesados:", processedMaterials);
+        console.log("Zonas procesadas:", processedZones);
+        
+        setMaterials(processedMaterials);
+        setZones(processedZones);
       } catch (err) {
         console.error("Error al cargar datos:", err);
         setError("No se pudieron cargar los datos. Intente de nuevo más tarde.");
+      } finally {
         setIsLoading(false);
       }
     };
@@ -131,7 +170,7 @@ export default function Inventario() {
   return (
     <div className="container mx-auto p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-white">Inventario de Materiales</h1>
+        <h1 className="text-2xl font-bold text-black">Inventario de Materiales</h1>
         
         <div className="w-full md:w-64 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />

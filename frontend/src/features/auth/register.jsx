@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Mail, Lock, User } from "lucide-react";
+import { Building2, Mail, Lock, User, Eye, EyeOff } from "lucide-react"; // Importamos los íconos Eye y EyeOff
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,29 +12,65 @@ import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fond
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
+  const [document, setDocument] = useState("");
+  const [bloodType, setBloodType] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // Estado para alternar visibilidad de la contraseña
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [documentError, setDocumentError] = useState("");
   const navigate = useNavigate();
+
+  // Valida documento colombiano (6 a 10 dígitos, solo números)
+  const validateDocument = (value) => {
+    const regex = /^[0-9]{6,10}$/;
+    return regex.test(value);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setDocumentError("");
+
+    if (!validateDocument(document)) {
+      setDocumentError("Ingresa un número de documento válido (6 a 10 dígitos, solo números).");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await axios.post("http://localhost:3000/api/auth/register", {
+        id: parseInt(document), // Documento como id (Int)
         email,
         password,
-        username: name,
+        username: name, // El nombre se envía como username
+        bloodType,
         roleId: 2,
       });
 
       navigate("/login");
     } catch (err) {
-      console.error("Error al registrar usuario:", err);
-      setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+      // Revisa si el backend devuelve un error de duplicado
+      if (err.response && err.response.data) {
+        if (err.response.data.code === "P2002") {
+          // Prisma error de unique constraint
+          if (err.response.data.meta && err.response.data.meta.target.includes("id")) {
+            setDocumentError("Ya existe un usuario con este documento.");
+          } else if (err.response.data.meta && err.response.data.meta.target.includes("email")) {
+            setError("Ya existe un usuario con este correo.");
+          } else {
+            setError("Ya existe un usuario con estos datos.");
+          }
+        } else if (typeof err.response.data === "string" && err.response.data.includes("ya existe")) {
+          setError(err.response.data);
+        } else {
+          setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+        }
+      } else {
+        setError("Hubo un problema al registrar el usuario. Inténtalo de nuevo.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -64,51 +100,117 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Juan Pérez"
-                  className="pl-10"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+            {/* Fila 1: Nombre Completo y Número de Documento */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre Completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Juan Pérez"
+                    className="pl-10"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="document">Número de Documento</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1.5 text-muted-foreground">Cc</span>
+                  <Input
+                    id="document"
+                    type="text"
+                    placeholder="123456789"
+                    className="pl-10"
+                    value={document}
+                    onChange={(e) => {
+                      // Solo permite números
+                      const value = e.target.value.replace(/\D/g, "");
+                      setDocument(value);
+                      setDocumentError("");
+                    }}
+                    required
+                    maxLength={10}
+                    minLength={6}
+                    pattern="[0-9]{6,10}"
+                    inputMode="numeric"
+                  />
+                </div>
+                {documentError && <p className="text-red-500 text-xs">{documentError}</p>}
               </div>
             </div>
+
+            {/* Fila 2: Tipo de Sangre */}
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="bloodType">Tipo de Sangre</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="nombre@empresa.com"
-                  className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                <select
+                  id="bloodType"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={bloodType}
+                  onChange={(e) => setBloodType(e.target.value)}
                   required
-                />
+                >
+                  <option value="" disabled>
+                    Selecciona tu tipo de sangre
+                  </option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                </select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="pl-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+
+            {/* Fila 3: Correo Electrónico y Contraseña */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo Electrónico</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="nombre@empresa.com"
+                    className="pl-10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={isPasswordVisible ? "text" : "password"} // Alterna entre texto y contraseña
+                    placeholder="••••••••"
+                    className="pl-10 pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordVisible(!isPasswordVisible)} // Alterna visibilidad
+                    className="absolute right-3 top-3 text-muted-foreground"
+                  >
+                    {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox id="terms" required />
               <Label htmlFor="terms" className="text-sm">

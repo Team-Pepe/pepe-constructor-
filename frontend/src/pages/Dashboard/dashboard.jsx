@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Activity,
     Calendar,
@@ -35,10 +36,13 @@ import {
 } from "./components";
 
 import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
-import { fetchAllDashboardData } from "@/services/dashboardService";
+import { fetchAllDashboardData, updateUserLocation } from "@/services/dashboardService";
+import { useAuth } from "@/features/auth";
 import Inventory from "./inventory";
 
 export default function Dashboard() {
+    const { roleId } = useAuth();
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [metrics, setMetrics] = useState(null);
     const [projects, setProjects] = useState([]);
@@ -47,30 +51,208 @@ export default function Dashboard() {
     const [activities, setActivities] = useState([]);
     const [workers, setWorkers] = useState([]);
     const [activeSection, setActiveSection] = useState("resumen");
+    const [locationStatus, setLocationStatus] = useState(null);
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
+
+    // Mostrar modal de solicitud de ubicación si el usuario es trabajador
+    useEffect(() => {
+        if (roleId === 2) {
+            console.log("Usuario es trabajador (roleId=2), mostrando modal de ubicación");
+            setShowLocationModal(true);
+        } else {
+            console.log("Usuario NO es trabajador (roleId=" + roleId + "), ocultando modal");
+            setShowLocationModal(false);
+        }
+    }, [roleId]);
+
+    // Función para solicitar permiso de ubicación
+    const requestLocationPermission = () => {
+        if (!navigator.geolocation) {
+            setLocationStatus('Tu navegador no soporta geolocalización');
+            return;
+        }
+
+        setLocationStatus('Solicitando acceso a ubicación...');
+        
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const { latitude, longitude } = position.coords;
+                    console.log('Ubicación obtenida:', { latitude, longitude });
+                    
+                    await updateUserLocation({ latitude, longitude });
+                    setLocationStatus('Ubicación actualizada correctamente');
+                    setShowLocationModal(false);
+                    
+                    // Actualizar la lista de trabajadores después de enviar la ubicación
+                    loadDashboardData();
+                    
+                    // Configurar intervalo para actualizar la ubicación cada 5 minutos
+                    const locationInterval = setInterval(() => updateLocation(), 5 * 60 * 1000);
+                    
+                    // Limpiar el mensaje después de 3 segundos
+                    setTimeout(() => setLocationStatus(null), 3000);
+                    
+                    // Devolver la función para limpiar el intervalo
+                    return () => clearInterval(locationInterval);
+                } catch (error) {
+                    console.error('Error al enviar ubicación:', error);
+                    setLocationStatus('Error al actualizar ubicación');
+                    setTimeout(() => setLocationStatus(null), 5000);
+                }
+            },
+            (error) => {
+                console.error('Error al obtener ubicación:', error);
+                
+                // Marcar que el permiso fue denegado
+                if (error.code === error.PERMISSION_DENIED) {
+                    setLocationPermissionDenied(true);
+                }
+                
+                // Mensajes personalizados según el error
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        setLocationStatus('Se requiere permiso para acceder a la ubicación');
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        setLocationStatus('Información de ubicación no disponible');
+                        break;
+                    case error.TIMEOUT:
+                        setLocationStatus('Tiempo de espera agotado para obtener ubicación');
+                        break;
+                    default:
+                        setLocationStatus('Error desconocido al obtener ubicación');
+                }
+                
+                // Mantener el mensaje de error por 5 segundos
+                setTimeout(() => setLocationStatus(null), 5000);
+            },
+            { enableHighAccuracy: true }
+        );
+    };
+
+    // Función para actualizar la ubicación
+    const updateLocation = () => {
+        if (!navigator.geolocation || locationPermissionDenied) return;
+        
+        setLocationStatus('Actualizando ubicación...');
+        
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const { latitude, longitude } = position.coords;
+                    
+                    await updateUserLocation({ latitude, longitude });
+                    setLocationStatus('Ubicación actualizada');
+                    
+                    // Actualizar la lista de trabajadores después de enviar la ubicación
+                    loadDashboardData();
+                    
+                    // Limpiar el mensaje después de 2 segundos
+                    setTimeout(() => setLocationStatus(null), 2000);
+                } catch (error) {
+                    console.error('Error al enviar ubicación:', error);
+                    setLocationStatus('Error al actualizar ubicación');
+                    setTimeout(() => setLocationStatus(null), 5000);
+                }
+            },
+            (error) => {
+                console.error('Error al obtener ubicación:', error);
+                setLocationStatus('Error al obtener ubicación');
+                setTimeout(() => setLocationStatus(null), 5000);
+            },
+            { enableHighAccuracy: true }
+        );
+    };
+
+    // Extraer la función loadDashboardData para poder llamarla desde otros lugares
+    const loadDashboardData = async () => {
+        try {
+            const data = await fetchAllDashboardData();
+            
+            setMetrics(data.metrics);
+            setProjects(data.projects);
+            setAttendance(data.attendance);
+            setMaterials(data.materials);
+            setActivities(data.activities);
+            setWorkers(data.workers);
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const loadDashboardData = async () => {
-            try {
-                const data = await fetchAllDashboardData();
-                
-                setMetrics(data.metrics);
-                setProjects(data.projects);
-                setAttendance(data.attendance);
-                setMaterials(data.materials);
-                setActivities(data.activities);
-                setWorkers(data.workers);
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         loadDashboardData();
-        // Actualizar datos cada 5 minutos
-        const interval = setInterval(loadDashboardData, 5 * 60 * 1000);
+        
+        // Actualizar datos cada 2 minutos para tener ubicaciones más recientes
+        const interval = setInterval(loadDashboardData, 2 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // Renderizar el modal de ubicación
+    const renderLocationModal = () => {
+        if (!showLocationModal) return null;
+        
+        console.log("Renderizando modal de ubicación");
+        
+        return (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80">
+                <div className="bg-slate-800 border-2 border-orange-500 p-6 rounded-lg max-w-md w-full shadow-xl">
+                    <div className="flex items-center justify-center text-orange-500 mb-4">
+                        <MapPin size={48} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white text-center mb-4">
+                        Acceso a ubicación requerido
+                    </h2>
+                    <p className="text-slate-300 mb-6 text-center">
+                        Para poder utilizar el sistema correctamente, necesitamos acceder a tu ubicación. 
+                        Esto nos permite ubicarte en el mapa de trabajo y gestionar la asignación de tareas.
+                    </p>
+                    
+                    {locationPermissionDenied && (
+                        <div className="bg-red-900/50 border border-red-500 rounded-md p-4 mb-4">
+                            <div className="flex items-start">
+                                <AlertTriangle className="text-red-500 mt-0.5 mr-2 flex-shrink-0" size={20} />
+                                <p className="text-red-200 text-sm">
+                                    Has rechazado el permiso de ubicación. Por favor, habilita los permisos de ubicación en la configuración de tu navegador y recarga la página.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="flex flex-col space-y-4">
+                        <Button 
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3"
+                            onClick={requestLocationPermission}
+                            disabled={locationPermissionDenied}
+                            size="lg"
+                        >
+                            <MapPin className="mr-2 h-5 w-5" />
+                            Permitir acceso a ubicación
+                        </Button>
+                        
+                        {locationPermissionDenied && (
+                            <Button
+                                variant="outline"
+                                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                                onClick={() => setShowLocationModal(false)}
+                            >
+                                Continuar sin ubicación
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const renderMainContent = () => {
         switch (activeSection) {
@@ -179,9 +361,9 @@ export default function Dashboard() {
                                                 <MaterialCard
                                                     key={material.id}
                                                     name={material.name}
-                                                    used={material.used}
-                                                    total={material.total}
-                                                    unit={material.unit}
+                                                    used={material.used || 0}
+                                                    total={material.quantity}
+                                                    unit={"Unidades"}
                                                 />
                                             ))}
                                         </div>
@@ -213,6 +395,13 @@ export default function Dashboard() {
                             CARGANDO DASHBOARD
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Mostrar mensaje de estado de ubicación si existe */}
+            {locationStatus && (
+                <div className="fixed top-4 right-4 z-50 bg-slate-800 border border-orange-500/50 text-white px-4 py-2 rounded-md shadow-lg">
+                    {locationStatus}
                 </div>
             )}
 
@@ -351,6 +540,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Renderizar el modal de ubicación */}
+            {renderLocationModal()}
         </div>
     );
 }

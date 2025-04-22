@@ -7,10 +7,9 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import axios from "axios";
 import { getImageUrl } from "@/services/supabaseService";
+import { fetchMaterials, createMaterial, updateMaterial, deleteMaterial } from "@/services/dashboardService";
 
-const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
 export default function Inventory() {
   const [materials, setMaterials] = useState([]);
@@ -23,12 +22,11 @@ export default function Inventory() {
 
   // Cargar materiales
   useEffect(() => {
-    const fetchMaterials = async () => {
+    const loadMaterials = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${apiEndpoint}/api/materials`);
+        const response = await fetchMaterials();
         console.log('Materiales recibidos:', response.data);
-        
         const materialsWithImages = response.data.map(material => {
           // Construir la URL completa de la imagen usando el servicio de Supabase
           const fullImageUrl = material.image_url ? getImageUrl(material.image_url) : null;
@@ -36,11 +34,10 @@ export default function Inventory() {
           return {
             ...material,
             image: fullImageUrl,
-            unit: material.unit || "kg"
+            unit: "kg"
           };
         });
         
-        console.log('Materiales procesados:', materialsWithImages);
         setMaterials(materialsWithImages);
       } catch (err) {
         console.error("Error al cargar materiales:", err);
@@ -50,7 +47,7 @@ export default function Inventory() {
       }
     };
 
-    fetchMaterials();
+    loadMaterials();
   }, []);
 
   const handleAddMaterial = async (formData) => {
@@ -58,11 +55,7 @@ export default function Inventory() {
     try {
       console.log('Enviando material:', Object.fromEntries(formData.entries()));
       
-      const response = await axios.post(`${apiEndpoint}/api/materials`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await createMaterial(formData);
       
       console.log('Respuesta del servidor:', response.data);
       
@@ -87,17 +80,26 @@ export default function Inventory() {
   const handleEditMaterial = async (formData) => {
     setIsLoading(true);
     try {
-      console.log('Editando material con datos:', Object.fromEntries(formData.entries()));
-      
+      // Extraer el ID del formData
       const materialId = formData.get('id');
       
-      // Asegurarnos de que la ruta coincida con el backend
-      const response = await axios.put(`${apiEndpoint}/api/materials/update/${materialId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json'
-        }
-      });
+      // Crear un objeto JSON plano para enviar al backend
+      const materialData = {
+        name: formData.get('name'),
+        description: formData.get('description') || '',
+        quantity: parseFloat(formData.get('quantity')),
+        image_url: formData.get('image_url')
+      };
+      
+      // Filtrar cualquier valor undefined o null
+      Object.keys(materialData).forEach(key => 
+        (materialData[key] === undefined || materialData[key] === null) && delete materialData[key]
+      );
+      
+      console.log('Editando material ID:', materialId, 'con datos JSON:', materialData);
+      
+      // Llamar a la API con el ID como parámetro y los datos JSON en el cuerpo
+      const response = await updateMaterial(materialId, materialData);
       
       const updatedData = response.data;
       console.log('Respuesta del servidor:', updatedData);
@@ -106,12 +108,11 @@ export default function Inventory() {
         throw new Error('No se recibieron datos actualizados del servidor');
       }
       
-      // Actualizar el material en el estado local
       const updatedMaterials = materials.map(mat => 
         mat.id === parseInt(materialId)
           ? { 
               ...updatedData,
-              image: updatedData.image_url || mat.image, // Mantener la imagen anterior si no se actualizó
+              image: updatedData.image_url || mat.image,
               unit: updatedData.unit || mat.unit || "kg"
             } 
           : mat
@@ -135,11 +136,7 @@ export default function Inventory() {
     if (window.confirm("¿Está seguro de que desea eliminar este material?")) {
       setIsLoading(true);
       try {
-        // Asegurarnos de que la URL termine sin slash
-        const url = `${apiEndpoint}/api/materials/${id}`.replace(/\/$/, '');
-        await axios.delete(url);
-        
-        // Actualizar el estado local solo si la eliminación fue exitosa
+        await deleteMaterial(id);
         setMaterials(prev => prev.filter(mat => mat.id !== id));
         setSuccessMessage("Material eliminado con éxito");
         setTimeout(() => setSuccessMessage(null), 3000);
