@@ -593,3 +593,96 @@ Esta subcarpeta contiene la interfaz principal para los empleados, donde pueden 
   * Registro de asistencia.  
 * **Errores:**  
   * Muestra mensajes si no se puede obtener la ubicación o cargar los datos.
+
+ 
+
+---
+
+### **📍`routes/materialRoutes.js`**
+
+**Propósito:** Define las rutas relacionadas con la gestión de materiales.  
+ **Funcionalidades:**
+
+* Permite a los supervisores registrar nuevos materiales en el sistema.
+
+* Permite editar materiales existentes, incluyendo nombre, descripción, cantidad y foto.
+
+* Permite a los trabajadores consultar los materiales disponibles según su zona.
+
+* Incluye protección con middleware para verificar roles y autenticación.
+
+---
+
+### **📍 `controllers/materialController.js`**
+
+**Propósito:** Maneja la lógica de negocio para las operaciones relacionadas con materiales.  
+ **Funcionalidades:**
+
+* Recibe datos del frontend para crear, editar y listar materiales.
+
+* Interactúa con Prisma para realizar operaciones CRUD en la base de datos.
+
+* Filtra los materiales por zona cuando la solicitud proviene de un trabajador.
+
+* Valida la información antes de guardar o actualizar los registros.
+
+---
+
+### **📍. `services/materialService.js`**
+
+**Propósito:** Centraliza las operaciones con la base de datos relacionadas con materiales.  
+ **Funcionalidades:**
+
+* Contiene funciones reutilizables para crear, actualizar, buscar o filtrar materiales.
+
+* Implementa la lógica para asociar materiales con zonas específicas.
+
+* Maneja posibles errores de las consultas y devuelve información estructurada.
+
+---
+
+### **📍`middleware/roleMiddleware.js`**
+
+**Propósito:** Verifica el rol del usuario antes de permitir ciertas acciones.  
+ **Funcionalidades:**
+
+* Permite el acceso a rutas solo si el usuario tiene el rol adecuado (ej. supervisor o jefe de obra).
+
+* Previene accesos no autorizados a funcionalidades de edición o registro de materiales.
+
+* Puede ser reutilizado en otras rutas que requieran verificación por rol.
+
+---
+
+**Carpeta General: utils**
+
+Esta carpeta contiene funciones utilitarias que encapsulan lógica común y son reutilizables en diferentes partes de la aplicación.
+
+---
+
+📍 **Utilidades**
+
+**cookies.js**
+
+**Función**: Maneja la obtención de cookies específicas, como el token de autenticación.
+
+* **Funciones**:  
+  1. **getCookie(name)**  
+     * **Descripción**: Obtiene el valor de una cookie específica.  
+     * Entrada:  
+       * name: Nombre de la cookie que se desea obtener.  
+     * **Proceso**:  
+1. Usa una expresión regular para buscar la cookie por su nombre en document.cookie.  
+2.  Devuelve el valor de la cookie si se encuentra.  
+   * **Respuesta**:  
+     * Valor de la cookie (si existe) o null (si no se encuentra).  
+   2. **getAuthToken()**  
+      * **Descripción**: Obtiene el token de autenticación almacenado en las cookies.  
+      * **Entrada**:  
+        * Ninguna.  
+      * **Proceso**:  
+1. Llama a getCookie('token') para obtener el valor de la cookie token.  
+   * **Respuesta**:  
+     * Valor del token de autenticación (si existe) o null (si no se encuentra).  
+* **Errores**:  
+  * No maneja errores explícitos, pero requiere que document.cookie esté disponible (no funciona en SSR).
