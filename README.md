@@ -349,7 +349,7 @@ Estas ramas permiten que cada desarrollador trabaje de forma independiente sin a
 
 Aquí tienes un gráfico que muestra la estructura de las ramas de nuestro proyecto:
 
-![Diagrama de Ramas](https://github.com/Team-Pepe/pepe-constructor-/network)
+[Diagrama de Ramas](https://github.com/Team-Pepe/pepe-constructor-/network)
 
 Este gráfico muestra la estructura de las ramas de nuestro proyecto.
 
@@ -394,3 +394,9 @@ Puedes consultar el historial completo de cambios realizados en las ramas a trav
 
 🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/commits/main/)
 </div>
+
+## 📚 Documentación del Código
+
+Puedes consultar la documentación detallada del código fuente, estructuras, funcionalidades y módulos del proyecto en el siguiente enlace:
+
+🔗 [Ver documentación del código](https://github.com/Team-Pepe/pepe-constructor-/tree/main/document)
