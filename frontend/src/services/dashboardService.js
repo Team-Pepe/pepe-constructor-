@@ -337,21 +337,32 @@ export default apiClient;
 // Material Request operations
 export const createMaterialRequest = async (data) => {
   try {
-    console.log("Enviando solicitud de materiales:", {
-      user_id: data.userId,
-      zone_id: data.zoneId,
-      message: data.message,
-      quantity_requested: parseInt(data.quantityRequested),
-      material_id: data.materialId || null
-    });
+    // Asegurarse de que los datos numéricos sean números
+    if (typeof data.user_id === 'string') {
+      data.user_id = parseInt(data.user_id);
+    }
     
-    return await apiClient.post(API_ENDPOINTS.MATERIAL_REQUESTS, {
-      user_id: data.userId,
-      zone_id: data.zoneId,
-      message: data.message,
-      quantity_requested: parseInt(data.quantityRequested),
-      material_id: data.materialId || null
-    }, { 
+    if (typeof data.zone_id === 'string') {
+      data.zone_id = parseInt(data.zone_id);
+    }
+    
+    if (typeof data.quantity_requested === 'string') {
+      data.quantity_requested = parseFloat(data.quantity_requested);
+    }
+    
+    // Datos en el formato correcto para el backend
+    const requestData = {
+      user_id: data.user_id,
+      zone_id: data.zone_id,
+      quantity_requested: data.quantity_requested,
+      message: data.message || "",
+      material: data.material || "",
+      status: "pending"
+    };
+    
+    console.log("Enviando solicitud de materiales:", requestData);
+    
+    return await apiClient.post(API_ENDPOINTS.MATERIAL_REQUESTS, requestData, { 
       headers: getAuthHeaders() 
     });
   } catch (error) {

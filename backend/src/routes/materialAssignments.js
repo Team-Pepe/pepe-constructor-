@@ -442,27 +442,27 @@ router.post('/uso', async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - user_id
- *               - zone_id
- *               - material_id
- *               - message
- *               - quantity_requested
+ *               - userId
+ *               - zoneId
+ *               - quantityRequested
+ *               - material
  *             properties:
- *               user_id:
+ *               userId:
  *                 type: integer
  *                 description: ID del usuario que realiza la solicitud
- *               zone_id:
+ *               zoneId:
  *                 type: integer
  *                 description: ID de la zona para la que se solicita el material
- *               material_id:
- *                 type: integer
- *                 description: ID del material solicitado (opcional)
  *               message:
  *                 type: string
- *                 description: Mensaje o descripción de la solicitud
- *               quantity_requested:
- *                 type: integer
+ *                 description: Mensaje o descripción de la solicitud (opcional)
+ *               quantityRequested:
+ *                 type: number
+ *                 format: float
  *                 description: Cantidad del material solicitada
+ *               material:
+ *                 type: string
+ *                 description: Nombre del material solicitado
  *     responses:
  *       201:
  *         description: Solicitud de material creada exitosamente
@@ -486,12 +486,10 @@ router.post('/uso', async (req, res) => {
  *                       type: integer
  *                     zone_id:
  *                       type: integer
- *                     material_id:
- *                       type: integer
  *                     message:
  *                       type: string
  *                     quantity_requested:
- *                       type: integer
+ *                       type: number
  *                     status:
  *                       type: string
  *       400:
@@ -510,20 +508,25 @@ router.post('/uso', async (req, res) => {
 router.post('/request', async (req, res) => {
   try {
     console.log('Datos recibidos para solicitud de material:', req.body);
-    const { user_id, zone_id, material_id, message, quantity_requested } = req.body;
+    
+    // Extraer datos aceptando formato camelCase o con guiones bajos
+    const userId = req.body.userId || req.body.user_id;
+    const zoneId = req.body.zoneId || req.body.zone_id;
+    const quantityRequested = req.body.quantityRequested || req.body.quantity_requested;
+    const { message, material } = req.body;
 
     // Validar datos requeridos
-    if (!user_id || !zone_id || !message || !quantity_requested) {
-      console.log('Datos faltantes:', { user_id, zone_id, message, quantity_requested });
+    if (!userId || !zoneId || !quantityRequested || !material) {
+      console.log('Datos faltantes:', { userId, zoneId, quantityRequested, material });
       return res.status(400).json({
         status: 'error',
-        message: 'Se requieren user_id, zone_id, message y quantity_requested'
+        message: 'Se requieren userId, zoneId, quantityRequested y material'
       });
     }
 
     // Verificar que la zona existe
     const zona = await prisma.WorkZone.findUnique({
-      where: { id: parseInt(zone_id) }
+      where: { id: parseInt(zoneId) }
     });
 
     if (!zona) {
@@ -535,7 +538,7 @@ router.post('/request', async (req, res) => {
 
     // Verificar que el usuario existe
     const usuario = await prisma.User.findUnique({
-      where: { id: parseInt(user_id) }
+      where: { id: parseInt(userId) }
     });
 
     if (!usuario) {
@@ -546,15 +549,24 @@ router.post('/request', async (req, res) => {
     }
 
     // Crear la solicitud de material con estado "pendiente" por defecto
+    // Crear objeto con los datos que sabemos que existen en la base de datos
+    const data = {
+      user_id: parseInt(userId),
+      zone_id: parseInt(zoneId),
+      quantity_requested: parseFloat(quantityRequested),
+      material: material || "",
+      status: 'pending'
+    };
+    
+    // Solo agregar message si está definido
+    if (message !== undefined) {
+      data.message = message;
+    }
+
+    console.log('Datos a crear:', data);
+
     const materialRequest = await prisma.MaterialRequest.create({
-      data: {
-        user_id: parseInt(user_id),
-        zone_id: parseInt(zone_id),
-        material_id: material_id ? parseInt(material_id) : null,
-        message,
-        quantity_requested: parseInt(quantity_requested),
-        status: 'pending'
-      }
+      data
     });
 
     res.status(201).json({
@@ -608,14 +620,27 @@ router.post('/request', async (req, res) => {
  *                         type: integer
  *                       zone_id:
  *                         type: integer
- *                       material_id:
- *                         type: integer
  *                       message:
  *                         type: string
  *                       quantity_requested:
- *                         type: integer
+ *                         type: number
+ *                         format: float
+ *                       material:
+ *                         type: string
  *                       status:
  *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           email:
+ *                             type: string
+ *                           username:
+ *                             type: string
  *       500:
  *         description: Error del servidor
  *         content:
@@ -643,22 +668,10 @@ router.get('/requests', async (req, res) => {
             email: true,
             username: true
           }
-        },
-        zone: {
-          select: {
-            id: true
-          }
-        },
-        material: {
-          select: {
-            id: true,
-            name: true,
-            description: true
-          }
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        created_at: 'desc'
       }
     });
 
@@ -703,9 +716,9 @@ router.get('/requests', async (req, res) => {
  *               status:
  *                 type: string
  *                 description: Nuevo estado (pending, approved, rejected, resolved)
- *               admin_comment:
+ *               message:
  *                 type: string
- *                 description: Comentario opcional del administrador
+ *                 description: Comentario o mensaje opcional
  *     responses:
  *       200:
  *         description: Estado de la solicitud actualizado exitosamente
@@ -725,8 +738,21 @@ router.get('/requests', async (req, res) => {
  *                   properties:
  *                     id:
  *                       type: integer
+ *                     user_id:
+ *                       type: integer
+ *                     zone_id:
+ *                       type: integer
+ *                     message:
+ *                       type: string
+ *                     quantity_requested:
+ *                       type: number
+ *                     material:
+ *                       type: string
  *                     status:
  *                       type: string
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Datos inválidos
  *         content:
@@ -749,7 +775,7 @@ router.get('/requests', async (req, res) => {
 router.patch('/request/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, admin_comment } = req.body;
+    const { status, message } = req.body;
 
     // Validar datos
     if (!status) {
@@ -781,11 +807,14 @@ router.patch('/request/:id/status', async (req, res) => {
     }
 
     // Actualizar el estado de la solicitud
+    const updateData = { status };
+    if (message) {
+      updateData.message = message;
+    }
+
     const updatedRequest = await prisma.MaterialRequest.update({
       where: { id: parseInt(id) },
-      data: {
-        status
-      }
+      data: updateData
     });
 
     res.json({

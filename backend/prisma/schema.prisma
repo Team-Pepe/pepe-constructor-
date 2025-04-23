@@ -8,19 +8,18 @@ datasource db {
 }
 
 model User {
-  id               Int        @id @default(autoincrement())
-  email            String     @unique
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
   username         String?
-  roleId           Int        @map("role_id")
+  roleId           Int               @map("role_id")
   password         String
-  bloodType        String? 
+  bloodType        String?
   latitude         Float?
   longitude        Float?
-  receivedMessages Message[]  @relation("ReceiverMessages")
-  sentMessages     Message[]  @relation("SenderMessages")
-  requests         Request[]
-  assignedTasks    Task[]     @relation("AssignedTasks")
-  role             Role       @relation(fields: [roleId], references: [id])
+  receivedMessages Message[]         @relation("ReceiverMessages")
+  sentMessages     Message[]         @relation("SenderMessages")
+  assignedTasks    Task[]            @relation("AssignedTasks")
+  role             Role              @relation(fields: [roleId], references: [id])
   supervisedZones  WorkZone[]
   materialRequests MaterialRequest[]
   resetToken       String?
@@ -69,32 +68,15 @@ model Task {
 }
 
 model Material {
-  id               Int               @id @default(autoincrement())
-  name             String            @db.VarChar
-  description      String?
-  quantity         Int
-  image_url        String?           @unique
-  requests         Request[]
-  zonas            ZonaMaterial[]
-  materialRequests MaterialRequest[]
+  id          Int            @id @default(autoincrement())
+  name        String         @db.VarChar
+  description String?
+  quantity    Int
+  image_url   String?        @unique
+  zonas       ZonaMaterial[]
 
   @@map("materials")
 }
-
-model Request {
-  id               Int       @id @default(autoincrement())
-  zoneId           Int       @map("zone_id")
-  quantityRequested Float     @map("quantity_requested")
-  message          String?   @db.Text
-  status           String    @db.VarChar
-  requestDate      DateTime  @default(now()) @map("created_at")
-  userId           Int       @map("user_id")
-  material         String    @db.Text
-  user             User      @relation(fields: [userId], references: [id])
-
-  @@map("requests")
-}
-
 
 model Attendance {
   id       Int       @id @default(autoincrement())
@@ -131,30 +113,27 @@ model Metric {
 }
 
 model ZonaMaterial {
-  id               Int      @id @default(autoincrement())
-  id_zona          Int      @map("id_zona")
-  id_material      Int      @map("id_material")
+  id                Int      @id @default(autoincrement())
+  id_zona           Int      @map("id_zona")
+  id_material       Int      @map("id_material")
   cantidad_asignada Int      @map("cantidad_asignada")
-  workZone         WorkZone @relation(fields: [id_zona], references: [id])
-  material         Material @relation(fields: [id_material], references: [id])
+  workZone          WorkZone @relation(fields: [id_zona], references: [id])
+  material          Material @relation(fields: [id_material], references: [id])
 
   @@map("material_zone")
 }
 
 model MaterialRequest {
-  id                 Int       @id @default(autoincrement())
-  user_id            Int
+  id                 Int      @id @default(autoincrement())
   zone_id            Int
-  material_id        Int?
-  message            String
-  quantity_requested Int
-  status             String    @default("pending")
-  admin_comment      String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  user               User      @relation(fields: [user_id], references: [id])
-  zone               WorkZone  @relation(fields: [zone_id], references: [id])
-  material           Material? @relation(fields: [material_id], references: [id])
+  quantity_requested Float
+  message            String?
+  status             String   @default("pending")
+  created_at         DateTime @default(now())
+  user_id            Int
+  material           String
+  user               User     @relation(fields: [user_id], references: [id])
+  zone               WorkZone @relation(fields: [zone_id], references: [id])
 
   @@map("material_requests")
 }

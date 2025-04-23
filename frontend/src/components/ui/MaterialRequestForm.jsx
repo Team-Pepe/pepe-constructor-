@@ -15,8 +15,7 @@ import {
 
 export function MaterialRequestForm({ onSubmit, materials = [], zones = [], isLoading = false }) {
   const [formData, setFormData] = useState({
-    materialId: "",
-    materialName: "",
+    material: "",
     zoneId: "",
     zoneName: "",
     quantity: "",
@@ -26,8 +25,7 @@ export function MaterialRequestForm({ onSubmit, materials = [], zones = [], isLo
   // When materials or zones change (for example, after loading), reset the form
   useEffect(() => {
     setFormData({
-      materialId: "",
-      materialName: "",
+      material: "",
       zoneId: "",
       zoneName: "",
       quantity: "",
@@ -40,20 +38,17 @@ export function MaterialRequestForm({ onSubmit, materials = [], zones = [], isLo
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectMaterial = (value) => {
-    const selected = materials.find(mat => mat.id === value);
-    setFormData({
-      ...formData,
-      materialId: value,
-      materialName: selected ? selected.name : ""
-    });
-  };
-
   const handleSelectZone = (value) => {
-    const selected = zones.find(zone => zone.id === value);
+    // Intentar convertir a número si es posible
+    const numericId = Number(value);
+    // Si la conversión no es NaN (es un número válido), usar el número
+    const zoneId = isNaN(numericId) ? value : numericId;
+    
+    const selected = zones.find(zone => zone.id === zoneId);
+    
     setFormData({
       ...formData,
-      zoneId: value,
+      zoneId: zoneId,
       zoneName: selected ? selected.name : ""
     });
   };
@@ -72,26 +67,16 @@ export function MaterialRequestForm({ onSubmit, materials = [], zones = [], isLo
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="material" className="text-slate-200">Material</Label>
-            <Select 
-              onValueChange={handleSelectMaterial} 
-              value={formData.materialId}
-              disabled={isLoading || materials.length === 0}
-            >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                <SelectValue placeholder="Selecciona un material" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                {materials.map(material => (
-                  <SelectItem 
-                    key={material.id} 
-                    value={material.id}
-                    className="hover:bg-slate-700 focus:bg-slate-700"
-                  >
-                    {material.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="material"
+              name="material"
+              type="text"
+              value={formData.material}
+              onChange={handleInputChange}
+              placeholder="Nombre del material"
+              required
+              className="bg-slate-700 border-slate-600 text-white"
+            />
           </div>
 
           <div>
@@ -151,7 +136,7 @@ export function MaterialRequestForm({ onSubmit, materials = [], zones = [], isLo
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isLoading || !formData.materialId || !formData.zoneId || !formData.quantity}
+              disabled={isLoading || !formData.material || !formData.zoneId || !formData.quantity}
             >
               {isLoading ? "Procesando..." : "Enviar Solicitud"}
             </Button>

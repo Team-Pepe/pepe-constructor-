@@ -358,7 +358,7 @@ router.get('/tasks', async (req, res) => {
  * @swagger
  * /api/requests:
  *   get:
- *     summary: Obtiene todas las solicitudes de materiales
+ *     summary: Obtiene todas las solicitudes
  *     tags: [Solicitudes]
  *     responses:
  *       200:
@@ -378,16 +378,158 @@ router.get('/tasks', async (req, res) => {
  */
 router.get('/requests', async (req, res) => {
   try {
+    const { status } = req.query;
+    
+    // Construir filtro según parámetros
+    const filter = {};
+    if (status) {
+      filter.status = status;
+    }
+    
     const requests = await prisma.Request.findMany({
+      where: filter,
       include: {
-        user: true,
-        material: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true
+          }
+        }
+      },
+      orderBy: {
+        requestDate: 'desc'
       }
     });
-    res.json(requests);
+    
+    res.json({
+      status: 'success',
+      data: requests
+    });
   } catch (error) {
     console.error('Error al obtener solicitudes:', error);
     res.status(500).json({ status: 'error', message: 'Error al obtener solicitudes' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/requests:
+ *   post:
+ *     summary: Crea una nueva solicitud de material
+ *     tags: [Solicitudes]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - zoneId
+ *               - quantityRequested
+ *               - userId
+ *               - material
+ *             properties:
+ *               zoneId:
+ *                 type: integer
+ *                 description: ID de la zona de trabajo
+ *               quantityRequested:
+ *                 type: number
+ *                 format: float
+ *                 description: Cantidad solicitada
+ *               message:
+ *                 type: string
+ *                 description: Mensaje o nota adicional
+ *               userId:
+ *                 type: integer
+ *                 description: ID del usuario que hace la solicitud
+ *               material:
+ *                 type: string
+ *                 description: Nombre del material solicitado
+ *               status:
+ *                 type: string
+ *                 description: Estado de la solicitud (por defecto 'pending')
+ *     responses:
+ *       201:
+ *         description: Solicitud creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/Request'
+ *       400:
+ *         description: Datos inválidos
+ *       500:
+ *         description: Error del servidor
+ */
+router.post('/requests', async (req, res) => {
+  try {
+    console.log('Datos recibidos para solicitud:', req.body);
+    const { zoneId, quantityRequested, message, userId, material, status = 'pending' } = req.body;
+
+    // Validar datos requeridos
+    if (!zoneId || !quantityRequested || !userId || !material) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Se requieren zoneId, quantityRequested, userId y material'
+      });
+    }
+
+    // Verificar que la zona existe
+    const zona = await prisma.WorkZone.findUnique({
+      where: { id: parseInt(zoneId) }
+    });
+
+    if (!zona) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Zona de trabajo no encontrada'
+      });
+    }
+
+    // Verificar que el usuario existe
+    const usuario = await prisma.User.findUnique({
+      where: { id: parseInt(userId) }
+    });
+
+    if (!usuario) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    // Crear la solicitud
+    const newRequest = await prisma.Request.create({
+      data: {
+        zoneId: parseInt(zoneId),
+        quantityRequested: parseFloat(quantityRequested),
+        message,
+        status,
+        userId: parseInt(userId),
+        material
+      }
+    });
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Solicitud creada correctamente',
+      data: newRequest
+    });
+  } catch (error) {
+    console.error('Error al crear solicitud:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error al crear solicitud',
+      error: error.message
+    });
   }
 });
 

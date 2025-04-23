@@ -80,10 +80,10 @@ function SolicitarMateriales() {
       
       // Preparar los datos para la solicitud
       const requestData = {
-        userId: userId,
-        zoneId: formData.zoneId,
-        materialId: formData.materialId || null,
-        quantityRequested: formData.quantity,
+        user_id: userId,
+        zone_id: formData.zoneId,
+        material: formData.material,
+        quantity_requested: formData.quantity,
         message: formData.notes || ""
       };
       
