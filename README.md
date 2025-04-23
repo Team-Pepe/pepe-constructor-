@@ -392,7 +392,7 @@ El proyecto sigue el formato convencional de commits:
 
 Puedes consultar el historial completo de cambios realizados en las ramas a través del siguiente enlace:
 
-🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)
+🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/commits/main/)
 </div>
 
 ## 📚 Documentación del Código

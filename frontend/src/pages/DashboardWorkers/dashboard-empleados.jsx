@@ -5,7 +5,7 @@ import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
-import { MapPin, AlertTriangle, Loader2, Package } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
@@ -323,9 +323,9 @@ function DashboardEmpleados() {
       {/* Botón para abrir/cerrar el menú */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="absolute top-2 left-4 z-50 bg-gray-800 text-white px-4 py-1 rounded-md shadow-md"
+        className="absolute top-2 left-4 z-50 bg-gray-800 text-white px-4 py-1 rounded-md shadow-md flex items-center"
       >
-        {menuOpen ? "×" : "☰"}
+        {menuOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
       {/* Menú lateral */}
@@ -356,8 +356,9 @@ function DashboardEmpleados() {
               }}
               className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
                 activeSection === null && !selectedZone ? "bg-gray-100" : ""
-              }`}
+              } flex items-center`}
             >
+              <Home className="mr-2 h-4 w-4" />
               Inicio
             </button>
 
@@ -368,8 +369,9 @@ function DashboardEmpleados() {
               }}
               className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
                 activeSection === "zonas-de-trabajo" ? "bg-gray-100" : ""
-              }`}
+              } flex items-center`}
             >
+              <Map className="mr-2 h-4 w-4" />
               Zonas de Trabajo
             </button>
 
@@ -380,8 +382,9 @@ function DashboardEmpleados() {
               }}
               className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
                 activeSection === "mapa" ? "bg-gray-100" : ""
-              }`}
+              } flex items-center`}
             >
+              <MapPin className="mr-2 h-4 w-4" />
               Mi Ubicación
             </button>
 
@@ -392,8 +395,9 @@ function DashboardEmpleados() {
               }}
               className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
                 activeSection === "zonas-guardadas" ? "bg-gray-100" : ""
-              }`}
+              } flex items-center`}
             >
+              <MapPinned className="mr-2 h-4 w-4" />
               Zonas Guardadas
             </button>
 
@@ -404,8 +408,9 @@ function DashboardEmpleados() {
               }}
               className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
                 activeSection === "inventario" ? "bg-gray-100" : ""
-              }`}
+              } flex items-center`}
             >
+              <Warehouse className="mr-2 h-4 w-4" />
               Inventario
             </button>
 
@@ -429,10 +434,9 @@ function DashboardEmpleados() {
               logout(); // limpia el contexto y storage
               navigate("/login"); // redirige al login
             }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === "inventario" ? "bg-gray-100" : ""
-            }`}
+            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center`}
           >
+            <LogOut className="mr-2 h-4 w-4" />
             Cerrar Sesión
           </button>
         </div>
