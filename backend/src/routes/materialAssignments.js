@@ -427,7 +427,6 @@ router.post('/uso', async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 /**
  * @swagger
  * /api/material-assignments/request:
@@ -804,6 +803,4 @@ router.patch('/request/:id/status', async (req, res) => {
   }
 });
 
-=======
->>>>>>> test
 module.exports = router;
