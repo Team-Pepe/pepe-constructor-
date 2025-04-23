@@ -1,11 +1,11 @@
 # 🏗️ Sistema de Gestión de Obras de Construcción
 
-![Node.js](https://img.shields.io/badge/Node.js-18.3.1-green)
-![React](https://img.shields.io/badge/React-18.3.1-blue)
-![Prisma](https://img.shields.io/badge/Prisma-5.10.2-2D3748)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-336791)
-![Vite](https://img.shields.io/badge/Vite-6.2.0-646CFF)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3.3.5-38B2AC)
+![Node.js](https://img.shields.io/badge/Node.js-22.14.0-green)
+![React](https://img.shields.io/badge/React-18.2.0-blue)
+![Prisma](https://img.shields.io/badge/Prisma-6.6.0-2D3748)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.4-336791)
+![Vite](https://img.shields.io/badge/Vite-6.3.2-646CFF)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.4-38B2AC)
 
 **Plataforma digital para optimizar la administración de obras, control de asistencia, gestión de materiales y cálculo de pagos.**  
 *Desarrollado por estudiantes de la Universidad Tecnológica de Pereira para la materia TS683 Administracion Y Planeacion De Proyectos Software Gr. 401.*
@@ -63,10 +63,10 @@
 
 | Frontend | Backend | Base de Datos | Utilidades |
 |----------|---------|---------------|------------|
-| ![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react) | ![Node.js](https://img.shields.io/badge/Node.js-18.3.1-339933?logo=node.js) | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-4169E1?logo=postgresql) |  ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet) |
-|  ![Vite](https://img.shields.io/badge/Vite-6.2.0-646CFF?logo=vite) |  ![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express) ||  ![Recharts](https://img.shields.io/badge/Recharts-2.15.1-FF6384?logo=recharts) |
-|  ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3.3.5-38B2AC?logo=tailwind-css) | ![Prisma](https://img.shields.io/badge/Prisma-5.10.2-2D3748?logo=prisma) |
-|  ![Radix](https://img.shields.io/badge/Radix_UI-varios-161618) | |
+| ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react) | ![Node.js](https://img.shields.io/badge/Node.js-22.14.0-339933?logo=node.js) | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.4-4169E1?logo=postgresql) | ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet) |
+| ![Vite](https://img.shields.io/badge/Vite-6.3.2-646CFF?logo=vite) | ![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express) | | ![Recharts](https://img.shields.io/badge/Recharts-2.15.1-FF6384?logo=recharts) |
+| ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4.1.4-38B2AC?logo=tailwind-css) | ![Prisma](https://img.shields.io/badge/Prisma-6.6.0-2D3748?logo=prisma) | | |
+| ![Radix](https://img.shields.io/badge/Radix_UI-varios-161618) | | | |
 
 ### Extracto de package.json
 ```json
@@ -95,58 +95,110 @@
 
 ```mermaid
 flowchart TD
-    subgraph "Frontend"
-        RoutesState["Routes & State Management\n(App.jsx, context, hooks)"]:::frontend
-        Auth["Authentication Module\n(login-page.jsx, register.jsx, forgot-password.jsx)"]:::frontend
-        subgraph "Shared Components"
-            SharedCommon["Common Components"]:::frontend
-            Layout["Layout Components"]:::frontend
-            Dashboard["Dashboard Components"]:::frontend
-        end
+    %% Client Layer
+    subgraph "Client Layer"
+        Browser["User Browser/Mobile Web"]:::external
     end
 
-    subgraph "Backend"
-        Server["Main Server"]:::backend
-        subgraph "Routes"
-            APIRoutes["api.js"]:::backend
-            GeoRoutes["geo.js"]:::backend
-        end
-        Controllers["Controllers\n(geoController.js)"]:::backend
-        Config["Configurations\n(db.js, swagger.js)"]:::backend
-        Utilities["Utilities\n(geoUtils.js)"]:::backend
+    %% Frontend Layer
+    subgraph "Frontend Layer"
+        direction TB
+        AppShell["App Shell\n(App.jsx, main.jsx)"]:::frontend
+        AuthFeature["Auth Module\n(src/features/auth)"]:::frontend
+        AttendanceFeature["Attendance & Geolocation\n(src/components/ui/EmployeeMap,\nuse-mobile.js)"]:::frontend
+        MaterialFeature["Material Requests & Inventory\n(AddMaterialDialog, InventoryCard,\nInventoryForm, MaterialRequestForm)"]:::frontend
+        WorkZoneFeature["Work Zone Tasks & Material Assignment\n(WorkZoneMap components)"]:::frontend
+        DashboardFeature["Dashboard & Reporting\n(src/pages/Dashboard)"]:::frontend
     end
 
-    RoutesState -->|"renders"| Auth
-    Auth -->|"uses"| SharedCommon
-    Auth -->|"uses"| Layout
-    Auth -->|"uses"| Dashboard
-    Auth -->|"HTTP_Request"| APIRoutes
-    Server -->|"handles"| APIRoutes
-    Server -->|"handles"| GeoRoutes
-    APIRoutes -->|"calls"| Controllers
-    GeoRoutes -->|"calls"| Controllers
-    Controllers -->|"uses"| Config
-    Controllers -->|"uses"| Utilities
-    APIRoutes -->|"response"| Auth
+    %% API Layer
+    subgraph "Backend API Layer"
+        direction TB
+        AuthRouter["Auth Routes\n(authRouter.js)"]:::backend
+        GeoRouter["Geo Routes\n(geo.js)"]:::backend
+        MaterialsRouter["Materials Routes\n(materials.js)"]:::backend
+        MaterialAssignRouter["Material Assignment Routes\n(materialAssignments.js)"]:::backend
+        DashboardRouter["Dashboard Routes\n(dashboard.js,\ndashboardEmpleados.js)"]:::backend
+        Controllers["Controllers\n(authController.js,\ngeoController.js)"]:::backend
+        Middleware["Auth Middleware\n(authMiddleware.js)"]:::backend
+    end
+
+    %% Data Layer
+    subgraph "Data Layer"
+        direction TB
+        Prisma["Prisma ORM\n(schema.prisma)"]:::database
+        Postgres["PostgreSQL"]:::database
+        Prisma --> Postgres
+    end
+
+    %% External Services
+    subgraph "External/Utility Services"
+        direction TB
+        GeoLib["Leaflet/Turf.js"]:::external
+        PDFKit["PDFKit"]:::external
+        ChartLib["Chart.js/Recharts"]:::external
+    end
+
+    %% Connections
+    Browser -->|"loads"| AppShell
+    AppShell -->|"routes to"| AuthFeature
+    AppShell -->|"routes to"| AttendanceFeature
+    AppShell -->|"routes to"| MaterialFeature
+    AppShell -->|"routes to"| WorkZoneFeature
+    AppShell -->|"routes to"| DashboardFeature
+
+    AuthFeature -->|"/auth"| AuthRouter
+    AttendanceFeature -->|"/geo"| GeoRouter
+    MaterialFeature -->|"/materials"| MaterialsRouter
+    MaterialFeature -->|"/materials/assign"| MaterialAssignRouter
+    WorkZoneFeature -->|"/materials/assign"| MaterialAssignRouter
+    DashboardFeature -->|"/dashboard"| DashboardRouter
+
+    AuthRouter -->|calls| Controllers
+    GeoRouter -->|calls| Controllers
+    MaterialsRouter -->|calls| Controllers
+    MaterialAssignRouter -->|calls| Controllers
+    DashboardRouter -->|calls| Controllers
+
+    Controllers -->|verifies JWT| Middleware
+    Controllers -->|CRUD| Prisma
+    Controllers -->|uses| GeoLib
+    Controllers -->|generates PDF| PDFKit
+    Controllers -->|renders charts| ChartLib
 
     %% Click Events
-    click Auth "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/features/auth"
-    click SharedCommon "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/components/common"
-    click Layout "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/components/layout"
-    click Dashboard "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/components/dashboard"
-    click RoutesState "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/app/App.jsx"
-    click Server "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/index.js"
+    click AuthFeature "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/features/auth"
+    click AppShell "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/app/App.jsx"
+    click AppShell "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/main.jsx"
+    click AttendanceFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/EmployeeMap/EmployeeMap.jsx"
+    click AttendanceFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/hooks/use-mobile.js"
+    click MaterialFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/AddMaterialDialog.jsx"
+    click MaterialFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/InventoryCard.jsx"
+    click MaterialFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/InventoryForm.jsx"
+    click MaterialFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/MaterialRequestForm.jsx"
+    click WorkZoneFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/WorkZoneMap/WorkZoneMap.jsx"
+    click WorkZoneFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/WorkZoneMap/MaterialAssignmentModal.jsx"
+    click WorkZoneFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/WorkZoneMap/UseMaterialsModal.jsx"
+    click WorkZoneFeature "https://github.com/team-pepe/pepe-constructor-/blob/main/frontend/src/components/ui/WorkZoneMap/ViewMaterialsModal.jsx"
+    click DashboardFeature "https://github.com/team-pepe/pepe-constructor-/tree/main/frontend/src/pages/Dashboard"
+    click AuthRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/authRouter.js"
+    click Controllers "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/controllers/authController.js"
+    click Middleware "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/middleware/authMiddleware.js"
+    click GeoRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/geo.js"
     click Controllers "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/controllers/geoController.js"
-    click APIRoutes "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/api.js"
-    click GeoRoutes "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/geo.js"
-    click Config "https://github.com/team-pepe/pepe-constructor-/tree/main/backend/src/config"
-    click Utilities "https://github.com/team-pepe/pepe-constructor-/tree/main/backend/src/utils"
+    click MaterialsRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/materials.js"
+    click MaterialAssignRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/materialAssignments.js"
+    click DashboardRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/dashboard.js"
+    click DashboardRouter "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/routes/dashboardEmpleados.js"
+    click Prisma "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/prisma/schema.prisma"
+    click Prisma "https://github.com/team-pepe/pepe-constructor-/tree/main/backend/prisma/migrations/"
+    click PDFKit "https://github.com/team-pepe/pepe-constructor-/blob/main/backend/src/utils/fileUtils.js"
 
     %% Styles
-    class RoutesState,Auth,SharedCommon,Layout,Dashboard frontend
-    class Server,APIRoutes,GeoRoutes,Controllers,Config,Utilities backend
-    classDef frontend fill:#FFD580,stroke:#333,stroke-width:2px;
-    classDef backend fill:#C1FFC1,stroke:#333,stroke-width:2px;
+    classDef frontend fill:#e3f2fd,stroke:#90caf9,stroke-width:2px
+    classDef backend fill:#ffebee,stroke:#e57373,stroke-width:2px
+    classDef database fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px
+    classDef external fill:#fff3e0,stroke:#ffb74d,stroke-width:2px
 ```
 ## 🗃️ Diagrama Entidad-Relación (PostgreSQL)
 
@@ -242,10 +294,11 @@ erDiagram
 
 | Sprint       | Fecha       | Progreso | Estado     |
 |--------------|-------------|----------|------------|
-| **Sprint 1** | 19 Mar 2024 | 20%      | ✅ Completado | 
-| **Sprint 2** | 2 Abr 2024  | 40%      | ✅ Completado |
-| **Sprint 3** | 23 Abr 2024 | 60%      | 🟡 En curso |
-| **Sprint 4** | 14 May 2024 | 80%      | ⏳ Pendiente | 
+| **Sprint 1** | 19 Mar 2025 | 20%      | ✅ Completado | 
+| **Sprint 2** | 2 Abr 2025  | 40%      | ✅ Completado |
+| **Sprint 3** | 23 Abr 2025 | 60%      | ✅ Completado |
+| **Sprint 4** | 14 May 2025 | 80%      | 🟡 En curso |
+| **Sprint 5** |    NULL     | 100%     | ⏳ Pendiente|
 
 **Leyenda:**  
 ✅ Completado 🟡 En progreso ⏳ Pendiente
@@ -262,6 +315,44 @@ gantt
     Sprint 4           :         s4, 2024-05-14, 14d
 ```
 [📊 Tablero completo de tareas](https://github.com/orgs/Team-Pepe/projects/8/views/2)
+
+## 🌿 Estructura de Ramas del Proyecto
+
+Nuestro proyecto sigue una estrategia de ramas que permite una colaboración ordenada durante el desarrollo y pruebas de cada sprint. A continuación se describen las ramas principales utilizadas:
+
+### `main`
+- 🔹 **Propósito:** Contiene el estado **actual y estable** del proyecto.
+- 🔹 **Uso:** Solo se actualiza con versiones validadas y probadas al finalizar cada sprint o entregable importante.
+
+### `development`
+- 🔸 **Propósito:** Es la rama de integración del sprint.
+- 🔸 **Uso:** Aquí se **fusiona el trabajo de todos los desarrolladores** antes de pasar a producción (`main`). Se usa como rama base para pruebas internas y validaciones funcionales durante el sprint.
+
+### Ramas de desarrollo personal
+Estas ramas permiten que cada desarrollador trabaje de forma independiente sin afectar el flujo general del equipo.
+
+- `dev01` – 👤 [Jean Schnneider Arias Suarez](https://github.com/schnneider-utp)
+- `dev02` – 👤 [Juan Esteban Jaramillo Cano](https://github.com/JuanesUTP)
+- `dev03` – 👤 [Daniel Santiago Lopez Quiceno](https://github.com/Aiskiub)
+
+**Uso:** Cada desarrollador trabaja sus funcionalidades y correcciones en su respectiva rama antes de hacer un _pull request_ hacia `development`.
+
+### `test`
+- 🧪 **Propósito:** Exclusiva para pruebas experimentales.
+- 🧪 **Uso:** Aquí se prueban funcionalidades, integraciones o ideas fuera del alcance del sprint actual sin interferir con el desarrollo oficial.
+
+---
+
+✅ Esta estructura ayuda a mantener un flujo de trabajo claro, facilitando el control de versiones, pruebas y despliegues organizados.
+
+## 📊 Diagrama de Ramas del Proyecto
+
+Aquí tienes un gráfico que muestra la estructura de las ramas de nuestro proyecto:
+
+[Diagrama de Ramas](https://github.com/Team-Pepe/pepe-constructor-/network)
+
+Este gráfico muestra la estructura de las ramas de nuestro proyecto.
+
 
 ## 📌 Nomenclatura de Commits
 
@@ -299,4 +390,13 @@ El proyecto sigue el formato convencional de commits:
 | `api`          | Endpoints y servicios backend |
 | `integraciones`| Conexión con APIs externas |
 
+Puedes consultar el historial completo de cambios realizados en las ramas a través del siguiente enlace:
+
+🔗 [Ver historial de commits en GitHub](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)
 </div>
+
+## 📚 Documentación del Código
+
+Puedes consultar la documentación detallada del código fuente, estructuras, funcionalidades y módulos del proyecto en el siguiente enlace:
+
+🔗 [Ver documentación del código](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)

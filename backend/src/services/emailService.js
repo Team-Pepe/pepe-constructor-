@@ -60,24 +60,31 @@ const sendPasswordResetEmail = async (toEmail) => {
       to: toEmail,
       subject: 'Recuperación de Contraseña - Constructor App',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-            <h1 style="color: #0066cc;">Recuperación de Contraseña</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #333333; padding: 20px; text-align: center;">
+            <h1 style="color: #f9a825; margin: 0;">Recuperación de Contraseña</h1>
           </div>
-          <div style="padding: 20px; border: 1px solid #dee2e6; border-radius: 4px; margin-top: 20px;">
-            <p>Has solicitado recuperar tu contraseña.</p>
-            <p>Haz clic en el siguiente botón para restablecerla:</p>
+          <div style="padding: 20px;">
+            <p style="color: #333333; font-size: 16px; line-height: 1.5;">
+              Hola, has solicitado recuperar tu contraseña. Haz clic en el botón de abajo para restablecerla:
+            </p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetUrl}" 
-                 style="background-color: #0066cc; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                 style="background-color: #f9a825; color: #ffffff; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: bold;">
                 Restablecer Contraseña
               </a>
             </div>
-            <p style="color: #6c757d; font-size: 14px;">
+            <p style="color: #666666; font-size: 14px; line-height: 1.5;">
               Este enlace expirará en 1 hora por seguridad.<br>
               Si no solicitaste este cambio, puedes ignorar este correo.
             </p>
+            <p style="color: #999999; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 20px;">
+              Por favor, no respondas a este correo. Este mensaje fue enviado desde una dirección no monitoreada.
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #999999;">
+            <p style="margin: 0;">© 2025 Constructor App. Todos los derechos reservados.</p>
           </div>
         </div>
       `

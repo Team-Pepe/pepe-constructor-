@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Lock, Eye, EyeOff } from "lucide-react";
+import fondo from "../../assets/fondo.jpg"; // 👈 Importamos la imagen de fondo
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -52,7 +53,15 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12"
+      style={{
+        backgroundImage: `url(${fondo})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
@@ -83,6 +92,7 @@ export default function ResetPasswordPage() {
                   <Input
                     id="password"
                     type={isPasswordVisible ? "text" : "password"}
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
@@ -108,6 +118,7 @@ export default function ResetPasswordPage() {
                   <Input
                     id="confirmPassword"
                     type={isPasswordVisible ? "text" : "password"}
+                    placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
