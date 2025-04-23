@@ -82,16 +82,19 @@ model Material {
 }
 
 model Request {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
-  materialId  Int      @map("material_id")
-  requestDate DateTime @map("request_date")
-  status      String   @db.VarChar
-  material    Material @relation(fields: [materialId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  id               Int       @id @default(autoincrement())
+  zoneId           Int       @map("zone_id")
+  quantityRequested Float     @map("quantity_requested")
+  message          String?   @db.Text
+  status           String    @db.VarChar
+  requestDate      DateTime  @default(now()) @map("created_at")
+  userId           Int       @map("user_id")
+  material         String    @db.Text
+  user             User      @relation(fields: [userId], references: [id])
 
   @@map("requests")
 }
+
 
 model Attendance {
   id       Int       @id @default(autoincrement())
