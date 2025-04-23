@@ -6,8 +6,8 @@ const prisma = new PrismaClient();
 // Obtener métricas generales del dashboard
 router.get('/metrics', async (req, res) => {
     try {
-        // Contar tareas y usuarios con rol de trabajador
-        const [tasks, workers] = await Promise.all([
+        // Contar tareas, usuarios con rol de trabajador y solicitudes pendientes
+        const [tasks, workers, pendingRequests] = await Promise.all([
             prisma.task.count(),
             prisma.user.count({
                 where: {
@@ -17,13 +17,19 @@ router.get('/metrics', async (req, res) => {
                         }
                     }
                 }
+            }),
+            prisma.materialRequest.count({
+                where: {
+                    status: 'pending'
+                }
             })
         ]);
 
         res.json({
             activeProjects: 0, // No hay tabla projects en la DB actual
             workers,
-            tasks
+            tasks,
+            pendingRequests
         });
     } catch (error) {
         console.error('Error en /metrics:', error);
@@ -121,6 +127,7 @@ router.get('/attendance', async (req, res) => {
 // Obtener estado de materiales
 router.get('/materials', async (req, res) => {
     try {
+        // Obtener todos los materiales
         const materials = await prisma.material.findMany({
             select: {
                 id: true,
@@ -129,13 +136,36 @@ router.get('/materials', async (req, res) => {
             }
         });
 
-        const formattedMaterials = materials.map(material => ({
-            id: material.id,
-            name: material.name,
-            used: 0, // Calcular basado en solicitudes
-            total: material.quantity,
-            unit: 'unidades' // Valor por defecto
-        }));
+        // Obtener todas las solicitudes de materiales
+        const materialRequests = await prisma.materialRequest.findMany({
+            where: {
+                status: 'approved'
+            }
+        });
+
+        // Calcular el uso de materiales basado en solicitudes
+        const materialUsageMap = {};
+        materialRequests.forEach(request => {
+            if (!materialUsageMap[request.material]) {
+                materialUsageMap[request.material] = 0;
+            }
+            materialUsageMap[request.material] += request.quantity_requested;
+        });
+
+        const formattedMaterials = materials.map(material => {
+            // Buscar solicitudes para este material por nombre
+            const used = materialUsageMap[material.name] || 0;
+            
+            return {
+                id: material.id,
+                name: material.name,
+                used: used,
+                total: material.quantity,
+                unit: 'unidades', // Valor por defecto
+                // Calcular porcentaje de uso
+                usage: material.quantity > 0 ? Math.round((used / material.quantity) * 100) : 0
+            };
+        });
 
         res.json(formattedMaterials);
     } catch (error) {
@@ -162,20 +192,20 @@ router.get('/recent-activities', async (req, res) => {
         });
         
         // Obtener solicitudes de materiales
-        const requests = await prisma.request.findMany({
+        const requests = await prisma.materialRequest.findMany({
             take: 2,
             orderBy: {
-                requestDate: 'desc'
+                created_at: 'desc'
             },
             include: {
-                material: true
+                user: true
             }
         });
         
         // Obtener usuarios relacionados
         const userIds = [
-            ...tasks.map(task => task.assignedTo),
-            ...requests.map(request => request.userId)
+            ...tasks.map(task => task.assignedTo)
+            // Ya no necesitamos extraer userIds de requests porque ya incluimos los usuarios
         ];
         
         // Solo seleccionamos los campos que existen
@@ -198,25 +228,70 @@ router.get('/recent-activities', async (req, res) => {
             userMap[user.id] = user;
         });
 
+        // Formatear actividades
         const formattedActivities = [
             ...tasks.map(task => ({
                 id: `task-${task.id}`,
                 title: 'Tarea Completada',
                 description: `${userMap[task.assignedTo]?.username || 'Usuario'} completó: ${task.description}`,
-                location: task.workZone?.name || 'Zona de trabajo',
-                time: task.completionDate ? new Date(task.completionDate).toLocaleString() : 'Fecha desconocida'
+                time: task.completionDate ? new Date(task.completionDate).toLocaleString() : 'Fecha desconocida',
+                location: task.workZone?.name || 'Zona de trabajo'
             })),
             ...requests.map(request => ({
                 id: `request-${request.id}`,
                 title: 'Solicitud de Material',
-                description: `${userMap[request.userId]?.username || 'Usuario'} solicitó ${request.material?.name || 'material'}`,
-                time: new Date(request.requestDate).toLocaleString()
+                description: `${request.user?.username || 'Usuario'} solicitó ${request.quantity_requested} unidades de ${request.material}`,
+                time: request.created_at ? new Date(request.created_at).toLocaleString() : 'Fecha desconocida',
+                location: 'Almacén'
             }))
-        ].sort((a, b) => new Date(b.time) - new Date(a.time));
+        ];
 
-        res.json(formattedActivities);
+        // Ordenar por fecha, ahora usando el campo time que tiene formato localizado
+        formattedActivities.sort((a, b) => {
+            const dateA = a.time === 'Fecha desconocida' ? new Date(0) : new Date(a.time);
+            const dateB = b.time === 'Fecha desconocida' ? new Date(0) : new Date(b.time);
+            return dateB - dateA;
+        });
+
+        res.json(formattedActivities.slice(0, 5)); // Limitar a 5 actividades
     } catch (error) {
         console.error('Error en /recent-activities:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Obtener solicitudes de materiales recientes
+router.get('/material-requests', async (req, res) => {
+    try {
+        const materialRequests = await prisma.materialRequest.findMany({
+            take: 10, // Mostrar las 10 solicitudes más recientes
+            orderBy: {
+                created_at: 'desc'
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        const formattedRequests = materialRequests.map(request => ({
+            id: request.id,
+            material: request.material,
+            quantity: request.quantity_requested,
+            status: request.status,
+            date: request.created_at ? new Date(request.created_at).toLocaleString() : 'Fecha desconocida',
+            user: request.user?.username || request.user?.email || 'Usuario desconocido',
+            message: request.message || 'Sin mensaje'
+        }));
+
+        res.json(formattedRequests);
+    } catch (error) {
+        console.error('Error en /material-requests:', error);
         res.status(500).json({ error: error.message });
     }
 });

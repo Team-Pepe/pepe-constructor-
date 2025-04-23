@@ -50,6 +50,7 @@ export default function Dashboard() {
     const [materials, setMaterials] = useState([]);
     const [activities, setActivities] = useState([]);
     const [workers, setWorkers] = useState([]);
+    const [materialRequests, setMaterialRequests] = useState([]);
     const [activeSection, setActiveSection] = useState("resumen");
     const [locationStatus, setLocationStatus] = useState(null);
     const [showLocationModal, setShowLocationModal] = useState(false);
@@ -182,6 +183,9 @@ export default function Dashboard() {
             setMaterials(data.materials);
             setActivities(data.activities);
             setWorkers(data.workers);
+            setMaterialRequests(data.materialRequests || []);
+            
+            console.log("Solicitudes de materiales cargadas:", data.materialRequests);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {

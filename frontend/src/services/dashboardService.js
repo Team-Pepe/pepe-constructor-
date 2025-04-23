@@ -257,14 +257,16 @@ export const fetchAllDashboardData = async () => {
       attendanceResponse,
       materialsResponse,
       activitiesResponse,
-      workersResponse
+      workersResponse,
+      materialRequestsResponse
     ] = await Promise.all([
       fetchDashboardMetrics(),
       fetchProjectsProgress(),
       fetchAttendance(),
       fetchMaterials(),
       fetchRecentActivities(),
-      fetchWorkers()
+      fetchWorkers(),
+      fetchMaterialRequests("pending") // Obtener solicitudes pendientes
     ]);
 
     return {
@@ -273,7 +275,8 @@ export const fetchAllDashboardData = async () => {
       attendance: attendanceResponse.data,
       materials: materialsResponse.data,
       activities: activitiesResponse.data,
-      workers: addLocationToWorkers(workersResponse.data)
+      workers: addLocationToWorkers(workersResponse.data),
+      materialRequests: materialRequestsResponse.data // Agregar solicitudes de materiales
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

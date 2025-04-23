@@ -10,13 +10,11 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { fetchMaterialRequests, updateMaterialRequestStatus } from "@/services/dashboardService";
 
 export function MaterialRequestsCard({ onRefresh }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [adminComment, setAdminComment] = useState({});
   const [expandedRequest, setExpandedRequest] = useState(null);
 
   // Load material requests when component mounts
@@ -28,21 +26,26 @@ export function MaterialRequestsCard({ onRefresh }) {
   const loadRequests = async () => {
     try {
       setLoading(true);
+      console.log("Cargando solicitudes de materiales pendientes...");
       const response = await fetchMaterialRequests("pending");
-      setRequests(response.data || []);
+      console.log("Solicitudes cargadas:", response.data);
+      
+      // Asegurarse de que los datos son un array
+      if (response.data && Array.isArray(response.data)) {
+        setRequests(response.data);
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        // A veces la API puede devolver los datos dentro de un objeto 'data'
+        setRequests(response.data.data);
+      } else {
+        console.error("Error: Los datos recibidos no son un array", response.data);
+        setRequests([]);
+      }
     } catch (error) {
       console.error("Error al cargar solicitudes de materiales:", error);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handle admin comment change
-  const handleCommentChange = (requestId, value) => {
-    setAdminComment({
-      ...adminComment,
-      [requestId]: value
-    });
   };
 
   // Toggle expanded view for a request
@@ -50,30 +53,21 @@ export function MaterialRequestsCard({ onRefresh }) {
     setExpandedRequest(expandedRequest === requestId ? null : requestId);
   };
 
-  // Handle approving or rejecting a request
+  // Handle status update
   const handleUpdateStatus = async (requestId, status) => {
     try {
       setLoading(true);
-      await updateMaterialRequestStatus(
-        requestId,
-        status,
-        adminComment[requestId] || ""
-      );
+      await updateMaterialRequestStatus(requestId, status, "");
       
       // Refresh the list
       await loadRequests();
-      
-      // Clear the comment for this request
-      const newAdminComment = { ...adminComment };
-      delete newAdminComment[requestId];
-      setAdminComment(newAdminComment);
       
       // Notify parent component if provided
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
-      console.error(`Error al ${status === 'approved' ? 'aprobar' : 'rechazar'} solicitud:`, error);
+      console.error(`Error al actualizar estado de solicitud a "${status}":`, error);
     } finally {
       setLoading(false);
     }
@@ -82,13 +76,13 @@ export function MaterialRequestsCard({ onRefresh }) {
   // Get status badge color
   const getStatusBadge = (status) => {
     const styles = {
-      pending: "bg-yellow-500 hover:bg-yellow-600",
-      approved: "bg-green-500 hover:bg-green-600",
-      rejected: "bg-red-500 hover:bg-red-600",
-      completed: "bg-blue-500 hover:bg-blue-600"
+      pending: "bg-yellow-500 text-black",
+      approved: "bg-green-500 text-black",
+      rejected: "bg-red-500 text-black",
+      resolved: "bg-blue-500 text-black"
     };
     
-    return styles[status] || "bg-gray-500 hover:bg-gray-600";
+    return styles[status] || "bg-gray-500 text-black";
   };
 
   // Format date
@@ -105,59 +99,69 @@ export function MaterialRequestsCard({ onRefresh }) {
     });
   };
 
+  // Traducir status para mostrar en español
+  const translateStatus = (status) => {
+    const translations = {
+      pending: 'Pendiente',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
+      resolved: 'Resuelto'
+    };
+    
+    return translations[status] || status;
+  };
+  
+  // Verificar si requests es un array válido antes de renderizar
+  const hasRequests = Array.isArray(requests) && requests.length > 0;
+
   return (
-    <Card className="shadow-md">
-      <CardHeader className="bg-slate-100">
-        <CardTitle className="text-lg font-bold">Solicitudes de Materiales</CardTitle>
-        <CardDescription>
+    <Card className="bg-slate-800 border-slate-700 shadow-md">
+      <CardHeader className="bg-slate-900 border-b border-slate-700">
+        <CardTitle className="text-lg font-bold text-white">Solicitudes de Materiales</CardTitle>
+        <CardDescription className="text-slate-400">
           Solicitudes pendientes de aprobación
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y">
+        <div className="divide-y divide-slate-700">
           {loading ? (
-            <div className="p-4 text-center">Cargando solicitudes...</div>
-          ) : requests.length === 0 ? (
-            <div className="p-4 text-center">No hay solicitudes pendientes</div>
+            <div className="p-4 text-center text-slate-300">Cargando solicitudes...</div>
+          ) : !hasRequests ? (
+            <div className="p-4 text-center text-slate-300">No hay solicitudes pendientes</div>
           ) : (
             requests.map((request) => (
-              <div key={request.id} className="p-4 hover:bg-slate-50">
+              <div key={request.id} className="p-4 hover:bg-slate-700/50 text-white">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-medium">
-                      {request.user_name || `Usuario #${request.user_id}`}
+                    <h3 className="font-medium text-orange-400">
+                      {request.user?.username || `Usuario #${request.user_id}`}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-slate-400">
                       {formatDate(request.created_at)}
                     </p>
                   </div>
                   <Badge className={getStatusBadge(request.status)}>
-                    {request.status === 'pending' ? 'Pendiente' : 
-                     request.status === 'approved' ? 'Aprobado' : 
-                     request.status === 'rejected' ? 'Rechazado' : 
-                     request.status === 'completed' ? 'Completado' : 
-                     request.status}
+                    {translateStatus(request.status)}
                   </Badge>
                 </div>
 
-                <p className="text-sm mb-2">
-                  <strong>Zona:</strong> {request.zone_name || `Zona #${request.zone_id}`}
+                <p className="text-sm mb-2 text-slate-300">
+                  <strong className="text-white">Zona:</strong> {`Zona #${request.zone_id}`}
                 </p>
                 
-                {request.material_id && (
-                  <p className="text-sm mb-2">
-                    <strong>Material:</strong> {request.material_name || `Material #${request.material_id}`}
-                  </p>
-                )}
+                <p className="text-sm mb-2 text-slate-300">
+                  <strong className="text-white">Material:</strong> {request.material}
+                </p>
                 
-                <p className="text-sm mb-2">
-                  <strong>Cantidad:</strong> {request.quantity_requested}
+                <p className="text-sm mb-2 text-slate-300">
+                  <strong className="text-white">Cantidad:</strong> {request.quantity_requested}
                 </p>
                 
                 <div className="mb-2">
                   <Button 
                     variant="ghost" 
                     size="sm"
+                    className="text-slate-300 hover:text-white hover:bg-slate-700"
                     onClick={() => toggleExpandRequest(request.id)}
                   >
                     {expandedRequest === request.id ? "Ocultar detalles" : "Ver detalles"}
@@ -165,42 +169,40 @@ export function MaterialRequestsCard({ onRefresh }) {
                 </div>
 
                 {expandedRequest === request.id && (
-                  <div className="mt-3 p-3 bg-slate-100 rounded-md">
-                    <p className="text-sm mb-3">
-                      <strong>Mensaje:</strong><br />
+                  <div className="mt-3 p-3 bg-slate-700 rounded-md">
+                    <p className="text-sm mb-4 text-slate-300">
+                      <strong className="text-white">Mensaje:</strong><br />
                       {request.message || "Sin mensaje adicional"}
                     </p>
                     
                     {request.status === 'pending' && (
-                      <>
-                        <div className="mb-3">
-                          <Textarea
-                            placeholder="Comentario para el trabajador..."
-                            value={adminComment[request.id] || ""}
-                            onChange={(e) => handleCommentChange(request.id, e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          className="bg-red-900/30 hover:bg-red-800 text-red-300 border-red-800"
+                          onClick={() => handleUpdateStatus(request.id, 'rejected')}
+                          disabled={loading}
+                        >
+                          Rechazar
+                        </Button>
                         
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            className="bg-red-100 hover:bg-red-200 text-red-800 border-red-300"
-                            onClick={() => handleUpdateStatus(request.id, 'rejected')}
-                            disabled={loading}
-                          >
-                            Rechazar
-                          </Button>
-                          
-                          <Button
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => handleUpdateStatus(request.id, 'approved')}
-                            disabled={loading}
-                          >
-                            Aprobar
-                          </Button>
-                        </div>
-                      </>
+                        <Button
+                          variant="outline"
+                          className="bg-blue-900/30 hover:bg-blue-800 text-blue-300 border-blue-800"
+                          onClick={() => handleUpdateStatus(request.id, 'resolved')}
+                          disabled={loading}
+                        >
+                          Resolver
+                        </Button>
+                        
+                        <Button
+                          className="bg-green-800 hover:bg-green-700 text-white"
+                          onClick={() => handleUpdateStatus(request.id, 'approved')}
+                          disabled={loading}
+                        >
+                          Aprobar
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -209,11 +211,12 @@ export function MaterialRequestsCard({ onRefresh }) {
           )}
         </div>
       </CardContent>
-      <CardFooter className="bg-slate-50 flex justify-between">
+      <CardFooter className="bg-slate-900 border-t border-slate-700 flex justify-between p-4">
         <Button 
           variant="outline" 
           onClick={loadRequests}
           disabled={loading}
+          className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
         >
           Actualizar
         </Button>

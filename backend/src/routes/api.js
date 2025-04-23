@@ -34,13 +34,46 @@ router.use('/materials', materialsRouter);
 router.get('/users', async (req, res) => {
   try {
     const { roleId } = req.query;
+    
+    // Convertir roleId a número o validar
+    let roleIdValue = undefined;
+    if (roleId) {
+      roleIdValue = Number(roleId);
+      // Comprobar si roleId es un número válido
+      if (isNaN(roleIdValue)) {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'El roleId debe ser un número válido' 
+        });
+      }
+    }
+    
+    console.log(`Buscando usuarios con roleId: ${roleIdValue}`);
+    
     const users = await prisma.User.findMany({
-      where: roleId ? { roleId: Number(roleId) } : {},
+      where: roleIdValue ? { roleId: roleIdValue } : {},
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        roleId: true,
+        latitude: true,
+        longitude: true,
+        bloodType: true
+      }
     });
+    
+    console.log(`Encontrados ${users.length} usuarios`);
+    
     res.json(users);
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
-    res.status(500).json({ status: 'error', message: 'Error al obtener usuarios' });
+    console.error('Detalles del error:', error.stack);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al obtener usuarios',
+      error: error.message 
+    });
   }
 });
 
@@ -84,7 +117,7 @@ router.get('/users/:id', async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         attendances: true,
-        requests: true,
+        materialRequests: true,
         supervisedZones: true,
         assignedTasks: true,
       }
@@ -386,7 +419,7 @@ router.get('/requests', async (req, res) => {
       filter.status = status;
     }
     
-    const requests = await prisma.Request.findMany({
+    const requests = await prisma.MaterialRequest.findMany({
       where: filter,
       include: {
         user: {
@@ -398,7 +431,7 @@ router.get('/requests', async (req, res) => {
         }
       },
       orderBy: {
-        requestDate: 'desc'
+        created_at: 'desc'
       }
     });
     
