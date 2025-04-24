@@ -12,7 +12,8 @@ import {
     MapPin,
     AlertTriangle,
     LogOut,
-    PackageOpen
+    PackageOpen,
+    UserCog, // Añade este nuevo ícono
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
 import { fetchAllDashboardData, updateUserLocation } from "@/services/dashboardService";
 import { useAuth } from "@/features/auth";
 import Inventory from "./inventory";
+import UsersManagement from "./UsersManagement";
 
 export default function Dashboard() {
     const { roleId } = useAuth();
@@ -269,6 +271,12 @@ export default function Dashboard() {
                         <MaterialRequestsCard onRefresh={loadDashboardData} />
                     </div>
                 );
+            case "users-management":
+                return roleId === 4 ? <UsersManagement /> : (
+                    <div className="text-center py-8 text-slate-400">
+                        No tienes permisos para acceder a esta sección
+                    </div>
+                );
             case "resumen":
             default:
                 return (
@@ -474,6 +482,13 @@ export default function Dashboard() {
                                             label="Reportes"
                                             active={activeSection === "reportes"}
                                             onClick={() => setActiveSection("reportes")}
+                                        />
+                                        <NavItem 
+                                            icon={UserCog}
+                                            label="Gestión Usuarios"
+                                            active={activeSection === "users-management"}
+                                            onClick={() => setActiveSection("users-management")}
+                                            className={roleId === 4 ? "block" : "hidden"} // Solo visible para admin
                                         />
                                     </div>
                                     

@@ -73,7 +73,7 @@ export default function LoginPage() {
         
         console.log("Usuario autenticado con rol:", roleId);
         
-        if (roleId === 1) {
+        if (roleId === 1 || roleId === 4) {
           // Rol 1: Administrador/Supervisor
           navigate("/dashboard");
         } else if (roleId === 2 || roleId === 3) {

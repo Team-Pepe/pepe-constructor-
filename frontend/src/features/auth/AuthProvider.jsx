@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
                 // Intentar recuperar el roleId del localStorage como respaldo
                 const storedRoleId = localStorage.getItem('roleId');
                 if (storedRoleId) {
-                    setRoleId(storedRoleId);
+                    setRoleId(Number(storedRoleId));
                 }
 
                 const response = await axios.get(`${import.meta.env.VITE_API_ENDPOINT}/api/auth/me`, {
@@ -36,9 +36,8 @@ export function AuthProvider({ children }) {
                     
                     // Actualizar el roleId desde la respuesta del servidor
                     if (response.data.user.roleId) {
-                        const newRoleId = response.data.user.roleId.toString();
-                        setRoleId(newRoleId);
-                        localStorage.setItem('roleId', newRoleId);
+                        setRoleId(Number(response.data.user.roleId));
+                        localStorage.setItem('roleId', String(response.data.user.roleId));
                     }
                     
                     if (response.data.csrfToken) {
@@ -86,16 +85,9 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={{ 
-            isAuthenticated, 
-            setIsAuthenticated, 
-            roleId, 
-            setRoleId,
-            user,
-            setUser,
-            csrfToken,
-            setCsrfToken,
-            authRequest,
-            logout
+            isAuthenticated, setIsAuthenticated, 
+            roleId, setRoleId, user, setUser, 
+            csrfToken, setCsrfToken, authRequest, logout, isLoading
         }}>
             {!isLoading && children}
         </AuthContext.Provider>

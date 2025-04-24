@@ -41,18 +41,17 @@ const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <Dashboard />,
-        // Añadir metadatos para el rol requerido
-        handle: { requiredRole: 1 }
+        handle: { requiredRole: [1, 4] } // <-- Permitir rol 1 y 4
       },
       {
         path: "dashboard-empleados",
         element: <DashboardEmpleados />,
-        handle: { requiredRole: [2, 3] }  // Permitir tanto rol 2 como rol 3
+        handle: { requiredRole: [2, 3] }
       },
       {
         path: "solicitar-materiales",
         element: <SolicitarMateriales />,
-        handle: { requiredRole: 3 }  // Solo permitir rol 3
+        handle: { requiredRole: 3 }
       },
     ],
   },

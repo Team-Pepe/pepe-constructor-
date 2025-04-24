@@ -136,6 +136,62 @@ router.get('/users/:id', async (req, res) => {
 
 /**
  * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Actualiza un usuario existente
+ *     tags: [Usuarios]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ */
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, email, bloodType, roleId } = req.body;
+
+    // Verificar si existe otro usuario con el mismo email (excepto el actual)
+    const existingUser = await prisma.User.findFirst({
+      where: {
+        AND: [
+          { email },
+          { id: { not: parseInt(id) } }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Ya existe un usuario con este correo'
+      });
+    }
+
+    // Actualizar usuario
+    const updatedUser = await prisma.User.update({
+      where: { id: parseInt(id) },
+      data: {
+        username,
+        email,
+        bloodType,
+        roleId: parseInt(roleId)
+      }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al actualizar usuario' 
+    });
+  }
+});
+
+/**
+ * @swagger
  * /api/work-zones:
  *   post:
  *     summary: Crea una nueva zona de trabajo
@@ -915,4 +971,4 @@ router.put('/users/location', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

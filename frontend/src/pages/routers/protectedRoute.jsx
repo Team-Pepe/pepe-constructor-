@@ -41,16 +41,16 @@ export default function ProtectedRoute() {
   // Redirigir al dashboard si el usuario ya está autenticado y trata de acceder al login
   useEffect(() => {
     if (isAuthenticated && location.pathname === "/login") {
-      const dashboardRoute = roleId === 1 ? "/dashboard" : "/dashboard-empleados";
+      const dashboardRoute = (userRoleId === 1 || userRoleId === 4) ? "/dashboard" : "/dashboard-empleados";
       navigate(dashboardRoute, { replace: true });
     }
-  }, [isAuthenticated, location.pathname, navigate, roleId]);
+  }, [isAuthenticated, location.pathname, navigate, userRoleId]);
 
   // Prevenir el uso del botón atrás para volver al login
   useEffect(() => {
     const handlePopState = () => {
       if (isAuthenticated && window.location.pathname === "/login") {
-        const dashboardRoute = roleId === 1 ? "/dashboard" : "/dashboard-empleados";
+        const dashboardRoute = (userRoleId === 1 || userRoleId === 4) ? "/dashboard" : "/dashboard-empleados";
         navigate(dashboardRoute, { replace: true });
       }
     };
@@ -59,7 +59,7 @@ export default function ProtectedRoute() {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [isAuthenticated, navigate, roleId]);
+  }, [isAuthenticated, navigate, userRoleId]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Cargando...</div>;
@@ -75,13 +75,13 @@ export default function ProtectedRoute() {
     if (Array.isArray(requiredRole)) {
       if (!requiredRole.includes(userRoleId)) {
         console.log(`Acceso denegado: Rol ${userRoleId} no está en la lista de roles permitidos:`, requiredRole);
-        return <Navigate to={userRoleId === 1 ? "/dashboard" : "/dashboard-empleados"} replace />;
+        return <Navigate to={(userRoleId === 1 || userRoleId === 4) ? "/dashboard" : "/dashboard-empleados"} replace />;
       }
     } 
     // Caso 2: requiredRole es un valor único
     else if (userRoleId !== requiredRole) {
       console.log(`Acceso denegado: Rol ${userRoleId} no coincide con el rol requerido:`, requiredRole);
-      return <Navigate to={userRoleId === 1 ? "/dashboard" : "/dashboard-empleados"} replace />;
+      return <Navigate to={(userRoleId === 1 || userRoleId === 4) ? "/dashboard" : "/dashboard-empleados"} replace />;
     }
   }
 

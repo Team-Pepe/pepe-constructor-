@@ -25,7 +25,7 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-const getAuthHeaders = () => {
+export const getAuthHeaders = () => {
   const token = getAuthToken();
   const csrfToken = localStorage.getItem('csrfToken');
 
