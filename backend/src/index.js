@@ -7,13 +7,14 @@ const { PrismaClient } = require('@prisma/client');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const path = require('path');
+const { testEmailConnection } = require('./services/emailService');
 const authRouter = require('./routes/authRouter');
 const dashboardRoutes = require('./routes/dashboard');
 const apiRoutes = require('./routes/api');
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
 const materialAssignmentsRoutes = require('./routes/materialAssignments');
+const checkInRoutes = require('./routes/checkInRoutes');
 const { authenticateToken, verifyCSRF } = require('./middleware/authMiddleware');
-const { testEmailConnection } = require('./services/emailService');
 
 // Requerir las utilidades de archivos para crear los directorios necesarios al inicio
 require('./utils/fileUtils');
@@ -118,6 +119,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/dashboard', authenticateToken, verifyCSRF, dashboardRoutes);
 app.use('/api/dashboard-empleados', authenticateToken, verifyCSRF, dashboardEmpleadosRoutes);
 app.use('/api/material-assignments', authenticateToken, verifyCSRF, materialAssignmentsRoutes);
+app.use('/api/check-in', checkInRoutes);
+app.use('/api/check-ins', checkInRoutes);
 app.use('/api', authenticateToken, verifyCSRF, apiRoutes);
 
 // Manejador de errores global

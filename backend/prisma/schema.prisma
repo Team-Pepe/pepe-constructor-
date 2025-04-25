@@ -24,6 +24,7 @@ model User {
   materialRequests MaterialRequest[]
   resetToken       String?
   resetTokenExpiry DateTime?
+  checkIns         CheckIn[]
 
   @@map("users")
 }
@@ -49,7 +50,7 @@ model WorkZone {
   supervisor       User              @relation(fields: [supervisorId], references: [id])
   materiales       ZonaMaterial[]
   materialRequests MaterialRequest[]
-
+  checkIns         CheckIn[] 
   @@map("work_zones")
 }
 
@@ -136,4 +137,19 @@ model MaterialRequest {
   zone               WorkZone @relation(fields: [zone_id], references: [id])
 
   @@map("material_requests")
+}
+
+model CheckIn {
+  id                 Int      @id @default(autoincrement())
+  user_id            Int      @map("user_id")
+  zone_id            Int      @map("zone_id")
+  checkInTime        DateTime @default(now()) @map("check_in_time")
+  latitude           Float
+  longitude          Float
+  photo_url          String?  @map("photo_url")
+  status             String   @default("active")
+  user               User     @relation(fields: [user_id], references: [id])
+  zone               WorkZone @relation(fields: [zone_id], references: [id])
+
+  @@map("check_ins")
 }

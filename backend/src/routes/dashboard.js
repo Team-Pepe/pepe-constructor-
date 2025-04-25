@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+const { saveFile } = require('../utils/fileUtils');
 
 // Obtener métricas generales del dashboard
 router.get('/metrics', async (req, res) => {
@@ -296,4 +299,4 @@ router.get('/material-requests', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

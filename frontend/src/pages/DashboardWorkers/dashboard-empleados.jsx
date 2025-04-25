@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ZonasDeTrabajo from "./zonas-de-trabajo";
 import Inventario from "./inventario";
 import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
-import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock, AlertCircle } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn, fetchRecentCheckIns } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 
 function DashboardEmpleados() {
@@ -20,6 +20,14 @@ function DashboardEmpleados() {
   const [savedZones, setSavedZones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState(null);
+  const [selectedCheckInZone, setSelectedCheckInZone] = useState(null);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [recentCheckIns, setRecentCheckIns] = useState([]);
+  const [loadingCheckIns, setLoadingCheckIns] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const navigate = useNavigate();
 
   // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
@@ -204,6 +212,23 @@ function DashboardEmpleados() {
     return () => clearInterval(interval);
   }, [apiEndpoint]);
 
+  const loadRecentCheckIns = async () => {
+    try {
+      setLoadingCheckIns(true);
+      const response = await fetchRecentCheckIns();
+      setRecentCheckIns(response.checkIns);
+    } catch (error) {
+      console.error('Error al cargar check-ins recientes:', error);
+    } finally {
+      setLoadingCheckIns(false);
+    }
+  };
+
+  // Cargar check-ins recientes al montar el componente y después de un check-in exitoso
+  useEffect(() => {
+    loadRecentCheckIns();
+  }, []);
+
   const currentWorker = workerLocation
     ? [
         {
@@ -305,6 +330,142 @@ function DashboardEmpleados() {
     );
   };
 
+  const handleCheckIn = async () => {
+    if (!selectedCheckInZone) {
+      setCheckInStatus('Debes seleccionar una zona de trabajo');
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationStatus('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationStatus('Verificando ubicación...');
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Verificar si está dentro de la zona seleccionada
+          const selectedZone = savedZones.find(zone => zone.name === selectedCheckInZone);
+          if (!selectedZone) {
+            setCheckInStatus('Error: Zona no encontrada');
+            return;
+          }
+
+          // Calcular distancia entre el trabajador y el centro de la zona
+          const distance = calculateDistance(
+            latitude, 
+            longitude, 
+            selectedZone.lat, 
+            selectedZone.lng
+          );
+
+          if (distance > (selectedZone.radius || 500)) {
+            setCheckInStatus('No estás dentro de la zona seleccionada');
+            return;
+          }
+
+          // Activar la cámara para tomar la foto
+          setShowCamera(true);
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setCameraStream(stream);
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } catch (error) {
+            console.error('Error al acceder a la cámara:', error);
+            setCheckInStatus('Error al acceder a la cámara. Verifica los permisos.');
+            setShowCamera(false);
+          }
+
+        } catch (error) {
+          console.error('Error al registrar check-in:', error);
+          setCheckInStatus('Error al registrar check-in. Inténtalo de nuevo.');
+        } finally {
+          setLocationLoading(false);
+          setLocationStatus(null);
+        }
+      },
+      (error) => {
+        console.error('Error al obtener ubicación:', error);
+        setLocationLoading(false);
+        setLocationStatus('Error al obtener ubicación. Verifica los permisos.');
+      }
+    );
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance * 1000; // Convertir a metros
+  };
+
+  const takePicture = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    // Establecer dimensiones del canvas según el video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Dibujar el frame actual del video en el canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      // Convertir el canvas a blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      
+      // Crear un objeto con los datos del check-in
+      const checkInData = {
+        zoneId: selectedCheckInZone,
+        latitude: workerLocation.lat,
+        longitude: workerLocation.lng,
+        photo: blob
+      };
+
+      // Registrar el check-in
+      await registerCheckIn(checkInData);
+      setCheckInStatus('Check-in registrado exitosamente');
+      
+      // Limpiar
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+      setCameraStream(null);
+      setShowCamera(false);
+      setSelectedCheckInZone(null);
+      await loadRecentCheckIns(); // Recargar check-ins recientes
+
+    } catch (error) {
+      console.error('Error al procesar el check-in:', error);
+      setCheckInStatus('Error al procesar el check-in. Inténtalo de nuevo.');
+    }
+  };
+
+  // Limpiar el stream de la cámara al desmontar
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
+
   return (
     <div
       className="min-h-screen flex"
@@ -360,6 +521,19 @@ function DashboardEmpleados() {
             >
               <Home className="mr-2 h-4 w-4" />
               Inicio
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("check-in");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "check-in" ? "bg-gray-100" : ""
+              } flex items-center`}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Check In
             </button>
 
             <button
@@ -546,6 +720,213 @@ function DashboardEmpleados() {
           <section id="inventario">
             <h2 className="text-2xl font-bold mb-4">Inventario de Materiales</h2>
             <Inventario />
+          </section>
+        )}
+
+        {activeSection === "check-in" && (
+          <section id="check-in" className="animate-fadeIn">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-4 text-white flex items-center">
+                  <Calendar className="mr-2 h-6 w-6 text-orange-400 animate-pulse" />
+                  Check In
+                </h2>
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 p-6">
+                  <div className="flex items-center space-x-4 mb-6 bg-slate-900/50 p-4 rounded-lg border border-slate-700/30">
+                    <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <MapPin className="h-6 w-6 text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Registro de Entrada</h3>
+                      <p className="text-slate-400">Asegúrate de estar dentro de una zona de trabajo válida</p>
+                    </div>
+                  </div>
+
+                  {!showCamera ? (
+                    <>
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Selecciona tu zona de trabajo
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={selectedCheckInZone || ''}
+                            onChange={(e) => setSelectedCheckInZone(e.target.value)}
+                            className="w-full p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
+                          >
+                            <option value="">Selecciona una zona</option>
+                            {savedZones.map((zone) => (
+                              <option key={zone.id} value={zone.name}>
+                                {zone.name}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <MapPinned className="h-5 w-5 text-slate-500" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {checkInStatus && (
+                        <div className={`p-4 mb-6 rounded-lg border transition-all duration-300 animate-slideIn ${
+                          checkInStatus.includes('exitosamente') 
+                            ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                            : 'bg-red-500/20 border-red-500/50 text-red-400'
+                        }`}>
+                          <div className="flex items-start space-x-3">
+                            {checkInStatus.includes('exitosamente') ? (
+                              <div className="h-6 w-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                <Check className="h-4 w-4 text-green-400" />
+                              </div>
+                            ) : (
+                              <div className="h-6 w-6 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle className="h-4 w-4 text-red-400" />
+                              </div>
+                            )}
+                            <p>{checkInStatus}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleCheckIn}
+                        className={`w-full h-12 relative overflow-hidden group ${
+                          locationLoading || !selectedCheckInZone
+                            ? 'bg-slate-700 cursor-not-allowed'
+                            : 'bg-orange-500 hover:bg-orange-600'
+                        } text-white transition-all duration-300`}
+                        disabled={locationLoading || !selectedCheckInZone}
+                      >
+                        <div className="absolute inset-0 w-full h-full transition-all duration-300 scale-x-0 group-hover:scale-x-100 group-hover:bg-orange-600/50" />
+                        <span className="relative flex items-center justify-center">
+                          {locationLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Verificando ubicación...
+                            </>
+                          ) : (
+                            <>
+                              <MapPin className="mr-2 h-5 w-5 animate-bounce" />
+                              Registrar Check In
+                            </>
+                          )}
+                        </span>
+                      </Button>
+
+                      {!locationLoading && !selectedCheckInZone && (
+                        <p className="mt-4 text-sm text-slate-400 text-center animate-pulse">
+                          👆 Selecciona una zona para continuar
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="relative animate-fadeIn">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-gradient"></div>
+                      <div className="relative">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          className="w-full rounded-lg mb-4 border-2 border-slate-700/50"
+                        />
+                        <canvas ref={canvasRef} style={{ display: 'none' }} />
+                        <div className="flex justify-center gap-4">
+                          <Button
+                            onClick={takePicture}
+                            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 hover:scale-105"
+                          >
+                            <Camera className="h-5 w-5" />
+                            <span>Tomar Foto</span>
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (cameraStream) {
+                                cameraStream.getTracks().forEach(track => track.stop());
+                              }
+                              setCameraStream(null);
+                              setShowCamera(false);
+                            }}
+                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 hover:scale-105"
+                          >
+                            <X className="h-5 w-5" />
+                            <span>Cancelar</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="hidden md:block">
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-slate-700/50 h-full p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <Info className="mr-2 h-5 w-5 text-orange-400" />
+                    Información de Check In
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                      <h4 className="text-orange-400 font-medium mb-2">Horario Laboral</h4>
+                      <div className="flex items-center space-x-3 text-slate-300">
+                        <Clock className="h-4 w-4 text-slate-400" />
+                        <span>7:00 AM - 4:00 PM</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                      <h4 className="text-orange-400 font-medium mb-2">Estado Actual</h4>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-green-400">En horario laboral</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                      <h4 className="text-orange-400 font-medium mb-2">Últimos Check-ins</h4>
+                      <div className="space-y-3">
+                        {loadingCheckIns ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                          </div>
+                        ) : recentCheckIns.length > 0 ? (
+                          recentCheckIns.map((checkIn) => (
+                            <div key={checkIn.id} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-400">
+                                {new Date(checkIn.checkInTime).toLocaleDateString()}
+                              </span>
+                              <span className="text-slate-300">
+                                {new Date(checkIn.checkInTime).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-slate-400">No hay registros de check-in</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="text-sm text-slate-400">
+                        <div className="flex items-start space-x-2 mb-2">
+                          <AlertCircle className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                          <p>Recuerda que debes estar físicamente dentro de la zona de trabajo seleccionada para poder realizar el check-in.</p>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <Camera className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                          <p>La foto de check-in ayuda a verificar tu presencia en el lugar de trabajo.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         )}
 

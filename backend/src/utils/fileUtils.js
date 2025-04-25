@@ -28,7 +28,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !SUPABASE_PROJECT_ID) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Nombre del bucket en Supabase Storage
-const BUCKET_NAME = 'images';
+const BUCKET_NAME = 'materials'; // Cambiado a 'materials' para mantener consistencia
 
 // Endpoint para cargas resumibles
 const RESUMABLE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/upload/resumable`;
@@ -243,6 +243,25 @@ const processImage = async (file, folder = '') => {
   }
 };
 
+/**
+ * Guarda un archivo en Supabase Storage
+ * @param {Object} file - Objeto file de multer
+ * @param {String} folder - Carpeta donde guardar el archivo
+ * @returns {Promise<Object>} - Información del archivo guardado
+ */
+const saveFile = async (file, folder = '') => {
+  try {
+    const result = await processImage(file, folder);
+    if (!result.success) {
+      throw new Error(result.message || 'Error al procesar el archivo');
+    }
+    return result;
+  } catch (error) {
+    console.error('❌ Error en saveFile:', error);
+    return { success: false, message: error.message };
+  }
+};
+
 // Inicializar el bucket en Supabase si no existe
 const initSupabaseBucket = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -320,7 +339,8 @@ module.exports = {
   compressFile,
   uploadFileToSupabase,
   deleteFileFromSupabase,
+  saveFile, // Exportando la función saveFile
   BUCKET_NAME,
   SUPABASE_KEY,
   SUPABASE_PROJECT_ID
-}; 
+};

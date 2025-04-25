@@ -8,6 +8,8 @@ const API_ENDPOINTS = {
   DASHBOARD_METRICS: '/api/dashboard/metrics',
   PROJECTS_PROGRESS: '/api/dashboard/projects-progress',
   ATTENDANCE: '/api/dashboard/attendance',
+  CHECK_IN: '/api/check-in',
+  CHECK_INS_RECENT: '/api/check-ins/recent',
   MATERIALS: '/api/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
@@ -334,6 +336,43 @@ const addLocationToWorkers = (workers) => {
       // No incluir el campo location para que no aparezca en el mapa
     };
   });
+};
+
+export const registerCheckIn = async (data) => {
+  try {
+    const formData = new FormData();
+    formData.append('userId', localStorage.getItem('userId')); // Obtener el userId del localStorage
+    formData.append('lat', data.latitude);
+    formData.append('lng', data.longitude);
+    formData.append('zoneId', data.zoneId); // Campo adicional para la zona
+    if (data.photo) {
+      formData.append('photo', data.photo);
+    }
+
+    const response = await apiClient.post(API_ENDPOINTS.CHECK_IN, formData, {
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar check-in:', error);
+    throw error;
+  }
+};
+
+export const fetchRecentCheckIns = async (limit = 5) => {
+  try {
+    const response = await apiClient.get(`${API_ENDPOINTS.CHECK_INS_RECENT}?limit=${limit}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener check-ins recientes:', error);
+    throw error;
+  }
 };
 
 export default apiClient;
