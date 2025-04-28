@@ -164,6 +164,7 @@ function UsersManagement() {
       {showModal && (
         <UserEditModal
           user={modalUser}
+          users={users} // <--- PASA LA LISTA DE USUARIOS
           onClose={() => {
             setShowModal(false);
             setModalUser(null);

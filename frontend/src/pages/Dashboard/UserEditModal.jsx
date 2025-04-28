@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClient, getAuthHeaders } from "@/services/dashboardService";
 
-export default function UserEditModal({ user, onClose, onSave }) {
+export default function UserEditModal({ user, onClose, onSave, users }) {
   const [form, setForm] = useState({
     id: "",
     username: "",
@@ -72,15 +72,20 @@ export default function UserEditModal({ user, onClose, onSave }) {
           headers: getAuthHeaders()
         });
         const data = res.data;
-        // Si hay un usuario con ese correo y no es el mismo usuario, error
-        if (
-          Array.isArray(data) &&
-          data.length > 0 &&
-          (!user || String(data[0].id) !== String(user.id))
-        ) {
+        
+        // Corregido: Verificar correctamente si el correo pertenece a otro usuario
+        const emailExists = Array.isArray(data) && data.length > 0 && 
+          data.some(existingUser => 
+            existingUser.email === form.email && 
+            (!user || existingUser.id !== user.id)
+          );
+        
+        if (emailExists) {
           newErrors.email = "Ya existe un usuario con este correo.";
         }
-      } catch {}
+      } catch (error) {
+        console.error("Error al verificar email:", error);
+      }
     }
     // Username: requerido
     if (!form.username.trim()) {
