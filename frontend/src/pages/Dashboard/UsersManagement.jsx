@@ -4,7 +4,6 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  UserPlus,
   Loader2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,34 +69,24 @@ function UsersManagement() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header y Buscador */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-white">Gestión de Usuarios</h2>
-        <div className="flex gap-4">
-          <div className="relative">
+        <div className="w-full sm:w-auto">
+          <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
             <Input
               type="text"
               placeholder="Buscar por ID, nombre o correo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-slate-800/50"
+              className="pl-10 bg-slate-800/50 w-full"
             />
           </div>
-          <Button 
-            onClick={() => {
-              setModalUser(null);
-              setShowModal(true);
-            }}
-            className="bg-orange-600 hover:bg-orange-700 transition-all duration-200"
-          >
-            <UserPlus className="mr-2" />
-            Nuevo Usuario
-          </Button>
         </div>
       </div>
 
-      {/* Tabla de Usuarios */}
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
+      {/* Tabla de Usuarios - Contenedor con scroll horizontal */}
+      <div className="rounded-lg border border-slate-700 overflow-x-auto">
         <table className="w-full">
           <thead className="bg-slate-800/50">
             <tr>
@@ -133,7 +122,7 @@ function UsersManagement() {
                   <td className="px-4 py-3 text-slate-300">{user.email}</td>
                   <td className="px-4 py-3 text-slate-300">{user.bloodType}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs
+                    <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap
                       ${user.roleId === 4 ? 'bg-purple-500/20 text-purple-300' :
                         user.roleId === 1 ? 'bg-blue-500/20 text-blue-300' :
                         user.roleId === 2 ? 'bg-green-500/20 text-green-300' :
@@ -141,7 +130,7 @@ function UsersManagement() {
                       {user.roleId === 4 ? 'Admin' :
                        user.roleId === 1 ? 'Supervisor' :
                        user.roleId === 2 ? 'Trabajador' : 
-                       'Empleado'}
+                       'Jefe de obra'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">

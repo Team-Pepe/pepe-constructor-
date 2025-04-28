@@ -158,14 +158,23 @@ export default function UserEditModal({ user, onClose, onSave }) {
           </div>
           <div>
             <Label htmlFor="bloodType" className="text-slate-200">Tipo de Sangre</Label>
-            <Input
+            <select
               name="bloodType"
               id="bloodType"
-              placeholder="Ej: O+"
               value={form.bloodType}
               onChange={handleChange}
-              className="bg-slate-800 text-white"
-            />
+              className="bg-slate-800 text-white w-full rounded px-3 py-2 border border-slate-700"
+            >
+              <option value="">Seleccionar tipo de sangre</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
           </div>
           <div>
             <Label htmlFor="roleId" className="text-slate-200">Rol</Label>
@@ -178,7 +187,7 @@ export default function UserEditModal({ user, onClose, onSave }) {
             >
               <option value={1}>Supervisor</option>
               <option value={2}>Trabajador</option>
-              <option value={3}>Empleado</option>
+              <option value={3}>Jefe de Obra</option>
               <option value={4}>Admin</option>
             </select>
           </div>
