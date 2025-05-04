@@ -153,39 +153,58 @@ router.put('/users/:id', async (req, res) => {
     const { username, email, bloodType, roleId } = req.body;
 
     // Verificar si existe otro usuario con el mismo email (excepto el actual)
-    const existingUser = await prisma.User.findFirst({
-      where: {
-        AND: [
-          { email },
-          { id: { not: parseInt(id) } }
-        ]
-      }
-    });
+    if (email) {
+      const existingUser = await prisma.User.findFirst({
+        where: {
+          AND: [
+            { email: email },
+            { id: { not: parseInt(id) } }
+          ]
+        }
+      });
 
-    if (existingUser) {
+      if (existingUser) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Ya existe un usuario con este correo'
+        });
+      }
+    }
+
+    // Crear objeto con los campos a actualizar
+    const updateData = {};
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) updateData.email = email;
+    if (bloodType !== undefined) updateData.bloodType = bloodType;
+    if (roleId !== undefined) updateData.roleId = parseInt(roleId);
+
+    // Asegurarnos de que haya al menos un campo para actualizar
+    if (Object.keys(updateData).length === 0) {
       return res.status(400).json({
         status: 'error',
-        message: 'Ya existe un usuario con este correo'
+        message: 'No se proporcionaron datos para actualizar'
       });
     }
 
     // Actualizar usuario
     const updatedUser = await prisma.User.update({
-      where: { id: parseInt(id) },
-      data: {
-        username,
-        email,
-        bloodType,
-        roleId: parseInt(roleId)
-      }
+      where: {
+        id: parseInt(id)
+      },
+      data: updateData
     });
 
-    res.json(updatedUser);
+    res.json({
+      status: 'success',
+      message: 'Usuario actualizado correctamente',
+      data: updatedUser
+    });
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
     res.status(500).json({ 
       status: 'error', 
-      message: 'Error al actualizar usuario' 
+      message: 'Error al actualizar usuario',
+      error: error.message
     });
   }
 });
@@ -825,6 +844,7 @@ router.get('/storage-config', (req, res) => {
  *             required:
  *               - latitude
  *               - longitude
+ *               - id
  *             properties:
  *               latitude:
  *                 type: number
@@ -832,6 +852,9 @@ router.get('/storage-config', (req, res) => {
  *               longitude:
  *                 type: number
  *                 description: Longitud de la ubicación
+ *               id:
+ *                 type: integer
+ *                 description: ID del usuario
  *     responses:
  *       200:
  *         description: Ubicación actualizada correctamente
@@ -858,6 +881,12 @@ router.get('/storage-config', (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: ID del usuario no coincide con el token de autenticación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Usuario no encontrado
  *         content:
@@ -873,81 +902,38 @@ router.get('/storage-config', (req, res) => {
  */
 router.put('/users/location', async (req, res) => {
   try {
-    console.log('📍 Recibida solicitud de actualización de ubicación');
+    const { id, latitude, longitude } = req.body;
     
-    // Verificar que el usuario esté autenticado
-    if (!req.user || !req.user.id) {
-      console.log('❌ Usuario no autenticado');
-      return res.status(401).json({
-        status: 'error',
-        message: 'Usuario no autenticado'
+    // Validación básica de los datos requeridos
+    if (!id || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Se requiere id, latitude y longitude' 
       });
     }
 
-    console.log(`🔍 Usuario autenticado con ID: ${req.user.id}`);
-    
-    // Obtener y validar los datos de ubicación
-    const { latitude, longitude } = req.body;
-    console.log('📊 Datos recibidos:', { latitude, longitude });
-
-    if (latitude === undefined || longitude === undefined) {
-      console.log('❌ Datos de ubicación incompletos');
-      return res.status(400).json({
-        status: 'error',
-        message: 'La latitud y longitud son requeridas'
-      });
-    }
-
-    // Convertir a números flotantes
+    // Convertir valores a números
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
 
     // Verificar que sean números válidos
     if (isNaN(lat) || isNaN(lng)) {
-      console.log('❌ Valores de ubicación inválidos');
       return res.status(400).json({
         status: 'error',
         message: 'La latitud y longitud deben ser números válidos'
       });
     }
 
-    // Verificar que el usuario exista en la base de datos
-    const user = await prisma.User.findUnique({
-      where: { id: parseInt(req.user.id) }
-    });
-
-    if (!user) {
-      console.log(`❌ Usuario con ID ${req.user.id} no encontrado en la base de datos`);
-      return res.status(404).json({
-        status: 'error',
-        message: 'Usuario no encontrado'
-      });
-    }
-
-    console.log(`🧑‍💼 Usuario encontrado: ${user.username || user.email}, roleId: ${user.roleId}`);
-
-    // Verificar que el usuario sea un trabajador (roleId = 2)
-    if (user.roleId !== 2) {
-      console.log(`❌ Usuario con rol ${user.roleId} no autorizado (se requiere roleId = 2)`);
-      return res.status(403).json({
-        status: 'error',
-        message: 'Solo los trabajadores pueden actualizar su ubicación'
-      });
-    }
-
-    console.log(`💾 Actualizando ubicación para el usuario ${req.user.id}: [${lat}, ${lng}]`);
-    
-    // Actualizar la ubicación del usuario utilizando el método update de Prisma
+    // Actualizar solo la ubicación
     const updatedUser = await prisma.User.update({
-      where: { id: parseInt(req.user.id) },
+      where: { id: parseInt(id) },
       data: {
         latitude: lat,
         longitude: lng
       }
     });
 
-    console.log('✅ Ubicación actualizada correctamente');
-    
+    // Respuesta exitosa
     res.json({
       status: 'success',
       message: 'Ubicación actualizada correctamente',
@@ -957,16 +943,12 @@ router.put('/users/location', async (req, res) => {
         longitude: updatedUser.longitude
       }
     });
+
   } catch (error) {
-    console.error('❌ Error al actualizar ubicación del usuario:', error);
-    console.error('Stack trace completo:', error.stack);
-    
-    // Respuesta más detallada para ayudar a diagnosticar
+    console.error('Error al actualizar ubicación:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error al actualizar ubicación del usuario',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: 'Error al actualizar ubicación del usuario'
     });
   }
 });

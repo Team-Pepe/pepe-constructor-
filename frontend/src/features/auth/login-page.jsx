@@ -66,11 +66,11 @@ export default function LoginPage() {
         // Guardar el roleId en localStorage para conservarlo en la sesión
         localStorage.setItem('roleId', roleId.toString());
         
-        // También guardar userId si está disponible
+        // Guardar solo el userId para las actualizaciones de ubicación
         if (response.data.user.id) {
           localStorage.setItem('userId', response.data.user.id.toString());
         }
-        
+
         console.log("Usuario autenticado con rol:", roleId);
         
         if (roleId === 1 || roleId === 4) {

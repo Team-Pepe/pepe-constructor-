@@ -206,46 +206,24 @@ export const useMaterialsFromZone = async (data) => {
 // User location update
 export const updateUserLocation = async ({ latitude, longitude }) => {
   try {
-    console.log('Enviando ubicación al backend:', { latitude, longitude });
-    
-    // Obtener los headers de autenticación
-    const headers = getAuthHeaders();
-    console.log('Headers de autenticación:', headers);
-    
-    // Datos a enviar
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      throw new Error('No se encontró el ID del usuario');
+    }
+
     const data = {
+      id: parseInt(userId),
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude)
     };
     
-    // Realizar la petición con manejo explícito de errores
     const response = await apiClient.put(`${API_ENDPOINTS.USERS}/location`, data, { 
-      headers,
-      timeout: 10000 // 10 segundos de timeout
+      headers: getAuthHeaders()
     });
     
-    console.log('Respuesta del servidor:', response.data);
     return response;
   } catch (error) {
     console.error('Error al actualizar ubicación:', error);
-    
-    // Información detallada del error para depuración
-    if (error.response) {
-      // El servidor respondió con un código de error
-      console.error('Respuesta de error del servidor:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-        headers: error.response.headers
-      });
-    } else if (error.request) {
-      // La petición fue hecha pero no se recibió respuesta
-      console.error('No se recibió respuesta del servidor:', error.request);
-    } else {
-      // Error en la configuración de la petición
-      console.error('Error en la configuración de la petición:', error.message);
-    }
-    
     throw error;
   }
 };
@@ -292,14 +270,14 @@ const addLocationToWorkers = (workers) => {
   
   // Crear una copia segura de la lista de trabajadores y filtrar solo los que tienen ubicación real
   return workers.map((worker, index) => {
-    // Si el trabajador ya tiene una ubicación real (latitude y longitude), usarla
-    if (worker.latitude && worker.longitude) {
+    // Si el trabajador ya tiene una ubicación real (latitud y longitud), usarla
+    if (worker.latitud && worker.longitud) {
       return {
         ...worker,
         name: worker.username || worker.name || `Trabajador ${index + 1}`,
         location: {
-          lat: parseFloat(worker.latitude),
-          lng: parseFloat(worker.longitude)
+          lat: parseFloat(worker.latitud),
+          lng: parseFloat(worker.longitud)
         },
         // Marcar explícitamente que es una ubicación real
         locationIsSimulated: false
@@ -310,30 +288,6 @@ const addLocationToWorkers = (workers) => {
     return {
       ...worker,
       name: worker.username || worker.name || `Trabajador ${index + 1}`
-      // No incluir el campo location para que no aparezca en el mapa
-    };
-  });
-  // Crear una copia segura de la lista de trabajadores y filtrar solo los que tienen ubicación real
-  return workers.map((worker, index) => {
-    // Si el trabajador ya tiene una ubicación real (latitude y longitude), usarla
-    if (worker.latitude && worker.longitude) {
-      return {
-        ...worker,
-        name: worker.username || worker.name || `Trabajador ${index + 1}`,
-        location: {
-          lat: parseFloat(worker.latitude),
-          lng: parseFloat(worker.longitude)
-        },
-        // Marcar explícitamente que es una ubicación real
-        locationIsSimulated: false
-      };
-    }
-    
-    // Si no hay ubicación real, devolver el trabajador sin el campo location
-    return {
-      ...worker,
-      name: worker.username || worker.name || `Trabajador ${index + 1}`
-      // No incluir el campo location para que no aparezca en el mapa
     };
   });
 };

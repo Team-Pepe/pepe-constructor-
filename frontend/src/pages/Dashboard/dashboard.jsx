@@ -150,6 +150,7 @@ export default function Dashboard() {
             async (position) => {
                 try {
                     const { latitude, longitude } = position.coords;
+                    console.log('Ubicación obtenida:', { latitude, longitude });
                     
                     await updateUserLocation({ latitude, longitude });
                     setLocationStatus('Ubicación actualizada');

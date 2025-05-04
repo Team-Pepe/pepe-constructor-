@@ -72,7 +72,7 @@ function DashboardEmpleados() {
             lng: longitude
           });
 
-          // Enviar ubicación al backend
+          // Enviar ubicación al backend con la nueva estructura
           try {
             await updateUserLocation({ latitude, longitude });
             
