@@ -11,6 +11,133 @@ router.use('/materials', materialsRouter);
 
 /**
  * @swagger
+ * /api/users/location:
+ *   put:
+ *     summary: Actualiza la ubicación de un usuario
+ *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *               - id
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 description: Latitud de la ubicación
+ *               longitude:
+ *                 type: number
+ *                 description: Longitud de la ubicación
+ *               id:
+ *                 type: integer
+ *                 description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Ubicación actualizada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Ubicación actualizada correctamente
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: ID del usuario no coincide con el token de autenticación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put('/users/location', async (req, res) => {
+  try {
+    const { id, latitude, longitude } = req.body;
+    
+    // Validación básica de los datos requeridos
+    if (!id || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Se requiere id, latitude y longitude' 
+      });
+    }
+
+    // Convertir valores a números
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    // Verificar que sean números válidos
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'La latitud y longitud deben ser números válidos'
+      });
+    }
+
+    // Actualizar solo la ubicación
+    const updatedUser = await prisma.User.update({
+      where: { id: parseInt(id) },
+      data: {
+        latitude: lat,
+        longitude: lng
+      }
+    });
+
+    // Respuesta exitosa
+    res.json({
+      status: 'success',
+      message: 'Ubicación actualizada correctamente',
+      data: {
+        userId: updatedUser.id,
+        latitude: updatedUser.latitude,
+        longitude: updatedUser.longitude
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al actualizar ubicación:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error al actualizar ubicación del usuario'
+    });
+  }
+});
+
+
+/**
+ * @swagger
  * /api/users:
  *   get:
  *     summary: Obtiene todos los usuarios
@@ -827,130 +954,5 @@ router.get('/storage-config', (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/users/location:
- *   put:
- *     summary: Actualiza la ubicación de un usuario
- *     tags: [Usuarios]
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - latitude
- *               - longitude
- *               - id
- *             properties:
- *               latitude:
- *                 type: number
- *                 description: Latitud de la ubicación
- *               longitude:
- *                 type: number
- *                 description: Longitud de la ubicación
- *               id:
- *                 type: integer
- *                 description: ID del usuario
- *     responses:
- *       200:
- *         description: Ubicación actualizada correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Ubicación actualizada correctamente
- *       400:
- *         description: Datos inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Usuario no autenticado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: ID del usuario no coincide con el token de autenticación
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Usuario no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.put('/users/location', async (req, res) => {
-  try {
-    const { id, latitude, longitude } = req.body;
-    
-    // Validación básica de los datos requeridos
-    if (!id || latitude === undefined || longitude === undefined) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Se requiere id, latitude y longitude' 
-      });
-    }
-
-    // Convertir valores a números
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
-
-    // Verificar que sean números válidos
-    if (isNaN(lat) || isNaN(lng)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'La latitud y longitud deben ser números válidos'
-      });
-    }
-
-    // Actualizar solo la ubicación
-    const updatedUser = await prisma.User.update({
-      where: { id: parseInt(id) },
-      data: {
-        latitude: lat,
-        longitude: lng
-      }
-    });
-
-    // Respuesta exitosa
-    res.json({
-      status: 'success',
-      message: 'Ubicación actualizada correctamente',
-      data: {
-        userId: updatedUser.id,
-        latitude: updatedUser.latitude,
-        longitude: updatedUser.longitude
-      }
-    });
-
-  } catch (error) {
-    console.error('Error al actualizar ubicación:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Error al actualizar ubicación del usuario'
-    });
-  }
-});
 
 module.exports = router;

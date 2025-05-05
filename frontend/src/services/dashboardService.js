@@ -216,6 +216,8 @@ export const updateUserLocation = async ({ latitude, longitude }) => {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude)
     };
+    console.warn(data);
+    
     
     const response = await apiClient.put(`${API_ENDPOINTS.USERS}/location`, data, { 
       headers: getAuthHeaders()
