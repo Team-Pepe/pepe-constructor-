@@ -63,9 +63,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF
 const allowedOrigins = [
-  'http://localhost:5173'
+  'http://localhost:5173',
+  frontendUrl
 ];
 
 app.use(cors({
