@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClient, getAuthHeaders } from "@/services/dashboardService";
 
-export default function UserEditModal({ user, onClose, onSave }) {
+export default function UserEditModal({ user, onClose, onSave, users }) {
   const [form, setForm] = useState({
     id: "",
     username: "",
@@ -72,15 +72,20 @@ export default function UserEditModal({ user, onClose, onSave }) {
           headers: getAuthHeaders()
         });
         const data = res.data;
-        // Si hay un usuario con ese correo y no es el mismo usuario, error
-        if (
-          Array.isArray(data) &&
-          data.length > 0 &&
-          (!user || String(data[0].id) !== String(user.id))
-        ) {
+        
+        // Corregido: Verificar correctamente si el correo pertenece a otro usuario
+        const emailExists = Array.isArray(data) && data.length > 0 && 
+          data.some(existingUser => 
+            existingUser.email === form.email && 
+            (!user || existingUser.id !== user.id)
+          );
+        
+        if (emailExists) {
           newErrors.email = "Ya existe un usuario con este correo.";
         }
-      } catch {}
+      } catch (error) {
+        console.error("Error al verificar email:", error);
+      }
     }
     // Username: requerido
     if (!form.username.trim()) {
@@ -158,14 +163,23 @@ export default function UserEditModal({ user, onClose, onSave }) {
           </div>
           <div>
             <Label htmlFor="bloodType" className="text-slate-200">Tipo de Sangre</Label>
-            <Input
+            <select
               name="bloodType"
               id="bloodType"
-              placeholder="Ej: O+"
               value={form.bloodType}
               onChange={handleChange}
-              className="bg-slate-800 text-white"
-            />
+              className="bg-slate-800 text-white w-full rounded px-3 py-2 border border-slate-700"
+            >
+              <option value="">Seleccionar tipo de sangre</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
           </div>
           <div>
             <Label htmlFor="roleId" className="text-slate-200">Rol</Label>
@@ -178,7 +192,7 @@ export default function UserEditModal({ user, onClose, onSave }) {
             >
               <option value={1}>Supervisor</option>
               <option value={2}>Trabajador</option>
-              <option value={3}>Empleado</option>
+              <option value={3}>Jefe de Obra</option>
               <option value={4}>Admin</option>
             </select>
           </div>
