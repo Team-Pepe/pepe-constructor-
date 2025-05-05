@@ -53,7 +53,7 @@
 
 ## 📌 Seguimiento del Proyecto
 
-[![Project Progress](https://img.shields.io/badge/Progress-45%25-orange?logo=progress&style=for-the-badge)](https://github.com/orgs/Team-Pepe/projects/5/views/1)
+[![Project Progress](https://img.shields.io/badge/Progress-70%25-orange?logo=progress&style=for-the-badge)](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
 [📊 Tablero completo de actividades](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
@@ -64,28 +64,36 @@
 | Frontend | Backend | Base de Datos | Utilidades |
 |----------|---------|---------------|------------|
 | ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react) | ![Node.js](https://img.shields.io/badge/Node.js-22.14.0-339933?logo=node.js) | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.4-4169E1?logo=postgresql) | ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet) |
-| ![Vite](https://img.shields.io/badge/Vite-6.3.2-646CFF?logo=vite) | ![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express) | | ![Recharts](https://img.shields.io/badge/Recharts-2.15.1-FF6384?logo=recharts) |
-| ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4.1.4-38B2AC?logo=tailwind-css) | ![Prisma](https://img.shields.io/badge/Prisma-6.6.0-2D3748?logo=prisma) | | |
-| ![Radix](https://img.shields.io/badge/Radix_UI-varios-161618) | | | |
+| ![Vite](https://img.shields.io/badge/Vite-6.3.2-646CFF?logo=vite) | ![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express) | ![Prisma](https://img.shields.io/badge/Prisma-6.6.0-2D3748?logo=prisma) | ![Recharts](https://img.shields.io/badge/Recharts-2.15.1-FF6384?logo=recharts) |
+| ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4.1.4-38B2AC?logo=tailwind-css) | ![bcrypt](https://img.shields.io/badge/bcrypt-5.1.0-red?logo=npm) | | ![PDFKit](https://img.shields.io/badge/PDFKit-latest-FF4088) |
+| ![Radix UI](https://img.shields.io/badge/Radix_UI-2.1.6-161618?logo=radix-ui) | ![JWT](https://img.shields.io/badge/JWT-9.0.2-000000?logo=json-web-tokens) | | ![Chart.js](https://img.shields.io/badge/Chart.js-latest-FF6384?logo=chart.js) |
+| ![React Router](https://img.shields.io/badge/React_Router-latest-CA4245?logo=react-router) | ![cookie-parser](https://img.shields.io/badge/cookie--parser-1.4.7-green) | | ![date-fns](https://img.shields.io/badge/date--fns-latest-yellow) |
+| ![Axios](https://img.shields.io/badge/Axios-latest-5A29E4?logo=axios) | ![Helmet](https://img.shields.io/badge/Helmet-8.1.0-black) | | ![UUID](https://img.shields.io/badge/UUID-11.1.0-orange) |
 
 ### Extracto de package.json
 ```json
 // Frontend
 {
-  "react": "^18.3.1",
-  "react-dom": "^18.3.1",
-  "vite": "^6.2.0",
-  "tailwindcss": "^3.3.5",
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "vite": "^6.3.2",
+  "tailwindcss": "^4.1.4",
   "@radix-ui/react-dropdown-menu": "^2.1.6",
   "leaflet": "^1.9.4",
-  "recharts": "^2.15.1"
+  "recharts": "^2.15.1",
+  "axios": "latest"
 }
 
 // Backend
 {
   "express": "^4.18.2",
-  "@prisma/client": "^5.10.2",
-  "prisma": "^5.10.2"
+  "@prisma/client": "^6.6.0",
+  "prisma": "^6.6.0",
+  "bcrypt": "^5.1.0",
+  "jsonwebtoken": "^9.0.2",
+  "cookie-parser": "^1.4.7",
+  "helmet": "^8.1.0",
+  "uuid": "^11.1.0"
 }
 ```
 
