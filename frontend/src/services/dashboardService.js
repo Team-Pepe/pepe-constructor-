@@ -298,9 +298,13 @@ export const registerCheckIn = async (data) => {
   try {
     const formData = new FormData();
     formData.append('userId', localStorage.getItem('userId')); // Obtener el userId del localStorage
-    formData.append('lat', data.latitude);
-    formData.append('lng', data.longitude);
+    formData.append('latitude', data.latitude);
+    formData.append('longitude', data.longitude);
     formData.append('zoneId', data.zoneId); // Campo adicional para la zona
+    
+    // Agregar el parámetro de destino para indicar que se guarde en la carpeta "checkin"
+    formData.append('destination', 'checkin');
+    
     if (data.photo) {
       formData.append('photo', data.photo);
     }
