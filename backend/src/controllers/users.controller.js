@@ -195,4 +195,60 @@ exports.getUserTasks = async (req, res) => {
     console.error('Error al obtener tareas del usuario:', error);
     res.status(500).json({ status: 'error', message: 'Error al obtener tareas del usuario' });
   }
-}; 
+};
+
+// Añade esta función al final del archivo
+
+// Eliminar un usuario
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validar que el ID sea un número válido
+    const userId = parseInt(id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'El ID del usuario debe ser un número válido' 
+      });
+    }
+    
+    // Verificar si el usuario existe
+    const user = await prisma.User.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Usuario no encontrado' 
+      });
+    }
+    
+    // Eliminar el usuario
+    await prisma.User.delete({
+      where: { id: userId }
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Usuario eliminado correctamente'
+    });
+    
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    
+    // Manejar errores específicos de Prisma
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No se puede eliminar el usuario porque tiene registros relacionados'
+      });
+    }
+    
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al eliminar el usuario' 
+    });
+  }
+};

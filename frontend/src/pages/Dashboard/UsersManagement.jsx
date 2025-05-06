@@ -50,13 +50,68 @@ function UsersManagement() {
     }
   };
 
+  // Añade esta función para verificar si el usuario existe
+  // Modifica la función checkUserExists para usar la misma ruta que usas para obtener todos los usuarios
+  const checkUserExists = async (id) => {
+    try {
+      // En lugar de intentar obtener un usuario específico por ID,
+      // usaremos la ruta que ya sabemos que funciona y filtraremos por ID
+      const response = await apiClient.get('/api/users', { 
+        headers: getAuthHeaders() 
+      });
+      
+      // Verificar si el usuario existe en la lista
+      if (Array.isArray(response.data)) {
+        return response.data.some(user => user.id === id);
+      }
+      return false;
+    } catch (error) {
+      console.error("Error al verificar usuario:", error);
+      return false;
+    }
+  };
+  
+  // También podemos simplificar la función handleDeleteUser para evitar la verificación
+  // y manejar directamente el error 404 si ocurre
   const handleDeleteUser = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
+    
     try {
-      await apiClient.delete(`/api/users/${id}`, { headers: getAuthHeaders() });
+      console.log("Intentando eliminar usuario con ID:", id);
+      
+      // Verificar si el usuario existe en nuestra lista local
+      const userExists = users.some(user => user.id === id);
+      if (!userExists) {
+        alert("No se puede eliminar: El usuario no existe en la lista actual.");
+        return;
+      }
+      
+      // Intentar eliminar el usuario
+      try {
+        await apiClient.delete(`/api/users/${id}`, { 
+          headers: getAuthHeaders() 
+        });
+        
+        alert("Usuario eliminado con éxito");
+      } catch (error) {
+        // Si el backend no tiene endpoint para eliminar, hacemos una solución alternativa
+        if (error.response && error.response.status === 404) {
+          // Eliminar localmente y mostrar mensaje
+          setUsers(users.filter(user => user.id !== id));
+          alert("El usuario ha sido eliminado de la lista (nota: el endpoint de eliminación no está disponible en el servidor)");
+        } else {
+          throw error; // Re-lanzar para que lo maneje el catch externo
+        }
+      }
+      
+      // Actualizar la lista de usuarios
       fetchUsers();
     } catch (error) {
-      alert("Error al eliminar usuario");
+      console.error('Error al eliminar usuario:', error);
+      alert(`Error al eliminar usuario: ${error.message || 'Error desconocido'}`);
+      
+      // Actualizar la lista de usuarios de todos modos
+      fetchUsers();
     }
   };
 

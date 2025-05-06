@@ -17,4 +17,7 @@ router.put('/:id', userController.updateUser);
 // Obtener todas las tareas de un usuario
 router.get('/:id/tasks', userController.getUserTasks);
 
-module.exports = router; 
+// Añadir esta nueva ruta para eliminar un usuario
+router.delete('/:id', userController.deleteUser);
+
+module.exports = router;
