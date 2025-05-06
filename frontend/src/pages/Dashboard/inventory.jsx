@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getImageUrl } from "@/services/supabaseService";
 import { fetchMaterials, createMaterial, updateMaterial, deleteMaterial } from "@/services/dashboardService";
+import { ZoneMaterialAssignment } from "@/components/ui/ZoneMaterialAssignment";
 
 
 export default function Inventory() {
@@ -199,97 +200,105 @@ export default function Inventory() {
         </Alert>
       )}
 
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800/50 mb-6">
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="low">Stock Bajo</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="bg-slate-800/50 mb-6">
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="low">Stock Bajo</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="all" className="mt-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-          ) : materials.length > 0 ? (
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
-                {filteredMaterials.map(material => (
-                  <div key={material.id} className="relative group">
-                    <InventoryCard {...material} />
-                    
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditDialog(material)}
-                        className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                        className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+            <TabsContent value="all" className="mt-0">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-48">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                </div>
+              ) : materials.length > 0 ? (
+                <ScrollArea className="h-[calc(100vh-220px)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                    {filteredMaterials.map(material => (
+                      <div key={material.id} className="relative group">
+                        <InventoryCard {...material} />
+                        
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openEditDialog(material)}
+                            className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
+                          >
+                            <Edit size={16} />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteMaterial(material.id)}
+                            className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          ) : (
-            <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
-              <p className="text-slate-300 mb-4">No hay materiales en el inventario</p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                Agregar el Primer Material
-              </Button>
-            </div>
-          )}
-        </TabsContent>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                  <p className="text-slate-300 mb-4">No hay materiales en el inventario</p>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    Agregar el Primer Material
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
 
-        <TabsContent value="low" className="mt-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-          ) : filteredMaterials.length > 0 ? (
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
-                {filteredMaterials.map(material => (
-                  <div key={material.id} className="relative group">
-                    <InventoryCard {...material} />
-                    
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditDialog(material)}
-                        className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                        className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+            <TabsContent value="low" className="mt-0">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-48">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                </div>
+              ) : filteredMaterials.length > 0 ? (
+                <ScrollArea className="h-[calc(100vh-220px)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                    {filteredMaterials.map(material => (
+                      <div key={material.id} className="relative group">
+                        <InventoryCard {...material} />
+                        
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openEditDialog(material)}
+                            className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
+                          >
+                            <Edit size={16} />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteMaterial(material.id)}
+                            className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          ) : (
-            <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
-              <p className="text-slate-300 mb-4">No hay materiales con stock bajo</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                  <p className="text-slate-300 mb-4">No hay materiales con stock bajo</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div className="lg:col-span-1">
+          <ZoneMaterialAssignment />
+        </div>
+      </div>
     </div>
   );
 } 

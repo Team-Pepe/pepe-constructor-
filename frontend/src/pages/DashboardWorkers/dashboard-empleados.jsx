@@ -9,10 +9,10 @@ import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehous
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation, registerCheckIn, fetchRecentCheckIns } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 
-function DashboardEmpleados() {
+export function DashboardEmpleados() {
   const { user, roleId, logout } = useAuth();
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
@@ -24,8 +24,6 @@ function DashboardEmpleados() {
   const [selectedCheckInZone, setSelectedCheckInZone] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [recentCheckIns, setRecentCheckIns] = useState([]);
-  const [loadingCheckIns, setLoadingCheckIns] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
@@ -212,23 +210,6 @@ function DashboardEmpleados() {
     return () => clearInterval(interval);
   }, [apiEndpoint]);
 
-  const loadRecentCheckIns = async () => {
-    try {
-      setLoadingCheckIns(true);
-      const response = await fetchRecentCheckIns();
-      setRecentCheckIns(response.checkIns);
-    } catch (error) {
-      console.error('Error al cargar check-ins recientes:', error);
-    } finally {
-      setLoadingCheckIns(false);
-    }
-  };
-
-  // Cargar check-ins recientes al montar el componente y después de un check-in exitoso
-  useEffect(() => {
-    loadRecentCheckIns();
-  }, []);
-
   const currentWorker = workerLocation
     ? [
         {
@@ -343,60 +324,57 @@ function DashboardEmpleados() {
 
     setLocationLoading(true);
     setLocationStatus('Verificando ubicación...');
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          // Verificar si está dentro de la zona seleccionada
-          const selectedZone = savedZones.find(zone => zone.name === selectedCheckInZone);
-          if (!selectedZone) {
-            setCheckInStatus('Error: Zona no encontrada');
-            return;
-          }
-
-          // Calcular distancia entre el trabajador y el centro de la zona
-          const distance = calculateDistance(
-            latitude, 
-            longitude, 
-            selectedZone.lat, 
-            selectedZone.lng
-          );
-
-          if (distance > (selectedZone.radius || 500)) {
-            setCheckInStatus('No estás dentro de la zona seleccionada');
-            return;
-          }
-
-          // Activar la cámara para tomar la foto
-          setShowCamera(true);
+      // Continuar con el proceso de check-in si no ha registrado hoy
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
           try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            setCameraStream(stream);
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
-          } catch (error) {
-            console.error('Error al acceder a la cámara:', error);
-            setCheckInStatus('Error al acceder a la cámara. Verifica los permisos.');
-            setShowCamera(false);
-          }
+            const { latitude, longitude } = position.coords;
+            
+            // selectedCheckInZone ya es el objeto zona completo, no necesitamos buscarlo
+            const selectedZone = selectedCheckInZone;
+            console.log("Zona seleccionada:", selectedZone);
 
-        } catch (error) {
-          console.error('Error al registrar check-in:', error);
-          setCheckInStatus('Error al registrar check-in. Inténtalo de nuevo.');
-        } finally {
+            // Calcular distancia entre el trabajador y el centro de la zona
+            const distance = calculateDistance(
+              latitude, 
+              longitude, 
+              selectedZone.lat, 
+              selectedZone.lng
+            );
+
+            if (distance > (selectedZone.radius || 500)) {
+              setCheckInStatus('No estás dentro de la zona seleccionada');
+              return;
+            }
+
+            // Activar la cámara para tomar la foto
+            setShowCamera(true);
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+              setCameraStream(stream);
+              if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+              }
+            } catch (error) {
+              console.error('Error al acceder a la cámara:', error);
+              setCheckInStatus('Error al acceder a la cámara. Verifica los permisos.');
+              setShowCamera(false);
+            }
+
+          } catch (error) {
+            console.error('Error al registrar check-in:', error);
+            setCheckInStatus('Error al registrar check-in. Inténtalo de nuevo.');
+          } finally {
+            setLocationLoading(false);
+            setLocationStatus(null);
+          }
+        },
+        (error) => {
+          console.error('Error al obtener ubicación:', error);
           setLocationLoading(false);
-          setLocationStatus(null);
+          setLocationStatus('Error al obtener ubicación. Verifica los permisos.');
         }
-      },
-      (error) => {
-        console.error('Error al obtener ubicación:', error);
-        setLocationLoading(false);
-        setLocationStatus('Error al obtener ubicación. Verifica los permisos.');
-      }
-    );
+      );
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -413,7 +391,7 @@ function DashboardEmpleados() {
   };
 
   const takePicture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !selectedCheckInZone) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -428,13 +406,24 @@ function DashboardEmpleados() {
 
     try {
       // Convertir el canvas a blob
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
       
-      // Crear un objeto con los datos del check-in
+      // Asegurarnos de tener el ID numérico de la zona
+      if (!selectedCheckInZone.id || isNaN(parseInt(selectedCheckInZone.id))) {
+        throw new Error('ID de zona inválido');
+      }
+
+      // Asegurarnos de tener coordenadas válidas
+      if (!workerLocation || !workerLocation.lat || !workerLocation.lng || 
+          isNaN(parseFloat(workerLocation.lat)) || isNaN(parseFloat(workerLocation.lng))) {
+        throw new Error('Coordenadas inválidas');
+      }
+      
+      // Crear un objeto con los datos del check-in en el formato exacto requerido
       const checkInData = {
-        zoneId: selectedCheckInZone,
-        latitude: workerLocation.lat,
-        longitude: workerLocation.lng,
+        zoneId: selectedCheckInZone.id,
+        latitude: workerLocation.lat.toString(),
+        longitude: workerLocation.lng.toString(),
         photo: blob
       };
 
@@ -449,11 +438,16 @@ function DashboardEmpleados() {
       setCameraStream(null);
       setShowCamera(false);
       setSelectedCheckInZone(null);
-      await loadRecentCheckIns(); // Recargar check-ins recientes
 
     } catch (error) {
       console.error('Error al procesar el check-in:', error);
-      setCheckInStatus('Error al procesar el check-in. Inténtalo de nuevo.');
+      if (error.message === 'ID de zona inválido') {
+        setCheckInStatus('Error: La zona seleccionada no es válida');
+      } else if (error.message === 'Coordenadas inválidas') {
+        setCheckInStatus('Error: No se pueden obtener las coordenadas actuales');
+      } else {
+        setCheckInStatus('Error al procesar el check-in. Inténtalo de nuevo.');
+      }
     }
   };
 
@@ -750,8 +744,19 @@ function DashboardEmpleados() {
                         </label>
                         <div className="relative">
                           <select
-                            value={selectedCheckInZone || ''}
-                            onChange={(e) => setSelectedCheckInZone(e.target.value)}
+                            value={selectedCheckInZone?.name || selectedCheckInZone || ''}
+                            onChange={(e) => {
+                              const zoneName = e.target.value;
+                              if (!zoneName) {
+                                setSelectedCheckInZone(null);
+                              } else {
+                                // Buscar el objeto zona completo
+                                const zoneObj = savedZones.find(zone => zone.name === zoneName);
+                                if (zoneObj) {
+                                  setSelectedCheckInZone(zoneObj);
+                                }
+                              }
+                            }}
                             className="w-full p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
                           >
                             <option value="">Selecciona una zona</option>
@@ -883,45 +888,11 @@ function DashboardEmpleados() {
                     </div>
 
                     <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
-                      <h4 className="text-orange-400 font-medium mb-2">Últimos Check-ins</h4>
-                      <div className="space-y-3">
-                        {loadingCheckIns ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-                          </div>
-                        ) : recentCheckIns.length > 0 ? (
-                          recentCheckIns.map((checkIn) => (
-                            <div key={checkIn.id} className="flex items-center justify-between text-sm">
-                              <span className="text-slate-400">
-                                {new Date(checkIn.checkInTime).toLocaleDateString()}
-                              </span>
-                              <span className="text-slate-300">
-                                {new Date(checkIn.checkInTime).toLocaleTimeString([], { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4">
-                            <p className="text-slate-400">No hay registros de check-in</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <div className="text-sm text-slate-400">
-                        <div className="flex items-start space-x-2 mb-2">
-                          <AlertCircle className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
-                          <p>Recuerda que debes estar físicamente dentro de la zona de trabajo seleccionada para poder realizar el check-in.</p>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <Camera className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
-                          <p>La foto de check-in ayuda a verificar tu presencia en el lugar de trabajo.</p>
-                        </div>
-                      </div>
+                      <h4 className="text-orange-400 font-medium mb-2">Información</h4>
+                      <p className="text-slate-300 text-sm">
+                        Realiza tu check-in al llegar a tu zona de trabajo asignada.
+                        Asegúrate de estar físicamente dentro del área designada.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -973,4 +944,5 @@ function DashboardEmpleados() {
   );
 }
 
+// También exportamos por defecto para mantener compatibilidad
 export default DashboardEmpleados;
