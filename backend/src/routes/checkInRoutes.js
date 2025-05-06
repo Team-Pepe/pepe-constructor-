@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const multer = require('multer');
 const { upload } = require('../utils/fileUtils');
 const { registerCheckIn, getRecentCheckIns } = require('../controllers/checkInController');

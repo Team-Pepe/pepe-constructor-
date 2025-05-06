@@ -14,7 +14,7 @@ const apiRoutes = require('./routes/api');
 const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
 const materialAssignmentsRoutes = require('./routes/materialAssignments');
 const checkInRoutes = require('./routes/checkInRoutes');
-const { authenticateToken, verifyCSRF } = require('./middleware/authMiddleware');
+const { authenticateToken, verifyCSRF } = require('./middlewares/authMiddleware');
 
 // Requerir las utilidades de archivos para crear los directorios necesarios al inicio
 require('./utils/fileUtils');
@@ -63,9 +63,21 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF
+const allowedOrigins = [
+  'http://localhost:5173',
+  frontendUrl
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -73,9 +85,10 @@ app.use(cors({
     'Authorization', 
     'X-CSRF-Token', 
     'Cookie',
-    'X-Requested-With' // Añadir este header requerido
+    'X-Requested-With'
   ]
 }));
+
 
 // Añadir middleware CSRF antes de las rutas protegidas
 app.use((req, res, next) => {
