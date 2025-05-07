@@ -144,6 +144,8 @@ model CheckIn {
   user_id            Int      @map("user_id")
   zone_id            Int      @map("zone_id")
   checkInTime        DateTime @default(now()) @map("check_in_time")
+  checkOutTime       DateTime? @map("check_out_time")
+  workDate           DateTime @map("work_date")
   latitude           Float
   longitude          Float
   photo_url          String?  @map("photo_url")
