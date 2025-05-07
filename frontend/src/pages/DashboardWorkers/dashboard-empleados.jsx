@@ -5,11 +5,11 @@ import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
-import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock, AlertCircle } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation, registerCheckIn } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 
 export function DashboardEmpleados() {
@@ -27,6 +27,8 @@ export function DashboardEmpleados() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+  const [checkins, setCheckins] = useState([]);
+  const [loadingCheckins, setLoadingCheckins] = useState(false);
 
   // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
   const userRoleId = Number(roleId);
@@ -459,6 +461,112 @@ export function DashboardEmpleados() {
       }
     };
   }, [cameraStream]);
+
+  // Función para cargar los checkins del día (solo para jefes de obra)
+  const loadCheckins = async () => {
+    if (userRoleId !== 3) return;
+    
+    try {
+      setLoadingCheckins(true);
+      const data = await fetchTodaysCheckins();
+      setCheckins(data);
+    } catch (error) {
+      console.error('Error al cargar los check-ins del día:', error);
+    } finally {
+      setLoadingCheckins(false);
+    }
+  };
+
+  // Cargar checkins cuando se monta el componente si es jefe de obra
+  useEffect(() => {
+    if (userRoleId === 3) {
+      loadCheckins();
+    }
+  }, [userRoleId]);
+
+  // Función para hacer checkout a un trabajador
+  const handleCheckout = async (checkInId) => {
+    try {
+      await registerCheckOut(checkInId);
+      // Recargar la lista después del checkout
+      loadCheckins();
+    } catch (error) {
+      console.error('Error al registrar check-out:', error);
+    }
+  };
+
+  // Renderizar la sección de checkouts para jefes de obra
+  const renderCheckouts = () => {
+    if (userRoleId !== 3) return null;
+
+    return (
+      <Card className="col-span-3">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Gestión de Check-outs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left p-2">Empleado</th>
+                  <th className="text-left p-2">Zona</th>
+                  <th className="text-left p-2">Hora de Check-in</th>
+                  <th className="text-left p-2">Estado</th>
+                  <th className="text-left p-2">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingCheckins ? (
+                  <tr>
+                    <td colSpan="5" className="text-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                ) : checkins.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center p-4 text-slate-400">
+                      No hay check-ins activos para el día de hoy
+                    </td>
+                  </tr>
+                ) : (
+                  checkins.map((checkin) => (
+                    <tr key={checkin.id} className="border-b border-slate-800">
+                      <td className="p-2">{checkin.employee_name}</td>
+                      <td className="p-2">{checkin.zone_name}</td>
+                      <td className="p-2">{new Date(checkin.check_in_time).toLocaleTimeString()}</td>
+                      <td className="p-2">
+                        <span className={`px-2 py-1 rounded text-sm ${
+                          !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                        }`}>
+                          {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {!checkin.check_out_time && (
+                          <Button
+                            onClick={() => handleCheckout(checkin.id)}
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Check-out
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div
@@ -902,42 +1010,51 @@ export function DashboardEmpleados() {
         )}
 
         {!activeSection && !selectedZone && (
-          <div className="text-center mt-40">
-            <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Bienvenido al Panel de Empleados</h3>
-              <div className="text-gray-600 mb-6">
-                <p>Selecciona una opción del menú para empezar:</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  onClick={() => setActiveSection("mapa")}
-                  className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
-                >
-                  <h4 className="font-medium text-black-700">Mi Ubicación</h4>
-                  <p className="text-sm text-gray-500">Ver tu ubicación actual en el mapa y zonas cercanas</p>
+          <>
+            <div className="text-center mt-40">
+              <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Bienvenido al Panel de Empleados</h3>
+                <div className="text-gray-600 mb-6">
+                  <p>Selecciona una opción del menú para empezar:</p>
                 </div>
 
-                <div
-                  onClick={() => setActiveSection("zonas-guardadas")}
-                  className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
-                >
-                  <h4 className="font-medium text-black-700">Zonas Guardadas</h4>
-                  <p className="text-sm text-gray-500">Ver todas las zonas de trabajo asignadas</p>
-                </div>
-
-                {canRequestMaterials && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
-                    onClick={() => navigate("/solicitar-materiales")}
-                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50 mt-4 bg-blue-100 border-blue-300 col-span-2"
+                    onClick={() => setActiveSection("mapa")}
+                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
                   >
-                    <h4 className="font-medium text-black-700">Solicitar Materiales</h4>
-                    <p className="text-sm text-gray-500">Realiza solicitudes de materiales para tu zona de trabajo</p>
+                    <h4 className="font-medium text-black-700">Mi Ubicación</h4>
+                    <p className="text-sm text-gray-500">Ver tu ubicación actual en el mapa y zonas cercanas</p>
                   </div>
-                )}
+
+                  <div
+                    onClick={() => setActiveSection("zonas-guardadas")}
+                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
+                  >
+                    <h4 className="font-medium text-black-700">Zonas Guardadas</h4>
+                    <p className="text-sm text-gray-500">Ver todas las zonas de trabajo asignadas</p>
+                  </div>
+
+                  {canRequestMaterials && (
+                    <div
+                      onClick={() => navigate("/solicitar-materiales")}
+                      className="p-4 border rounded-md cursor-pointer hover:bg-blue-50 mt-4 bg-blue-100 border-blue-300 col-span-2"
+                    >
+                      <h4 className="font-medium text-black-700">Solicitar Materiales</h4>
+                      <p className="text-sm text-gray-500">Realiza solicitudes de materiales para tu zona de trabajo</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Sección de checkouts para jefes de obra */}
+            {userRoleId === 3 && (
+              <div className="mt-8">
+                {renderCheckouts()}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

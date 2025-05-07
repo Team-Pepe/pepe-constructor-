@@ -9,6 +9,8 @@ const API_ENDPOINTS = {
   PROJECTS_PROGRESS: '/api/dashboard/projects-progress',
   ATTENDANCE: '/api/dashboard/attendance',
   CHECK_IN: '/api/check-in',
+  CHECK_OUT: '/api/check-out',
+  TODAYS_CHECKINS: '/api/getTodayCheckIn',
   MATERIALS: '/api/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
@@ -563,6 +565,32 @@ export const assignMaterialToZone = async (data) => {
     return response.data;
   } catch (error) {
     console.error('Error al asignar material a zona:', error);
+    throw error;
+  }
+};
+
+export const fetchTodaysCheckins = async () => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.TODAYS_CHECKINS, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener checkins del día:', error);
+    throw error;
+  }
+};
+
+export const registerCheckOut = async (checkInId) => {
+  try {
+    const response = await apiClient.post(API_ENDPOINTS.CHECK_OUT, {
+      checkInId: checkInId
+    }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar check-out:', error);
     throw error;
   }
 };
