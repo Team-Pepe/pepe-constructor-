@@ -9,7 +9,8 @@ const API_ENDPOINTS = {
   PROJECTS_PROGRESS: '/api/dashboard/projects-progress',
   ATTENDANCE: '/api/dashboard/attendance',
   CHECK_IN: '/api/check-in',
-  CHECK_INS_RECENT: '/api/check-ins/recent',
+  CHECK_OUT: '/api/check-out',
+  TODAYS_CHECKINS: '/api/getTodayCheckIn',
   MATERIALS: '/api/materials',
   RECENT_ACTIVITIES: '/api/dashboard/recent-activities',
   USERS: '/api/users',
@@ -58,8 +59,41 @@ export const fetchAttendance = () =>
 export const fetchRecentActivities = () => 
   apiClient.get(API_ENDPOINTS.RECENT_ACTIVITIES, { headers: getAuthHeaders() });
 
-export const fetchWorkers = () => 
-  apiClient.get(`${API_ENDPOINTS.USERS}?roleId=2`, { headers: getAuthHeaders() });
+export const fetchWorkers = async () => {
+  try {
+    console.log("Solicitando lista de trabajadores...");
+    const response = await apiClient.get(`${API_ENDPOINTS.USERS}?roleId=2`, { 
+      headers: getAuthHeaders() 
+    });
+    
+    console.log("Respuesta de API de trabajadores:", response);
+    
+    // Comprobar estructura de datos para depuración
+    if (response.data) {
+      console.log("Estructura de datos de trabajadores:", {
+        tipo: typeof response.data,
+        esArray: Array.isArray(response.data),
+        longitud: Array.isArray(response.data) ? response.data.length : null
+      });
+      
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        console.log("Ejemplo de un trabajador:", response.data[0]);
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    console.error("Error al recuperar trabajadores:", error);
+    if (error.response) {
+      console.error("Respuesta de error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    // Devolver un objeto de respuesta vacío pero válido
+    return { data: [] };
+  }
+};
 
 export const fetchWorkZones = () =>
   apiClient.get(API_ENDPOINTS.WORK_ZONES, { headers: getAuthHeaders() });
@@ -232,56 +266,143 @@ export const updateUserLocation = async ({ latitude, longitude }) => {
 
 // Function to fetch all dashboard data at once
 export const fetchAllDashboardData = async () => {
-  try {
-    const [
-      metricsResponse,
-      projectsResponse,
-      attendanceResponse,
-      materialsResponse,
-      activitiesResponse,
-      workersResponse,
-      materialRequestsResponse
-    ] = await Promise.all([
-      fetchDashboardMetrics(),
-      fetchProjectsProgress(),
-      fetchAttendance(),
-      fetchMaterials(),
-      fetchRecentActivities(),
-      fetchWorkers(),
-      fetchMaterialRequests("pending") // Obtener solicitudes pendientes
-    ]);
+  // Objeto para almacenar las respuestas
+  const responses = {
+    metrics: null,
+    projects: [],
+    attendance: [],
+    materials: [],
+    activities: [],
+    workers: [],
+    materialRequests: []
+  };
 
-    return {
-      metrics: metricsResponse.data,
-      projects: projectsResponse.data,
-      attendance: attendanceResponse.data,
-      materials: materialsResponse.data,
-      activities: activitiesResponse.data,
-      workers: addLocationToWorkers(workersResponse.data),
-      materialRequests: materialRequestsResponse.data // Agregar solicitudes de materiales
+  try {
+    console.log("Iniciando carga de datos del dashboard...");
+    
+    // Funciones para manejar cada API con gestión de errores independiente
+    const fetchSafely = async (apiCall, dataKey) => {
+      try {
+        const response = await apiCall();
+        console.log(`API ${dataKey} completada correctamente:`, response.status);
+        return response.data;
+      } catch (error) {
+        console.error(`Error en API ${dataKey}:`, error);
+        return null;
+      }
     };
+
+    // Realizar todas las llamadas en paralelo
+    const results = await Promise.all([
+      fetchSafely(fetchDashboardMetrics, 'metrics'),
+      fetchSafely(fetchProjectsProgress, 'projects'),
+      fetchSafely(fetchAttendance, 'attendance'),
+      fetchSafely(fetchMaterials, 'materials'),
+      fetchSafely(fetchRecentActivities, 'activities'),
+      fetchSafely(fetchWorkers, 'workers'),
+      fetchSafely(() => fetchMaterialRequests("pending"), 'materialRequests')
+    ]);
+    
+    // Asignar resultados al objeto de respuestas
+    [
+      responses.metrics,
+      responses.projects,
+      responses.attendance,
+      responses.materials,
+      responses.activities,
+      responses.workersRaw,
+      responses.materialRequests
+    ] = results;
+    
+    // Procesar específicamente los trabajadores con manejo adicional
+    responses.workers = addLocationToWorkers(responses.workersRaw || []);
+    
+    console.log("Datos del dashboard cargados:", {
+      metrics: responses.metrics ? "OK" : "Error",
+      projects: Array.isArray(responses.projects) ? responses.projects.length : "Error",
+      workers: Array.isArray(responses.workers) ? responses.workers.length : "Error",
+      attendance: Array.isArray(responses.attendance) ? responses.attendance.length : "Error"
+    });
+
+    return responses;
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    throw error;
+    console.error('Error general en fetchAllDashboardData:', error);
+    // Devolver el objeto con los datos que hayamos podido obtener
+    return responses;
   }
 };
 
 // Helper function to add location to workers
 const addLocationToWorkers = (workers) => {
-  if (!workers) return [];
+  // Verificar si workers es undefined, null, o no es un array
+  if (!workers) {
+    console.log("¡Advertencia! workers es undefined o null");
+    return [];
+  }
   
-  // Crear una copia segura de la lista de trabajadores y filtrar solo los que tienen ubicación real
+  if (!Array.isArray(workers)) {
+    console.log("¡Advertencia! workers no es un array:", typeof workers);
+    // Intentar convertir a array si es un objeto
+    if (typeof workers === 'object') {
+      // Verificar si hay una propiedad que contenga el array
+      for (const key in workers) {
+        if (Array.isArray(workers[key])) {
+          console.log(`Encontrado array en la propiedad '${key}'`);
+          workers = workers[key];
+          break;
+        }
+      }
+      
+      // Si aún no es un array, intentar convertirlo
+      if (!Array.isArray(workers)) {
+        console.log("Intentando convertir objeto a array");
+        try {
+          workers = [workers];
+        } catch (error) {
+          console.error("Error al convertir a array:", error);
+          return [];
+        }
+      }
+    } else {
+      console.error("No se puede procesar workers, tipo incompatible:", typeof workers);
+      return [];
+    }
+  }
+  
+  console.log(`Procesando ${workers.length} trabajadores`);
+  
+  // Crear una copia segura de la lista de trabajadores
   return workers.map((worker, index) => {
-    // Si el trabajador ya tiene una ubicación real (latitud y longitud), usarla
-    if (worker.latitud && worker.longitud) {
+    if (!worker) {
+      console.log(`¡Advertencia! Trabajador en índice ${index} es null o undefined`);
+      return { name: `Trabajador Desconocido ${index + 1}` };
+    }
+    
+    // Mostrar trabajador para depuración
+    console.log(`Trabajador ${index}:`, worker);
+    
+    // Buscar coordenadas en diferentes propiedades posibles
+    const lat = parseFloat(
+      worker.latitud || worker.latitude || worker.lat || 
+      (worker.location ? worker.location.lat : null)
+    );
+    
+    const lng = parseFloat(
+      worker.longitud || worker.longitude || worker.lng || 
+      (worker.location ? worker.location.lng : null)
+    );
+    
+    // Verificar si encontramos coordenadas válidas
+    const hasValidCoordinates = !isNaN(lat) && !isNaN(lng);
+    console.log(`Trabajador ${worker.id || index}: coordenadas válidas: ${hasValidCoordinates}`, hasValidCoordinates ? {lat, lng} : "No tiene");
+    
+    // Si el trabajador tiene coordenadas válidas
+    if (hasValidCoordinates) {
       return {
         ...worker,
-        name: worker.username || worker.name || `Trabajador ${index + 1}`,
-        location: {
-          lat: parseFloat(worker.latitud),
-          lng: parseFloat(worker.longitud)
-        },
-        // Marcar explícitamente que es una ubicación real
+        id: worker.id || `temp-${index}`,
+        name: worker.username || worker.name || worker.nombre || `Trabajador ${index + 1}`,
+        location: { lat, lng },
         locationIsSimulated: false
       };
     }
@@ -289,24 +410,43 @@ const addLocationToWorkers = (workers) => {
     // Si no hay ubicación real, devolver el trabajador sin el campo location
     return {
       ...worker,
-      name: worker.username || worker.name || `Trabajador ${index + 1}`
+      id: worker.id || `temp-${index}`,
+      name: worker.username || worker.name || worker.nombre || `Trabajador ${index + 1}`
     };
   });
 };
 
 export const registerCheckIn = async (data) => {
   try {
+    console.log('Datos de check-in recibidos:', data);
     const formData = new FormData();
-    formData.append('userId', localStorage.getItem('userId')); // Obtener el userId del localStorage
-    formData.append('latitude', data.latitude);
-    formData.append('longitude', data.longitude);
-    formData.append('zoneId', data.zoneId); // Campo adicional para la zona
     
-    // Agregar el parámetro de destino para indicar que se guarde en la carpeta "checkin"
-    formData.append('destination', 'checkin');
+    // Asegurarnos de que zoneId sea un número
+    let zoneId = data.zoneId;
+    if (typeof zoneId === 'object' && zoneId !== null) {
+      zoneId = zoneId.id;
+    }
+    // Convertir a string después de asegurarnos que es un número
+    formData.append('zoneId', String(parseInt(zoneId)));
     
-    if (data.photo) {
-      formData.append('photo', data.photo);
+    // Convertir coordenadas a strings después de asegurarnos que son números
+    formData.append('latitude', String(parseFloat(data.latitude)));
+    formData.append('longitude', String(parseFloat(data.longitude)));
+    
+    // Agregar el archivo de foto
+    if (data.photo instanceof Blob) {
+      formData.append('photo', data.photo, 'check-in-photo.jpg');
+    } else {
+      throw new Error('La foto es requerida y debe ser un archivo válido');
+    }
+
+    console.log('Enviando check-in al servidor con los siguientes datos:');
+    for (let [key, value] of formData.entries()) {
+      if (key !== 'photo') {
+        console.log(`${key}: ${value} (${typeof value})`);
+      } else {
+        console.log('photo: [Archivo adjunto]');
+      }
     }
 
     const response = await apiClient.post(API_ENDPOINTS.CHECK_IN, formData, {
@@ -319,18 +459,6 @@ export const registerCheckIn = async (data) => {
     return response.data;
   } catch (error) {
     console.error('Error al registrar check-in:', error);
-    throw error;
-  }
-};
-
-export const fetchRecentCheckIns = async (limit = 5) => {
-  try {
-    const response = await apiClient.get(`${API_ENDPOINTS.CHECK_INS_RECENT}?limit=${limit}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener check-ins recientes:', error);
     throw error;
   }
 };
@@ -424,6 +552,45 @@ export const updateMaterialRequestStatus = async (requestId, status, adminCommen
       console.error("Respuesta del servidor:", error.response.data);
       console.error("Estado HTTP:", error.response.status);
     }
+    throw error;
+  }
+};
+
+// Assign material to zone
+export const assignMaterialToZone = async (data) => {
+  try {
+    const response = await apiClient.post(`${API_ENDPOINTS.MATERIAL_ZONE}/assign`, data, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al asignar material a zona:', error);
+    throw error;
+  }
+};
+
+export const fetchTodaysCheckins = async () => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.TODAYS_CHECKINS, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener checkins del día:', error);
+    throw error;
+  }
+};
+
+export const registerCheckOut = async (checkInId) => {
+  try {
+    const response = await apiClient.post(API_ENDPOINTS.CHECK_OUT, {
+      checkInId: checkInId
+    }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar check-out:', error);
     throw error;
   }
 };
