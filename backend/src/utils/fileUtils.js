@@ -28,7 +28,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !SUPABASE_PROJECT_ID) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Nombre del bucket en Supabase Storage
-const BUCKET_NAME = 'materials'; // Cambiado a 'materials' para mantener consistencia
+const BUCKET_NAME = 'images'; // Cambiado de 'materials' a 'images'
 
 // Endpoint para cargas resumibles
 const RESUMABLE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/upload/resumable`;
