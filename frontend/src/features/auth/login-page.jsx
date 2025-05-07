@@ -53,7 +53,7 @@ export default function LoginPage() {
 
         // Guardar el token de autenticación
         if (response.data.token) {
-          document.cookie = `token=${response.data.token}; path=/`;
+          document.cookie = `token=${response.data.token}; path=/; max-age=3600; SameSite=Lax`;
           localStorage.setItem("authToken", response.data.token); // <-- Agrega esta línea
         }
 
