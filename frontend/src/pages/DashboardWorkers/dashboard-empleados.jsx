@@ -5,14 +5,14 @@ import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmployeeCard } from "../Dashboard/components";
-import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock, AlertCircle } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation, registerCheckIn, fetchRecentCheckIns } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 
-function DashboardEmpleados() {
+export function DashboardEmpleados() {
   const { user, roleId, logout } = useAuth();
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
@@ -24,11 +24,11 @@ function DashboardEmpleados() {
   const [selectedCheckInZone, setSelectedCheckInZone] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [recentCheckIns, setRecentCheckIns] = useState([]);
-  const [loadingCheckIns, setLoadingCheckIns] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+  const [checkins, setCheckins] = useState([]);
+  const [loadingCheckins, setLoadingCheckins] = useState(false);
 
   // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
   const userRoleId = Number(roleId);
@@ -212,23 +212,6 @@ function DashboardEmpleados() {
     return () => clearInterval(interval);
   }, [apiEndpoint]);
 
-  const loadRecentCheckIns = async () => {
-    try {
-      setLoadingCheckIns(true);
-      const response = await fetchRecentCheckIns();
-      setRecentCheckIns(response.checkIns);
-    } catch (error) {
-      console.error('Error al cargar check-ins recientes:', error);
-    } finally {
-      setLoadingCheckIns(false);
-    }
-  };
-
-  // Cargar check-ins recientes al montar el componente y después de un check-in exitoso
-  useEffect(() => {
-    loadRecentCheckIns();
-  }, []);
-
   const currentWorker = workerLocation
     ? [
         {
@@ -343,60 +326,57 @@ function DashboardEmpleados() {
 
     setLocationLoading(true);
     setLocationStatus('Verificando ubicación...');
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          // Verificar si está dentro de la zona seleccionada
-          const selectedZone = savedZones.find(zone => zone.name === selectedCheckInZone);
-          if (!selectedZone) {
-            setCheckInStatus('Error: Zona no encontrada');
-            return;
-          }
-
-          // Calcular distancia entre el trabajador y el centro de la zona
-          const distance = calculateDistance(
-            latitude, 
-            longitude, 
-            selectedZone.lat, 
-            selectedZone.lng
-          );
-
-          if (distance > (selectedZone.radius || 500)) {
-            setCheckInStatus('No estás dentro de la zona seleccionada');
-            return;
-          }
-
-          // Activar la cámara para tomar la foto
-          setShowCamera(true);
+      // Continuar con el proceso de check-in si no ha registrado hoy
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
           try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            setCameraStream(stream);
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
-          } catch (error) {
-            console.error('Error al acceder a la cámara:', error);
-            setCheckInStatus('Error al acceder a la cámara. Verifica los permisos.');
-            setShowCamera(false);
-          }
+            const { latitude, longitude } = position.coords;
+            
+            // selectedCheckInZone ya es el objeto zona completo, no necesitamos buscarlo
+            const selectedZone = selectedCheckInZone;
+            console.log("Zona seleccionada:", selectedZone);
 
-        } catch (error) {
-          console.error('Error al registrar check-in:', error);
-          setCheckInStatus('Error al registrar check-in. Inténtalo de nuevo.');
-        } finally {
+            // Calcular distancia entre el trabajador y el centro de la zona
+            const distance = calculateDistance(
+              latitude, 
+              longitude, 
+              selectedZone.lat, 
+              selectedZone.lng
+            );
+
+            if (distance > (selectedZone.radius || 500)) {
+              setCheckInStatus('No estás dentro de la zona seleccionada');
+              return;
+            }
+
+            // Activar la cámara para tomar la foto
+            setShowCamera(true);
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+              setCameraStream(stream);
+              if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+              }
+            } catch (error) {
+              console.error('Error al acceder a la cámara:', error);
+              setCheckInStatus('Error al acceder a la cámara. Verifica los permisos.');
+              setShowCamera(false);
+            }
+
+          } catch (error) {
+            console.error('Error al registrar check-in:', error);
+            setCheckInStatus('Error al registrar check-in. Inténtalo de nuevo.');
+          } finally {
+            setLocationLoading(false);
+            setLocationStatus(null);
+          }
+        },
+        (error) => {
+          console.error('Error al obtener ubicación:', error);
           setLocationLoading(false);
-          setLocationStatus(null);
+          setLocationStatus('Error al obtener ubicación. Verifica los permisos.');
         }
-      },
-      (error) => {
-        console.error('Error al obtener ubicación:', error);
-        setLocationLoading(false);
-        setLocationStatus('Error al obtener ubicación. Verifica los permisos.');
-      }
-    );
+      );
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -413,7 +393,7 @@ function DashboardEmpleados() {
   };
 
   const takePicture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !selectedCheckInZone) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -428,13 +408,24 @@ function DashboardEmpleados() {
 
     try {
       // Convertir el canvas a blob
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
       
-      // Crear un objeto con los datos del check-in
+      // Asegurarnos de tener el ID numérico de la zona
+      if (!selectedCheckInZone.id || isNaN(parseInt(selectedCheckInZone.id))) {
+        throw new Error('ID de zona inválido');
+      }
+
+      // Asegurarnos de tener coordenadas válidas
+      if (!workerLocation || !workerLocation.lat || !workerLocation.lng || 
+          isNaN(parseFloat(workerLocation.lat)) || isNaN(parseFloat(workerLocation.lng))) {
+        throw new Error('Coordenadas inválidas');
+      }
+      
+      // Crear un objeto con los datos del check-in en el formato exacto requerido
       const checkInData = {
-        zoneId: selectedCheckInZone,
-        latitude: workerLocation.lat,
-        longitude: workerLocation.lng,
+        zoneId: selectedCheckInZone.id,
+        latitude: workerLocation.lat.toString(),
+        longitude: workerLocation.lng.toString(),
         photo: blob
       };
 
@@ -449,11 +440,16 @@ function DashboardEmpleados() {
       setCameraStream(null);
       setShowCamera(false);
       setSelectedCheckInZone(null);
-      await loadRecentCheckIns(); // Recargar check-ins recientes
 
     } catch (error) {
       console.error('Error al procesar el check-in:', error);
-      setCheckInStatus('Error al procesar el check-in. Inténtalo de nuevo.');
+      if (error.message === 'ID de zona inválido') {
+        setCheckInStatus('Error: La zona seleccionada no es válida');
+      } else if (error.message === 'Coordenadas inválidas') {
+        setCheckInStatus('Error: No se pueden obtener las coordenadas actuales');
+      } else {
+        setCheckInStatus('Error al procesar el check-in. Inténtalo de nuevo.');
+      }
     }
   };
 
@@ -465,6 +461,112 @@ function DashboardEmpleados() {
       }
     };
   }, [cameraStream]);
+
+  // Función para cargar los checkins del día (solo para jefes de obra)
+  const loadCheckins = async () => {
+    if (userRoleId !== 3) return;
+    
+    try {
+      setLoadingCheckins(true);
+      const data = await fetchTodaysCheckins();
+      setCheckins(data);
+    } catch (error) {
+      console.error('Error al cargar los check-ins del día:', error);
+    } finally {
+      setLoadingCheckins(false);
+    }
+  };
+
+  // Cargar checkins cuando se monta el componente si es jefe de obra
+  useEffect(() => {
+    if (userRoleId === 3) {
+      loadCheckins();
+    }
+  }, [userRoleId]);
+
+  // Función para hacer checkout a un trabajador
+  const handleCheckout = async (checkInId) => {
+    try {
+      await registerCheckOut(checkInId);
+      // Recargar la lista después del checkout
+      loadCheckins();
+    } catch (error) {
+      console.error('Error al registrar check-out:', error);
+    }
+  };
+
+  // Renderizar la sección de checkouts para jefes de obra
+  const renderCheckouts = () => {
+    if (userRoleId !== 3) return null;
+
+    return (
+      <Card className="col-span-3">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Gestión de Check-outs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left p-2">Empleado</th>
+                  <th className="text-left p-2">Zona</th>
+                  <th className="text-left p-2">Hora de Check-in</th>
+                  <th className="text-left p-2">Estado</th>
+                  <th className="text-left p-2">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingCheckins ? (
+                  <tr>
+                    <td colSpan="5" className="text-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                ) : checkins.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center p-4 text-slate-400">
+                      No hay check-ins activos para el día de hoy
+                    </td>
+                  </tr>
+                ) : (
+                  checkins.map((checkin) => (
+                    <tr key={checkin.id} className="border-b border-slate-800">
+                      <td className="p-2">{checkin.employee_name}</td>
+                      <td className="p-2">{checkin.zone_name}</td>
+                      <td className="p-2">{new Date(checkin.check_in_time).toLocaleTimeString()}</td>
+                      <td className="p-2">
+                        <span className={`px-2 py-1 rounded text-sm ${
+                          !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                        }`}>
+                          {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {!checkin.check_out_time && (
+                          <Button
+                            onClick={() => handleCheckout(checkin.id)}
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Check-out
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div
@@ -750,8 +852,19 @@ function DashboardEmpleados() {
                         </label>
                         <div className="relative">
                           <select
-                            value={selectedCheckInZone || ''}
-                            onChange={(e) => setSelectedCheckInZone(e.target.value)}
+                            value={selectedCheckInZone?.name || selectedCheckInZone || ''}
+                            onChange={(e) => {
+                              const zoneName = e.target.value;
+                              if (!zoneName) {
+                                setSelectedCheckInZone(null);
+                              } else {
+                                // Buscar el objeto zona completo
+                                const zoneObj = savedZones.find(zone => zone.name === zoneName);
+                                if (zoneObj) {
+                                  setSelectedCheckInZone(zoneObj);
+                                }
+                              }
+                            }}
                             className="w-full p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
                           >
                             <option value="">Selecciona una zona</option>
@@ -883,45 +996,11 @@ function DashboardEmpleados() {
                     </div>
 
                     <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
-                      <h4 className="text-orange-400 font-medium mb-2">Últimos Check-ins</h4>
-                      <div className="space-y-3">
-                        {loadingCheckIns ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-                          </div>
-                        ) : recentCheckIns.length > 0 ? (
-                          recentCheckIns.map((checkIn) => (
-                            <div key={checkIn.id} className="flex items-center justify-between text-sm">
-                              <span className="text-slate-400">
-                                {new Date(checkIn.checkInTime).toLocaleDateString()}
-                              </span>
-                              <span className="text-slate-300">
-                                {new Date(checkIn.checkInTime).toLocaleTimeString([], { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4">
-                            <p className="text-slate-400">No hay registros de check-in</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <div className="text-sm text-slate-400">
-                        <div className="flex items-start space-x-2 mb-2">
-                          <AlertCircle className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
-                          <p>Recuerda que debes estar físicamente dentro de la zona de trabajo seleccionada para poder realizar el check-in.</p>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <Camera className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
-                          <p>La foto de check-in ayuda a verificar tu presencia en el lugar de trabajo.</p>
-                        </div>
-                      </div>
+                      <h4 className="text-orange-400 font-medium mb-2">Información</h4>
+                      <p className="text-slate-300 text-sm">
+                        Realiza tu check-in al llegar a tu zona de trabajo asignada.
+                        Asegúrate de estar físicamente dentro del área designada.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -931,46 +1010,56 @@ function DashboardEmpleados() {
         )}
 
         {!activeSection && !selectedZone && (
-          <div className="text-center mt-40">
-            <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Bienvenido al Panel de Empleados</h3>
-              <div className="text-gray-600 mb-6">
-                <p>Selecciona una opción del menú para empezar:</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  onClick={() => setActiveSection("mapa")}
-                  className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
-                >
-                  <h4 className="font-medium text-black-700">Mi Ubicación</h4>
-                  <p className="text-sm text-gray-500">Ver tu ubicación actual en el mapa y zonas cercanas</p>
+          <>
+            <div className="text-center mt-40">
+              <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Bienvenido al Panel de Empleados</h3>
+                <div className="text-gray-600 mb-6">
+                  <p>Selecciona una opción del menú para empezar:</p>
                 </div>
 
-                <div
-                  onClick={() => setActiveSection("zonas-guardadas")}
-                  className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
-                >
-                  <h4 className="font-medium text-black-700">Zonas Guardadas</h4>
-                  <p className="text-sm text-gray-500">Ver todas las zonas de trabajo asignadas</p>
-                </div>
-
-                {canRequestMaterials && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
-                    onClick={() => navigate("/solicitar-materiales")}
-                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50 mt-4 bg-blue-100 border-blue-300 col-span-2"
+                    onClick={() => setActiveSection("mapa")}
+                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
                   >
-                    <h4 className="font-medium text-black-700">Solicitar Materiales</h4>
-                    <p className="text-sm text-gray-500">Realiza solicitudes de materiales para tu zona de trabajo</p>
+                    <h4 className="font-medium text-black-700">Mi Ubicación</h4>
+                    <p className="text-sm text-gray-500">Ver tu ubicación actual en el mapa y zonas cercanas</p>
                   </div>
-                )}
+
+                  <div
+                    onClick={() => setActiveSection("zonas-guardadas")}
+                    className="p-4 border rounded-md cursor-pointer hover:bg-blue-50"
+                  >
+                    <h4 className="font-medium text-black-700">Zonas Guardadas</h4>
+                    <p className="text-sm text-gray-500">Ver todas las zonas de trabajo asignadas</p>
+                  </div>
+
+                  {canRequestMaterials && (
+                    <div
+                      onClick={() => navigate("/solicitar-materiales")}
+                      className="p-4 border rounded-md cursor-pointer hover:bg-blue-50 mt-4 bg-blue-100 border-blue-300 col-span-2"
+                    >
+                      <h4 className="font-medium text-black-700">Solicitar Materiales</h4>
+                      <p className="text-sm text-gray-500">Realiza solicitudes de materiales para tu zona de trabajo</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Sección de checkouts para jefes de obra */}
+            {userRoleId === 3 && (
+              <div className="mt-8">
+                {renderCheckouts()}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
   );
 }
 
+// También exportamos por defecto para mantener compatibilidad
 export default DashboardEmpleados;

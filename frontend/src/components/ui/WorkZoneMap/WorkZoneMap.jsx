@@ -235,49 +235,86 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
 
   // Función para verificar si un trabajador está dentro de una zona
   const checkWorkersInZones = () => {
-    if (!workers || workers.length === 0 || (workZones.length === 0 && savedZones.length === 0)) {
-      return workers ? workers.filter(worker => worker.location).map(worker => ({ ...worker, inZone: false })) : [];
+    // Registrar para depuración
+    console.log("checkWorkersInZones - Datos iniciales:", {
+      workers: workers ? `Array de ${workers.length} elementos` : "undefined/null",
+      workZones: workZones ? `Array de ${workZones.length} elementos` : "undefined/null",
+      savedZones: savedZones ? `Array de ${savedZones.length} elementos` : "undefined/null"
+    });
+    
+    // Verificar si hay trabajadores
+    if (!workers || !Array.isArray(workers) || workers.length === 0) {
+      console.log("No hay trabajadores para procesar");
+      return [];
+    }
+    
+    // Ver cuántos trabajadores tienen ubicación
+    const workersWithLocation = workers.filter(worker => 
+      worker && worker.location && 
+      typeof worker.location.lat === 'number' && 
+      typeof worker.location.lng === 'number'
+    );
+    
+    console.log(`De ${workers.length} trabajadores, ${workersWithLocation.length} tienen ubicación válida`);
+    
+    // Si no hay zonas, solo devolver los trabajadores con su estado inZone = false
+    if ((workZones.length === 0 && savedZones.length === 0)) {
+      console.log("No hay zonas definidas, todos los trabajadores fuera de zona");
+      return workers.map(worker => ({ 
+        ...worker, 
+        inZone: false,
+        zones: []
+      }));
     }
 
     // Filtrar solo trabajadores con ubicación válida
-    return workers
-      .filter(worker => worker.location && worker.location.lat && worker.location.lng)
-      .map(worker => {
-        const point = turf.point([worker.location.lng, worker.location.lat]);
-        
-        // Verificar si el trabajador está en alguna zona temporal
-        const isInTempZone = workZones.some(zone => {
-          const center = turf.point([zone.lng, zone.lat]);
-          const distance = turf.distance(point, center, { units: 'meters' });
-          return distance <= (zone.radius || zoneRadius);
-        });
-        
-        // Verificar si el trabajador está en alguna zona guardada
-        const isInSavedZone = savedZones.some(zone => {
-          const center = turf.point([zone.lng, zone.lat]);
-          const distance = turf.distance(point, center, { units: 'meters' });
-          return distance <= (zone.radius || zoneRadius);
-        });
-        
-        // Incluir información de la zona en la que está el trabajador para mostrarla
-        let workerZones = [];
-        if (isInTempZone || isInSavedZone) {
-          // Encontrar todas las zonas en las que está el trabajador
-          [...workZones, ...savedZones].forEach(zone => {
-            const center = turf.point([zone.lng, zone.lat]);
-            const distance = turf.distance(point, center, { units: 'meters' });
-            if (distance <= (zone.radius || zoneRadius)) {
-              workerZones.push(zone.name || 'Zona sin nombre');
-            }
-          });
-        }
-        
+    return workers.map(worker => {
+      // Si el trabajador no tiene ubicación, marcarlo como fuera de zona
+      if (!worker || !worker.location || 
+          typeof worker.location.lat !== 'number' || 
+          typeof worker.location.lng !== 'number') {
         return { 
           ...worker, 
-          inZone: isInTempZone || isInSavedZone,
-          zones: workerZones
+          inZone: false,
+          zones: [] 
         };
+      }
+      
+      const point = turf.point([worker.location.lng, worker.location.lat]);
+      
+      // Verificar si el trabajador está en alguna zona temporal
+      const isInTempZone = workZones.some(zone => {
+        const center = turf.point([zone.lng, zone.lat]);
+        const distance = turf.distance(point, center, { units: 'meters' });
+        return distance <= (zone.radius || zoneRadius);
       });
+      
+      // Verificar si el trabajador está en alguna zona guardada
+      const isInSavedZone = savedZones.some(zone => {
+        const center = turf.point([zone.lng, zone.lat]);
+        const distance = turf.distance(point, center, { units: 'meters' });
+        return distance <= (zone.radius || zoneRadius);
+      });
+      
+      // Incluir información de la zona en la que está el trabajador para mostrarla
+      let workerZones = [];
+      if (isInTempZone || isInSavedZone) {
+        // Encontrar todas las zonas en las que está el trabajador
+        [...workZones, ...savedZones].forEach(zone => {
+          const center = turf.point([zone.lng, zone.lat]);
+          const distance = turf.distance(point, center, { units: 'meters' });
+          if (distance <= (zone.radius || zoneRadius)) {
+            workerZones.push(zone.name || 'Zona sin nombre');
+          }
+        });
+      }
+      
+      return { 
+        ...worker, 
+        inZone: isInTempZone || isInSavedZone,
+        zones: workerZones
+      };
+    });
   };
 
   // Actualizar los trabajadores cuando cambian las zonas
@@ -1078,24 +1115,48 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
           <div className="md:col-span-1 overflow-auto max-h-[400px] border rounded-md">
             <div className="p-4">
               <h3 className="font-semibold mb-2">Estado de Trabajadores</h3>
-              {selectedWorkers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hay trabajadores para mostrar</p>
+              {!workers || workers.length === 0 ? (
+                <div className="bg-orange-100 text-orange-800 p-3 rounded-md text-sm">
+                  <p className="font-medium">No hay trabajadores registrados</p>
+                  <p className="text-xs mt-1">
+                    No se han encontrado registros de trabajadores en el sistema.
+                    Pueden estar pendientes de asignación o de registro.
+                  </p>
+                </div>
+              ) : selectedWorkers.length === 0 ? (
+                <div className="bg-blue-100 text-blue-800 p-3 rounded-md text-sm">
+                  <p className="font-medium">Trabajadores sin ubicación</p>
+                  <p className="text-xs mt-1">
+                    Hay {workers.length} trabajador(es) registrado(s), pero ninguno tiene datos de ubicación.
+                    Es posible que no hayan activado la geolocalización o no estén activos.
+                  </p>
+                </div>
               ) : (
-                <ul className="space-y-2">
-                  {selectedWorkers.map((worker) => (
-                    <li 
-                      key={worker.id} 
-                      className={`p-2 rounded-md text-sm ${
-                        worker.inZone ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      <span className="font-medium">{worker.name}</span>
-                      <span className="block text-xs">
-                        {worker.inZone ? "✅ Dentro de la zona" : "❌ Fuera de la zona"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <p className="text-xs text-slate-500 mb-2">
+                    Mostrando {selectedWorkers.length} de {workers.length} trabajadores
+                  </p>
+                  <ul className="space-y-2">
+                    {selectedWorkers.map((worker) => (
+                      <li 
+                        key={worker.id || `worker-${worker.name}`} 
+                        className={`p-2 rounded-md text-sm ${
+                          worker.inZone ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        <span className="font-medium">{worker.name}</span>
+                        <span className="block text-xs">
+                          {worker.inZone ? "✅ Dentro de la zona" : "❌ Fuera de la zona"}
+                        </span>
+                        {!worker.location && (
+                          <span className="block text-xs text-orange-600 mt-1">
+                            ⚠️ Sin datos de ubicación
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
               
               <div className="mt-4 border-t pt-4">
