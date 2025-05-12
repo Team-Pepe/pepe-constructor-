@@ -9,11 +9,14 @@ import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehous
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation, registerCheckIn, fetchRecentCheckIns } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn, fetchRecentCheckIns, apiClient, getAuthHeaders, fetchUserById } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
+import { PlumberCard } from "../Dashboard/components/PlumberCard";
+import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
+import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 
 function DashboardEmpleados() {
-  const { user, roleId, logout } = useAuth();
+  const { user, setUser, roleId, logout } = useAuth(); // Añadir setUser
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [workerLocation, setWorkerLocation] = useState(null);
@@ -49,6 +52,37 @@ function DashboardEmpleados() {
     // Mostrar modal al iniciar
     setShowLocationModal(true);
   }, []);
+
+  // Añade un useEffect para cargar los datos del usuario
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user?.id) {
+        console.log("No hay ID de usuario disponible");
+        return;
+      }
+      
+      try {
+        const response = await fetchUserById(user.id);
+        console.log("Datos obtenidos del usuario:", response);
+        
+        if (response?.data) {
+          // Actualizar el estado con los datos de response.data
+          setUser(prevUser => ({
+            ...prevUser,
+            id: response.data.id?.toString(),
+            username: response.data.username,
+            name: response.data.username, // Usar username como nombre también
+            bloodType: response.data.bloodType,
+            roleId: response.data.roleId
+          }));
+        }
+      } catch (error) {
+        console.error("Error al obtener datos del usuario:", error);
+      }
+    };
+
+    fetchUserData();
+  }, [user?.id]); // Solo volver a ejecutar si cambia el ID
 
   // Función para solicitar permiso de ubicación
   const requestLocationPermission = () => {
@@ -215,8 +249,10 @@ function DashboardEmpleados() {
   const loadRecentCheckIns = async () => {
     try {
       setLoadingCheckIns(true);
-      const response = await fetchRecentCheckIns();
-      setRecentCheckIns(response.checkIns);
+      const result = await fetchRecentCheckIns();
+      if (result.success) {
+        setRecentCheckIns(result.checkIns);
+      }
     } catch (error) {
       console.error('Error al cargar check-ins recientes:', error);
     } finally {
@@ -502,10 +538,16 @@ function DashboardEmpleados() {
 
           {/* Carnet de empleado */}
           <div className="p-4">
-            <EmployeeCard
-              name={user?.username || user?.name || "Empleado"}
-              email={user?.email || ""}
-              role="Trabajador de Obra"
+            <PlumberCard
+              name={user?.username || "Usuario"} // Usar directamente username
+              id={user?.id?.toString() || "N/A"}
+              role={
+                user?.roleId === 1 ? "Supervisor" :
+                user?.roleId === 2 ? "Trabajador" :
+                user?.roleId === 3 ? "Jefe de Obra" :
+                user?.roleId === 4 ? "Admin" : "Trabajador"
+              }
+              bloodType={user?.bloodType || "N/A"}
             />
           </div>
 

@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { setIsAuthenticated, setRoleId, setCsrfToken } = useAuth();
+  const { setIsAuthenticated, setRoleId, setCsrfToken, setUser } = useAuth();
 
   useEffect(() => {
     setIsAuthenticated(false);
@@ -47,9 +47,19 @@ export default function LoginPage() {
         }
       );
 
-      if (response.data?.user?.roleId) {
+      if (response.data?.user) {
         setIsAuthenticated(true);
         setRoleId(response.data.user.roleId);
+        
+        // Guardar toda la información del usuario
+        const userData = {
+          id: response.data.user.id,
+          username: response.data.user.username,
+          bloodType: response.data.user.bloodType,
+          roleId: response.data.user.roleId,
+          // otros datos...
+        };
+        setUser(userData);
 
         // Guardar el token de autenticación
         if (response.data.token) {

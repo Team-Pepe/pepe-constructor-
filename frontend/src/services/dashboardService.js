@@ -322,12 +322,41 @@ export const registerCheckIn = async (data) => {
 export const fetchRecentCheckIns = async (limit = 5) => {
   try {
     const response = await apiClient.get(`${API_ENDPOINTS.CHECK_INS_RECENT}?limit=${limit}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders()
+    });
+    return {
+      checkIns: response.data || [],
+      success: true
+    };
+  } catch (error) {
+    console.error('Error al obtener check-ins recientes:', error);
+    // En caso de error, devolver array vacío pero no romper la aplicación
+    return {
+      checkIns: [],
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+export const fetchUserById = async (userId) => {
+  try {
+    const response = await apiClient.get(`${API_ENDPOINTS.USERS}/${userId}`, {
+      headers: getAuthHeaders()
     });
     return response.data;
   } catch (error) {
-    console.error('Error al obtener check-ins recientes:', error);
-    throw error;
+    console.error('Error al obtener datos del usuario:', error);
+    // Retornar datos del localStorage como fallback
+    return {
+      id: localStorage.getItem('userId'),
+      username: localStorage.getItem('username'),
+      name: localStorage.getItem('name'),
+      bloodType: localStorage.getItem('bloodType'),
+      email: localStorage.getItem('email'),
+      roleId: Number(localStorage.getItem('roleId')),
+      role: localStorage.getItem('role')
+    };
   }
 };
 

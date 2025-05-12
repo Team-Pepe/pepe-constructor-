@@ -11,7 +11,14 @@ const AuthContext = createContext({
 export function AuthProvider({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [roleId, setRoleId] = useState(null);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState({
+        id: null,
+        username: null,
+        name: null,
+        bloodType: null,
+        roleId: null,
+        role: null
+    });
     const [csrfToken, setCsrfToken] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -30,11 +37,16 @@ export function AuthProvider({ children }) {
                 
                 if (response.data?.user) {
                     setIsAuthenticated(true);
+                    // Guardar todos los datos del usuario
+                    setUser({
+                        id: response.data.user.id,
+                        name: response.data.user.name,
+                        username: response.data.user.username,
+                        bloodType: response.data.user.bloodType,
+                        roleId: response.data.user.roleId,
+                        role: response.data.user.role
+                    });
                     
-                    // Establecer toda la información del usuario
-                    setUser(response.data.user);
-                    
-                    // Actualizar el roleId desde la respuesta del servidor
                     if (response.data.user.roleId) {
                         setRoleId(Number(response.data.user.roleId));
                         localStorage.setItem('roleId', String(response.data.user.roleId));
@@ -83,11 +95,45 @@ export function AuthProvider({ children }) {
         document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     };
 
+    // Función para procesar el login
+    const login = async (credentials) => {
+        try {
+            const loginResponse = await axios.post(`${import.meta.env.VITE_API_ENDPOINT}/api/auth/login`, credentials);
+            if (loginResponse.data?.user) {
+                const userData = loginResponse.data.user;
+                
+                // Guardar TODOS los datos relevantes en localStorage
+                localStorage.setItem('userId', userData.id?.toString());
+                localStorage.setItem('username', userData.username || userData.name);
+                localStorage.setItem('name', userData.name);
+                localStorage.setItem('bloodType', userData.bloodType || "O+"); // Valor por defecto
+                localStorage.setItem('roleId', userData.roleId?.toString() || "2");
+                localStorage.setItem('email', userData.email || "");
+                localStorage.setItem('role', userData.role || "Trabajador");
+                
+                // Actualizar el estado con TODOS los datos
+                setUser({
+                    id: userData.id?.toString(),
+                    username: userData.username || userData.name,
+                    name: userData.name,
+                    bloodType: userData.bloodType || "O+",
+                    roleId: userData.roleId,
+                    role: userData.role || "Trabajador",
+                    email: userData.email
+                });
+                setIsAuthenticated(true);
+                setRoleId(userData.roleId);
+            }
+        } catch (error) {
+            console.error("Error al procesar el login:", error);
+        }
+    };
+
     return (
         <AuthContext.Provider value={{ 
             isAuthenticated, setIsAuthenticated, 
             roleId, setRoleId, user, setUser, 
-            csrfToken, setCsrfToken, authRequest, logout, isLoading
+            csrfToken, setCsrfToken, authRequest, logout, login, isLoading
         }}>
             {!isLoading && children}
         </AuthContext.Provider>

@@ -78,11 +78,18 @@ const registerCheckIn = async (req, res) => {
 const getRecentCheckIns = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        const userId = parseInt(req.query.userId) || req.user.id;
+        const userId = req.user?.id; // Obtener del token de autenticación
+
+        if (!userId) {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Usuario no autenticado'
+            });
+        }
 
         console.log('🔍 Buscando check-ins recientes:', { userId, limit });
 
-        const checkIns = await prisma.checkIn.findMany({
+        const checkIns = await prisma.CheckIn.findMany({
             where: { 
                 user_id: userId
             },
@@ -92,26 +99,34 @@ const getRecentCheckIns = async (req, res) => {
             },
             include: {
                 workZone: {
-                    select: { name: true }
+                    select: { 
+                        id: true,
+                        name: true 
+                    }
                 }
             }
         });
 
-        console.log(`✅ Se encontraron ${checkIns.length} check-ins`);
         res.json({
-            checkIns: checkIns.map(checkIn => ({
+            status: 'success',
+            data: checkIns.map(checkIn => ({
                 id: checkIn.id,
                 checkInTime: checkIn.check_in_time.toISOString(),
-                zoneName: checkIn.workZone.name,
+                zoneName: checkIn.workZone?.name || 'Zona desconocida',
+                zoneId: checkIn.workZone?.id,
                 photoUrl: checkIn.photo_url,
-                status: checkIn.status
+                status: checkIn.status,
+                latitude: checkIn.latitude,
+                longitude: checkIn.longitude
             }))
         });
+
     } catch (error) {
         console.error('❌ Error al obtener check-ins recientes:', error);
         res.status(500).json({ 
+            status: 'error',
             message: 'Error al obtener check-ins recientes',
-            error: error.message 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };

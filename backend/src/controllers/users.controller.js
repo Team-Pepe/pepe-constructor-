@@ -90,24 +90,49 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Validar que el ID sea un número válido
+    const userId = parseInt(id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'ID de usuario inválido' 
+      });
+    }
+
     const user = await prisma.User.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        attendances: true,
-        materialRequests: true,
-        supervisedZones: true,
-        assignedTasks: true,
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        roleId: true,
+        bloodType: true,
+        latitude: true,
+        longitude: true,
+        // Excluir campos sensibles como password
       }
     });
     
     if (!user) {
-      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Usuario no encontrado' 
+      });
     }
     
-    res.json(user);
+    res.json({
+      status: 'success',
+      data: user
+    });
+
   } catch (error) {
     console.error('Error al obtener usuario:', error);
-    res.status(500).json({ status: 'error', message: 'Error al obtener usuario' });
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Error al obtener usuario',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

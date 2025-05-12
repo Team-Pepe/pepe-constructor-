@@ -1,14 +1,16 @@
 const jwt = require("jsonwebtoken");
 
 exports.authenticateToken = (req, res, next) => {
-    // Obtener token de cookies o headers
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-        return res.status(401).json({ message: "No autenticado - Token no proporcionado" });
-    }
-
     try {
+        const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                status: 'error',
+                message: "No autenticado - Token no proporcionado" 
+            });
+        }
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
@@ -16,13 +18,16 @@ exports.authenticateToken = (req, res, next) => {
         console.error("Error al verificar token:", error);
         
         if (error.name === "TokenExpiredError") {
-            return res.status(401).json({ message: "Token expirado" });
-        }
-        if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({ message: "Token inválido" });
+            return res.status(401).json({
+                status: 'error', 
+                message: "Token expirado"
+            });
         }
         
-        res.status(401).json({ message: "Error de autenticación" });
+        res.status(401).json({
+            status: 'error',
+            message: "Error de autenticación"
+        });
     }
 };
 
