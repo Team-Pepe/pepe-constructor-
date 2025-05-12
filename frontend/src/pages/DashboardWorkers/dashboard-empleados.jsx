@@ -11,6 +11,7 @@ import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
 import { updateUserLocation, registerCheckIn, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
   const { user, roleId, logout } = useAuth();
@@ -568,6 +569,59 @@ export function DashboardEmpleados() {
     );
   };
 
+  function MiAsistencia() {
+    const { user } = useAuth();
+    const [asistencias, setAsistencias] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      if (!user?.id) return;
+      setLoading(true);
+      axios.get(`/api/geo/user/${user.id}/attendance`)
+        .then(res => setAsistencias(res.data.data || []))
+        .finally(() => setLoading(false));
+    }, [user?.id]);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fadeIn"
+      >
+        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Mi Asistencia</h2>
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <Loader2 className="animate-spin h-8 w-8 text-orange-500" />
+          </div>
+        ) : asistencias.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">No hay registros de asistencia.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white rounded-lg shadow border">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Fecha</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Check-in</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Check-out</th>
+                </tr>
+              </thead>
+              <tbody>
+                {asistencias.map(a => (
+                  <tr key={a.id} className="border-t hover:bg-orange-50 transition">
+                    <td className="py-2 px-4">{a.checkIn ? new Date(a.checkIn).toLocaleDateString() : '-'}</td>
+                    <td className="py-2 px-4">{a.checkIn ? new Date(a.checkIn).toLocaleTimeString() : '-'}</td>
+                    <td className="py-2 px-4">{a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen flex"
@@ -701,6 +755,16 @@ export function DashboardEmpleados() {
                 Solicitar Materiales
               </button>
             )}
+
+            <button
+              onClick={() => setActiveSection("mi-asistencia")}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "mi-asistencia" ? "bg-gray-100" : ""
+              } flex items-center`}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Mi Asistencia
+            </button>
           </nav>
         </div>
 
@@ -1008,6 +1072,8 @@ export function DashboardEmpleados() {
             </div>
           </section>
         )}
+
+        {activeSection === "mi-asistencia" && <MiAsistencia />}
 
         {!activeSection && !selectedZone && (
           <>

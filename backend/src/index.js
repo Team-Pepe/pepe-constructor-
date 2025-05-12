@@ -15,6 +15,7 @@ const dashboardEmpleadosRoutes = require('./routes/dashboardEmpleados');
 const materialAssignmentsRoutes = require('./routes/materialAssignments');
 const checkInRoutes = require('./routes/checkInRoutes');
 const { authenticateToken, verifyCSRF } = require('./middlewares/authMiddleware');
+const geoRoutes = require('./routes/geo');
 
 // Requerir las utilidades de archivos para crear los directorios necesarios al inicio
 require('./utils/fileUtils');
@@ -135,6 +136,7 @@ app.use('/api/material-assignments', authenticateToken, verifyCSRF, materialAssi
 app.use('/api/check-in', checkInRoutes);
 app.use('/api/check-ins', checkInRoutes);
 app.use('/api', authenticateToken, verifyCSRF, apiRoutes);
+app.use('/api/geo', authenticateToken, geoRoutes);
 
 // Manejador de errores global
 app.use((err, req, res, next) => {

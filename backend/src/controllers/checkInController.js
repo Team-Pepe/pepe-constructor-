@@ -115,7 +115,7 @@ const registerCheckIn = async (req, res) => {
             hour12: false
         });
 
-        // Formatear work_date
+        // Formatear workDate
         const workDateCol = new Date(checkIn.workDate).toLocaleDateString('es-CO', {
             timeZone: 'America/Bogota',
             year: 'numeric',
@@ -155,7 +155,7 @@ const getRecentCheckIns = async (req, res) => {
             },
             take: limit,
             orderBy: { 
-                check_in_time: 'desc'
+                checkInTime: 'desc'
             },
             include: {
                 workZone: {
@@ -167,8 +167,8 @@ const getRecentCheckIns = async (req, res) => {
         console.log(`✅ Se encontraron ${checkIns.length} check-ins`);
         res.json({
             checkIns: checkIns.map(checkIn => {
-                const checkInDate = new Date(checkIn.check_in_time);
-                const workDate = new Date(checkIn.work_date);
+                const checkInDate = new Date(checkIn.checkInTime);
+                const workDate = new Date(checkIn.workDate);
                 
                 return {
                     id: checkIn.id,
@@ -182,7 +182,7 @@ const getRecentCheckIns = async (req, res) => {
                         second: '2-digit',
                         hour12: false
                     }),
-                    checkOutTime: checkIn.check_out_time ? new Date(checkIn.check_out_time).toLocaleString('es-CO', {
+                    checkOutTime: checkIn.checkOutTime ? new Date(checkIn.checkOutTime).toLocaleString('es-CO', {
                         timeZone: 'America/Bogota',
                         year: 'numeric',
                         month: '2-digit',
@@ -280,20 +280,14 @@ const getTodayCheckIn = async (req, res) => {
                 hour12: false
             }) : null;
 
-        res.json({
+        res.json([{
             id: todayCheckIn.id,
-            userId: todayCheckIn.user_id,
-            username: todayCheckIn.user.username,
-            email: todayCheckIn.user.email,
-            zoneName: todayCheckIn.zone.name,
-            zoneDescription: todayCheckIn.zone.description,
-            checkInTime: checkInTimeCol,
-            checkOutTime: checkOutTimeCol,
-            latitude: todayCheckIn.latitude,
-            longitude: todayCheckIn.longitude,
-            photoUrl: todayCheckIn.photo_url,
+            employee_name: todayCheckIn.user.username,
+            zone_name: todayCheckIn.zone.name,
+            check_in_time: todayCheckIn.checkInTime,
+            check_out_time: todayCheckIn.checkOutTime,
             status: todayCheckIn.status
-        });
+        }]);
     } catch (error) {
         console.error('❌ Error al obtener el check-in del día:', error);
         res.status(500).json({
@@ -303,8 +297,35 @@ const getTodayCheckIn = async (req, res) => {
     }
 };
 
+const registerCheckOut = async (req, res) => {
+    try {
+        const { checkInId } = req.body;
+        if (!checkInId) {
+            return res.status(400).json({ message: 'Falta el ID del check-in' });
+        }
+        const updatedCheckIn = await prisma.checkIn.update({
+            where: { id: checkInId },
+            data: {
+                checkOutTime: new Date(),
+                status: 'finished'
+            }
+        });
+        res.json({
+            message: 'Check-out registrado correctamente',
+            checkIn: updatedCheckIn
+        });
+    } catch (error) {
+        console.error('❌ Error al registrar check-out:', error);
+        res.status(500).json({
+            message: 'Error al registrar check-out',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCheckIn,
     getRecentCheckIns,
-    getTodayCheckIn
+    getTodayCheckIn,
+    registerCheckOut
 };
