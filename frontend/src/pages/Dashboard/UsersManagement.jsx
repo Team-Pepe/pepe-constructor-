@@ -177,20 +177,19 @@ function UsersManagement() {
               <th className="px-4 py-3 text-left text-sm text-slate-300">Email</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Tipo Sangre</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Rol</th>
-              <th className="px-4 py-3 text-left text-sm text-slate-300">Puesto</th>
               <th className="px-4 py-3 text-right text-sm text-slate-300 sticky right-0 bg-slate-800">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-8">
+                <td colSpan={6} className="text-center py-8">
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-slate-400">
+                <td colSpan={6} className="text-center py-8 text-slate-400">
                   No se encontraron usuarios
                 </td>
               </tr>
@@ -215,9 +214,6 @@ function UsersManagement() {
                        user.roleId === 2 ? 'Trabajador' : 
                        'Jefe de obra'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-300">
-                    {user.roleId === 2 ? (getJobName(user.jobId)) : "—"}
                   </td>
                   <td className="px-4 py-3 text-right sticky right-0 bg-slate-800">
                     <Button
