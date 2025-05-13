@@ -17,7 +17,8 @@ import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
-  const { user, roleId, logout } = useAuth();
+  const { user: authUser, roleId, logout } = useAuth(); // Renombramos user a authUser
+  const [user, setUser] = useState(authUser); // Añadimos el estado local
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [workerLocation, setWorkerLocation] = useState(null);
@@ -33,6 +34,7 @@ export function DashboardEmpleados() {
   const navigate = useNavigate();
   const [checkins, setCheckins] = useState([]);
   const [loadingCheckins, setLoadingCheckins] = useState(false);
+
 
   // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
   const userRoleId = Number(roleId);
@@ -711,7 +713,7 @@ export function DashboardEmpleados() {
 
           {/* Carnet de empleado */}
           <div className="p-4">
-            <PlumberCard
+            <ConstructionWorkerCard
               name={user?.username || "Usuario"} // Usar directamente username
               id={user?.id?.toString() || "N/A"}
               role={

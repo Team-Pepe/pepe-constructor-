@@ -32,6 +32,13 @@ export function ConstructionWorkerCard({ name, id, role, bloodType }) {
                         <span className="text-sm font-bold text-orange-600">Constructor</span>
                     </div>
                 </div>
+                                {/* Footer del carnet */}
+                <div className="mt-3 pt-3 border-t border-gray-300">
+                    <div className="flex justify-between">
+                        <div className="text-xs text-gray-500">ID: PPC-JOB-{Math.floor(Math.random() * 1000)}</div>
+                        <div className="text-xs text-gray-500">Válido: 2025-2026</div>
+                    </div>
+                </div>
             </div>
         </div>
     );
