@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const multer = require('multer');
 const { upload } = require('../utils/fileUtils');
-const { registerCheckIn, getRecentCheckIns, getTodayCheckIn } = require('../controllers/checkInController');
+const { registerCheckIn, getRecentCheckIns, getTodayCheckIn, registerCheckOut } = require('../controllers/checkInController');
 
 /**
  * @swagger
@@ -70,5 +70,8 @@ router.get('/today', authenticateToken, getTodayCheckIn);
  *         description: Lista de check-ins recientes
  */
 router.get('/recent', authenticateToken, getRecentCheckIns);
+
+// Nueva ruta para registrar check-out
+router.post('/check-out', authenticateToken, registerCheckOut);
 
 module.exports = router;

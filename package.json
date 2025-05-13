@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/Team-Pepe/pepe-constructor-/issues"
   },
-  "homepage": "https://github.com/Team-Pepe/pepe-constructor-#readme"
+  "homepage": "https://github.com/Team-Pepe/pepe-constructor-#readme",
+  "dependencies": {
+    "framer-motion": "^12.10.5"
+  }
 }
