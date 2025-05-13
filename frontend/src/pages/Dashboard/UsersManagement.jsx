@@ -37,16 +37,31 @@ function UsersManagement() {
 
   const handleSaveUser = async (form) => {
     try {
-      if (modalUser) {
-        await apiClient.put(`/api/users/${modalUser.id}`, form, { headers: getAuthHeaders() });
-      } else {
-        await apiClient.post("/api/users", form, { headers: getAuthHeaders() });
+      console.log("Guardando usuario con datos:", form);
+      
+      // Asegurarnos de que jobId sea null si no es un trabajador
+      if (form.roleId !== 2) {
+        form.jobId = null;
       }
+      
+      if (modalUser) {
+        // Actualizar usuario existente
+        await apiClient.put(`/api/users/${modalUser.id}`, form, { 
+          headers: getAuthHeaders() 
+        });
+      } else {
+        // Crear nuevo usuario
+        await apiClient.post("/api/users", form, { 
+          headers: getAuthHeaders() 
+        });
+      }
+      
       setShowModal(false);
       setModalUser(null);
-      fetchUsers();
+      fetchUsers(); // Recargar la lista de usuarios
     } catch (error) {
-      alert("Error al guardar usuario");
+      console.error("Error al guardar usuario:", error);
+      alert("Error al guardar usuario: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -121,6 +136,18 @@ function UsersManagement() {
     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Function to get job name from job ID
+  const getJobName = (jobId) => {
+    if (!jobId) return "No asignado";
+    
+    switch (Number(jobId)) {
+      case 1: return "Eléctrico";
+      case 2: return "Albañil";
+      case 3: return "Fontanero";
+      default: return "No asignado";
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header y Buscador */}
@@ -140,8 +167,8 @@ function UsersManagement() {
         </div>
       </div>
 
-      {/* Tabla de Usuarios - Contenedor con scroll horizontal */}
-      <div className="rounded-lg border border-slate-700 overflow-x-auto">
+      {/* Tabla de Usuarios - Con columna de acciones fija */}
+      <div className="rounded-lg border border-slate-700 overflow-x-auto relative">
         <table className="w-full">
           <thead className="bg-slate-800/50">
             <tr>
@@ -150,7 +177,7 @@ function UsersManagement() {
               <th className="px-4 py-3 text-left text-sm text-slate-300">Email</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Tipo Sangre</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Rol</th>
-              <th className="px-4 py-3 text-right text-sm text-slate-300">Acciones</th>
+              <th className="px-4 py-3 text-right text-sm text-slate-300 sticky right-0 bg-slate-800">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -175,7 +202,7 @@ function UsersManagement() {
                   <td className="px-4 py-3 text-slate-300">{user.id}</td>
                   <td className="px-4 py-3 text-white">{user.username}</td>
                   <td className="px-4 py-3 text-slate-300">{user.email}</td>
-                  <td className="px-4 py-3 text-slate-300">{user.bloodType}</td>
+                  <td className="px-4 py-3 text-slate-300">{user.bloodType || "—"}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap
                       ${user.roleId === 4 ? 'bg-purple-500/20 text-purple-300' :
@@ -188,7 +215,7 @@ function UsersManagement() {
                        'Jefe de obra'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right sticky right-0 bg-slate-800">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -219,7 +246,6 @@ function UsersManagement() {
       {showModal && (
         <UserEditModal
           user={modalUser}
-          users={users} // <--- PASA LA LISTA DE USUARIOS
           onClose={() => {
             setShowModal(false);
             setModalUser(null);

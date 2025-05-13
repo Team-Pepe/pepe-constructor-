@@ -8,23 +8,23 @@ datasource db {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
-  email            String            @unique
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
   username         String?
-  roleId           Int               @map("role_id")
+  roleId           Int        @map("role_id")
   password         String
-  bloodType        String?
   latitude         Float?
   longitude        Float?
-  receivedMessages Message[]         @relation("ReceiverMessages")
-  sentMessages     Message[]         @relation("SenderMessages")
-  assignedTasks    Task[]            @relation("AssignedTasks")
-  role             Role              @relation(fields: [roleId], references: [id])
-  supervisedZones  WorkZone[]
-  materialRequests MaterialRequest[]
+  bloodType        String?
+  jobId            Int?       @map("job_id")
   resetToken       String?
   resetTokenExpiry DateTime?
-  checkIns         CheckIn[]
+  receivedMessages Message[]  @relation("ReceiverMessages")
+  sentMessages     Message[]  @relation("SenderMessages")
+  assignedTasks    Task[]     @relation("AssignedTasks")
+  role             Role       @relation(fields: [roleId], references: [id])
+  job              Job?       @relation(fields: [jobId], references: [id])
+  supervisedZones  WorkZone[]
 
   @@map("users")
 }
@@ -38,19 +38,26 @@ model Role {
   @@map("roles")
 }
 
+model Job {
+  id    Int    @id @default(autoincrement()) @map("idJob")
+  name  String
+  users User[]
+
+  @@map("jobs")
+}
+
 model WorkZone {
-  id               Int               @id @default(autoincrement())
-  name             String            @db.VarChar
-  description      String?
-  supervisorId     Int               @map("supervisor_id")
-  latitud          Float?            @db.Real
-  longitud         Float?            @db.Real
-  metrics          Metric[]
-  tasks            Task[]
-  supervisor       User              @relation(fields: [supervisorId], references: [id])
-  materiales       ZonaMaterial[]
-  materialRequests MaterialRequest[]
-  checkIns         CheckIn[] 
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar
+  description  String?
+  supervisorId Int            @map("supervisor_id")
+  latitud      Float?         @db.Real
+  longitud     Float?         @db.Real
+  materiales   ZonaMaterial[]
+  metrics      Metric[]
+  tasks        Task[]
+  supervisor   User           @relation(fields: [supervisorId], references: [id])
+
   @@map("work_zones")
 }
 
@@ -118,38 +125,44 @@ model ZonaMaterial {
   id_zona           Int      @map("id_zona")
   id_material       Int      @map("id_material")
   cantidad_asignada Int      @map("cantidad_asignada")
-  workZone          WorkZone @relation(fields: [id_zona], references: [id])
   material          Material @relation(fields: [id_material], references: [id])
+  workZone          WorkZone @relation(fields: [id_zona], references: [id])
 
   @@map("material_zone")
 }
 
 model MaterialRequest {
-  id                 Int      @id @default(autoincrement())
-  zone_id            Int
-  quantity_requested Float
+  id                 BigInt    @id @default(autoincrement())
+  zone_id            BigInt
+  quantity_requested Float?
   message            String?
-  status             String   @default("pending")
-  created_at         DateTime @default(now())
-  user_id            Int
-  material           String
-  user               User     @relation(fields: [user_id], references: [id])
-  zone               WorkZone @relation(fields: [zone_id], references: [id])
+  status             String?   @db.VarChar
+  created_at         DateTime? @db.Timestamp(6)
+  user_id            Int?
+  material           String?
 
   @@map("material_requests")
 }
 
 model CheckIn {
-  id                 Int      @id @default(autoincrement())
-  user_id            Int      @map("user_id")
-  zone_id            Int      @map("zone_id")
-  checkInTime        DateTime @default(now()) @map("check_in_time")
-  latitude           Float
-  longitude          Float
-  photo_url          String?  @map("photo_url")
-  status             String   @default("active")
-  user               User     @relation(fields: [user_id], references: [id])
-  zone               WorkZone @relation(fields: [zone_id], references: [id])
+  id           BigInt    @id @default(autoincrement())
+  user_id      Int       @map("user_id")
+  zone_id      Int?      @map("zone_id")
+  checkInTime  DateTime? @map("check_in_time") @db.Timestamp(6)
+  latitude     Float?
+  longitude    Float?
+  photo_url    String?   @map("photo_url")
+  status       String?   @default("active") @db.VarChar
+  checkOutTime DateTime? @map("check_out_time") @db.Timestamp(6)
+  workDate     DateTime? @map("work_date") @db.Date
 
   @@map("check_ins")
+}
+
+model requests {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  material_id  Int
+  request_date DateTime
+  status       String   @db.VarChar
 }

@@ -308,7 +308,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Work Zone Map */}
-                        <WorkZoneMap workers={workers} />
+                        <WorkZoneMap workers={workers || []} />
 
                         {/* Tabs section */}
                         <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
@@ -545,7 +545,7 @@ export default function Dashboard() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {activities.map(activity => (
+                                        {(activities || []).map(activity => (
                                             <ActivityItem
                                                 key={activity.id}
                                                 title={activity.title}
@@ -564,5 +564,4 @@ export default function Dashboard() {
             {/* Renderizar el modal de ubicación */}
             {renderLocationModal()}
         </div>
-    );
-}
+    );}

@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const multer = require('multer');
 const { upload } = require('../utils/fileUtils');
-const { registerCheckIn, getRecentCheckIns } = require('../controllers/checkInController');
+const { registerCheckIn, getRecentCheckIns, getTodayCheckIn } = require('../controllers/checkInController');
 
 /**
  * @swagger
@@ -34,6 +34,22 @@ const { registerCheckIn, getRecentCheckIns } = require('../controllers/checkInCo
  *         description: Check-in registrado exitosamente
  */
 router.post('/', authenticateToken, upload.single('photo'), registerCheckIn);
+
+/**
+ * @swagger
+ * /api/check-in/today:
+ *   get:
+ *     summary: Obtener el check-in del día actual del usuario
+ *     tags: [Check-ins]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Check-in del día actual
+ *       404:
+ *         description: No se encontró un check-in para el día de hoy
+ */
+router.get('/today', authenticateToken, getTodayCheckIn);
 
 /**
  * @swagger
