@@ -10,7 +10,6 @@ import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
 import { updateUserLocation, registerCheckIn, fetchRecentCheckIns, apiClient, getAuthHeaders, fetchUserById } from "@/services/dashboardService";
-import { updateUserLocation, registerCheckIn, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
