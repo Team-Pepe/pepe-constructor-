@@ -22,7 +22,8 @@ function UserEditModal({ user, onClose, onSave }) {
         email: user.email || "",
         bloodType: user.bloodType || "",
         roleId: user.roleId?.toString() || "2",
-        jobId: user.jobId ? user.jobId.toString() : null // Handle null correctly
+        // Convertir jobId a string incluso si es null
+        jobId: user.job?.id ? user.job.id.toString() : user.jobId?.toString() || ""
       });
     }
   }, [user]);
@@ -36,27 +37,16 @@ function UserEditModal({ user, onClose, onSave }) {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Simplificar el handleSubmit para asegurarnos de que jobId se envíe correctamente
+  // In the handleSubmit function
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Crear una copia del formulario para modificar
-    const formData = {...form};
-    
-    // Convertir roleId a número
-    formData.roleId = Number(formData.roleId);
-    
-    // Convertir jobId a número solo si existe y no está vacío
-    if (formData.jobId && formData.jobId !== "") {
-      formData.jobId = Number(formData.jobId);
-    } else {
-      formData.jobId = null;
-    }
-    
-    // Si no es trabajador, asegurarse de que jobId sea null
-    if (formData.roleId !== 2) {
-      formData.jobId = null;
-    }
+    const formData = {
+      ...form,
+      roleId: Number(form.roleId),
+      // Asegurar conversión numérica incluso si viene de un valor string vacío
+      jobId: form.roleId === "2" && form.jobId ? Number(form.jobId) : null
+    };
     
     console.log("Enviando datos de usuario:", formData);
     onSave(formData);
@@ -152,7 +142,7 @@ function UserEditModal({ user, onClose, onSave }) {
               <div className="space-y-2">
                 <Label htmlFor="jobId">Especialidad</Label>
                 <Select
-                  value={form.jobId || ""}
+                  value={form.jobId}
                   onValueChange={(value) => handleSelectChange("jobId", value)}
                 >
                   <SelectTrigger className="bg-slate-700">

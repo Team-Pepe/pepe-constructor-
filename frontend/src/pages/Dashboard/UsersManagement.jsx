@@ -216,11 +216,12 @@ function UsersManagement() {
                   </td>
                   <td className="px-4 py-3">
                     {user.roleId === 2 ? (
-                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap
-                        ${user.job?.id === 1 ? 'bg-blue-500/20 text-blue-300' :
-                          user.job?.id === 2 ? 'bg-orange-500/20 text-orange-300' :
-                          user.job?.id === 3 ? 'bg-green-500/20 text-green-300' :
-                          ''}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap bg-slate-700/30 backdrop-blur-sm ${  // Fondo traslúcido oscuro
+                        user.job?.id === 1 ? 'text-blue-300' :  // Azul suave
+                        user.job?.id === 2 ? 'text-orange-300' :  // Naranja suave
+                        user.job?.id === 3 ? 'text-green-300' :  // Verde suave
+                        'text-slate-300'  // Color por defecto más claro
+                      }`}>
                         {user.job?.name || "No asignado"}
                       </span>
                     ) : (
