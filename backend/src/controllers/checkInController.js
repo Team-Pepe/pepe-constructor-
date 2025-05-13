@@ -91,6 +91,7 @@ const registerCheckIn = async (req, res) => {
             data: {
                 user_id: userId,
                 zone_id: zoneId,
+                checkInTime: now, // Asegurarnos de que se guarde la fecha actual
                 latitude: latitude,
                 longitude: longitude,
                 photo_url: photoUrl,
@@ -102,37 +103,55 @@ const registerCheckIn = async (req, res) => {
 
         console.log('✅ Check-in registrado exitosamente:', checkIn);
         
-        // Convertir la fecha a horario colombiano (UTC-5)
-        const checkInDate = new Date(checkIn.checkInTime);
-        const checkInTimeCol = checkInDate.toLocaleString('es-CO', {
-            timeZone: 'America/Bogota',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
+        // Formatear la fecha de check-in
+        let check_in_time = null;
+        try {
+            const checkInDate = new Date(now);
+            if (!isNaN(checkInDate.getTime())) {
+                check_in_time = checkInDate.toLocaleString('es-CO', {
+                    timeZone: 'America/Bogota',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            }
+        } catch (error) {
+            console.warn('⚠️ Error al formatear check-in time:', error);
+        }
 
         // Formatear workDate
-        const workDateCol = new Date(checkIn.workDate).toLocaleDateString('es-CO', {
-            timeZone: 'America/Bogota',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
+        let workDateCol = null;
+        try {
+            const workDateObj = new Date(workDate);
+            if (!isNaN(workDateObj.getTime())) {
+                workDateCol = workDateObj.toLocaleDateString('es-CO', {
+                    timeZone: 'America/Bogota',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            }
+        } catch (error) {
+            console.warn('⚠️ Error al formatear workDate:', error);
+        }
 
-        res.status(201).json({
-            id: checkIn.id,
-            userId: checkIn.user_id,
-            zoneId: checkIn.zone_id,
-            checkInTime: checkInTimeCol,
-            checkOutTime: checkIn.checkOutTime,
+        const response = {
+            id: checkIn.id.toString(),
+            userId: checkIn.user_id.toString(),
+            zoneId: checkIn.zone_id?.toString() || null,
+            check_in_time: check_in_time,
+            check_out_time: null,
             workDate: workDateCol,
             photoUrl: checkIn.photo_url,
             status: checkIn.status
-        });
+        };
+
+        console.log('📤 Enviando respuesta:', response);
+        res.status(201).json(response);
     } catch (error) {
         console.error('❌ Error al registrar check-in:', error);
         res.status(500).json({ 
@@ -145,7 +164,7 @@ const registerCheckIn = async (req, res) => {
 const getRecentCheckIns = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        const userId = req.user?.id; // Obtener del token de autenticación
+        const userId = req.user?.id;
 
         if (!userId) {
             return res.status(401).json({
@@ -163,57 +182,65 @@ const getRecentCheckIns = async (req, res) => {
             take: limit,
             orderBy: { 
                 checkInTime: 'desc'
-            },
-            include: {
-                workZone: {
-                    select: { 
-                        id: true,
-                        name: true 
-                    }
-                }
             }
         });
 
-        res.json({
-            checkIns: checkIns.map(checkIn => {
-                const checkInDate = new Date(checkIn.checkInTime);
-                const workDate = new Date(checkIn.workDate);
-                
-                return {
-                    id: checkIn.id,
-                    checkInTime: checkInDate.toLocaleString('es-CO', {
-                        timeZone: 'America/Bogota',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    }),
-                    checkOutTime: checkIn.checkOutTime ? new Date(checkIn.checkOutTime).toLocaleString('es-CO', {
-                        timeZone: 'America/Bogota',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    }) : null,
-                    workDate: workDate.toLocaleDateString('es-CO', {
-                        timeZone: 'America/Bogota',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                    }),
-                    zoneName: checkIn.workZone.name,
-                    photoUrl: checkIn.photo_url,
-                    status: checkIn.status
-                };
-            })
+        const formattedCheckIns = checkIns.map(checkIn => {
+            // Formatear check-in time
+            let check_in_time = null;
+            if (checkIn.checkInTime) {
+                try {
+                    const checkInDate = new Date(checkIn.checkInTime);
+                    if (!isNaN(checkInDate.getTime())) {
+                        check_in_time = checkInDate.toLocaleString('es-CO', {
+                            timeZone: 'America/Bogota',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Error al formatear check-in time:', error);
+                }
+            }
+
+            // Formatear check-out time
+            let check_out_time = null;
+            if (checkIn.checkOutTime) {
+                try {
+                    const checkOutDate = new Date(checkIn.checkOutTime);
+                    if (!isNaN(checkOutDate.getTime())) {
+                        check_out_time = checkOutDate.toLocaleString('es-CO', {
+                            timeZone: 'America/Bogota',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Error al formatear check-out time:', error);
+                }
+            }
+
+            return {
+                id: checkIn.id?.toString(),
+                user_id: checkIn.user_id?.toString(),
+                zone_id: checkIn.zone_id?.toString() || null,
+                check_in_time: check_in_time,
+                check_out_time: check_out_time,
+                status: checkIn.status || 'unknown'
+            };
         });
 
+        res.json(formattedCheckIns);
     } catch (error) {
         console.error('❌ Error al obtener check-ins recientes:', error);
         res.status(500).json({ 
@@ -226,34 +253,25 @@ const getRecentCheckIns = async (req, res) => {
 
 const getTodayCheckIn = async (req, res) => {
     try {
-        const userId = req.user.id;
+        console.log('🔍 Iniciando búsqueda de check-ins del día...');
         
         // Obtener la fecha actual en Colombia (UTC-5)
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        
+        console.log('📅 Rango de fechas:', {
+            startOfDay: startOfDay.toISOString(),
+            endOfDay: endOfDay.toISOString()
+        });
 
-        // Buscar el check-in del día actual
-        const todayCheckIn = await prisma.checkIn.findFirst({
+        // Buscar todos los check-ins del día actual
+        console.log('🔎 Consultando base de datos...');
+        const todayCheckIns = await prisma.checkIn.findMany({
             where: {
-                user_id: userId,
                 workDate: {
                     gte: startOfDay,
                     lt: endOfDay
-                }
-            },
-            include: {
-                user: {
-                    select: {
-                        username: true,
-                        email: true
-                    }
-                },
-                zone: {
-                    select: {
-                        name: true,
-                        description: true
-                    }
                 }
             },
             orderBy: {
@@ -261,49 +279,114 @@ const getTodayCheckIn = async (req, res) => {
             }
         });
 
-        if (!todayCheckIn) {
+        console.log(`📊 Se encontraron ${todayCheckIns.length} check-ins`);
+
+        if (todayCheckIns.length === 0) {
+            console.log('❌ No se encontraron check-ins para el día de hoy');
             return res.status(404).json({
-                message: 'No se encontró un check-in para el día de hoy'
+                message: 'No se encontraron check-ins para el día de hoy'
             });
         }
 
-        // Formatear las fechas a horario colombiano
-        const checkInTimeCol = new Date(todayCheckIn.checkInTime).toLocaleString('es-CO', {
-            timeZone: 'America/Bogota',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
+        // Obtener información de usuarios y zonas
+        const userIds = [...new Set(todayCheckIns.map(checkIn => checkIn.user_id))];
+        const zoneIds = [...new Set(todayCheckIns.map(checkIn => checkIn.zone_id).filter(Boolean))];
+
+        const users = await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+                id: true,
+                username: true,
+                email: true
+            }
         });
 
-        const checkOutTimeCol = todayCheckIn.checkOutTime ? 
-            new Date(todayCheckIn.checkOutTime).toLocaleString('es-CO', {
-                timeZone: 'America/Bogota',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            }) : null;
+        const zones = await prisma.workZone.findMany({
+            where: { id: { in: zoneIds } },
+            select: {
+                id: true,
+                name: true,
+                description: true
+            }
+        });
 
-        res.json([{
-            id: todayCheckIn.id,
-            employee_name: todayCheckIn.user.username,
-            zone_name: todayCheckIn.zone.name,
-            check_in_time: todayCheckIn.checkInTime,
-            check_out_time: todayCheckIn.checkOutTime,
-            status: todayCheckIn.status
-        }]);
+        // Crear mapas para acceso rápido
+        const userMap = new Map(users.map(user => [user.id, user]));
+        const zoneMap = new Map(zones.map(zone => [zone.id, zone]));
+
+        // Formatear las fechas y preparar la respuesta
+        console.log('🕒 Formateando fechas y preparando respuesta...');
+        const formattedCheckIns = todayCheckIns.map(checkIn => {
+            // Formatear check-in time
+            let check_in_time = null;
+            if (checkIn.checkInTime) {
+                try {
+                    const checkInDate = new Date(checkIn.checkInTime);
+                    if (!isNaN(checkInDate.getTime())) {
+                        check_in_time = checkInDate.toLocaleString('es-CO', {
+                            timeZone: 'America/Bogota',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Error al formatear check-in time:', error);
+                }
+            }
+
+            // Formatear check-out time
+            let check_out_time = null;
+            if (checkIn.checkOutTime) {
+                try {
+                    const checkOutDate = new Date(checkIn.checkOutTime);
+                    if (!isNaN(checkOutDate.getTime())) {
+                        check_out_time = checkOutDate.toLocaleString('es-CO', {
+                            timeZone: 'America/Bogota',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Error al formatear check-out time:', error);
+                }
+            }
+
+            const user = userMap.get(checkIn.user_id);
+            const zone = checkIn.zone_id ? zoneMap.get(checkIn.zone_id) : null;
+
+            return {
+                id: checkIn.id?.toString(),
+                user_id: checkIn.user_id?.toString(),
+                zone_id: checkIn.zone_id?.toString() || null,
+                employee_name: user?.username || 'Usuario no encontrado',
+                zone_name: zone?.name || 'Zona no especificada',
+                check_in_time: check_in_time,
+                check_out_time: check_out_time,
+                status: checkIn.status || 'unknown'
+            };
+        });
+
+        console.log('📤 Enviando respuesta con', formattedCheckIns.length, 'check-ins');
+        res.json(formattedCheckIns);
     } catch (error) {
-        console.error('❌ Error al obtener el check-in del día:', error);
+        console.error('❌ Error detallado al obtener los check-ins del día:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+        });
         res.status(500).json({
-            message: 'Error al obtener el check-in del día',
-            error: error.message
+            message: 'Error al obtener los check-ins del día',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno del servidor'
         });
     }
 };
@@ -314,17 +397,74 @@ const registerCheckOut = async (req, res) => {
         if (!checkInId) {
             return res.status(400).json({ message: 'Falta el ID del check-in' });
         }
+
+        console.log('🔄 Registrando check-out para check-in:', checkInId);
+        
         const updatedCheckIn = await prisma.checkIn.update({
-            where: { id: checkInId },
+            where: { id: BigInt(checkInId) }, // Convertir a BigInt para la consulta
             data: {
                 checkOutTime: new Date(),
                 status: 'finished'
             }
         });
-        res.json({
-            message: 'Check-out registrado correctamente',
-            checkIn: updatedCheckIn
-        });
+
+        // Formatear la fecha de check-out
+        let check_out_time = null;
+        if (updatedCheckIn.checkOutTime) {
+            try {
+                const checkOutDate = new Date(updatedCheckIn.checkOutTime);
+                if (!isNaN(checkOutDate.getTime())) {
+                    check_out_time = checkOutDate.toLocaleString('es-CO', {
+                        timeZone: 'America/Bogota',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                }
+            } catch (error) {
+                console.warn('⚠️ Error al formatear check-out time:', error);
+            }
+        }
+
+        // Formatear la fecha de check-in
+        let check_in_time = null;
+        if (updatedCheckIn.checkInTime) {
+            try {
+                const checkInDate = new Date(updatedCheckIn.checkInTime);
+                if (!isNaN(checkInDate.getTime())) {
+                    check_in_time = checkInDate.toLocaleString('es-CO', {
+                        timeZone: 'America/Bogota',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                }
+            } catch (error) {
+                console.warn('⚠️ Error al formatear check-in time:', error);
+            }
+        }
+
+        // Preparar respuesta con todos los BigInt convertidos a string
+        const response = {
+            id: updatedCheckIn.id.toString(),
+            user_id: updatedCheckIn.user_id.toString(),
+            zone_id: updatedCheckIn.zone_id?.toString() || null,
+            check_in_time: check_in_time,
+            check_out_time: check_out_time,
+            status: updatedCheckIn.status,
+            workDate: updatedCheckIn.workDate?.toISOString() || null
+        };
+
+        console.log('✅ Check-out registrado correctamente:', response);
+        res.json(response);
     } catch (error) {
         console.error('❌ Error al registrar check-out:', error);
         res.status(500).json({

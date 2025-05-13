@@ -4,16 +4,13 @@ import Inventario from "./inventario";
 import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { EmployeeCard } from "../Dashboard/components";
 import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 import { useAuth } from "@/features/auth";
-import { updateUserLocation, registerCheckIn, fetchRecentCheckIns, apiClient, getAuthHeaders, fetchUserById } from "@/services/dashboardService";
+import { updateUserLocation, registerCheckIn, fetchRecentCheckIns, fetchUserById, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
-import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
-import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
@@ -35,18 +32,25 @@ export function DashboardEmpleados() {
   const [checkins, setCheckins] = useState([]);
   const [loadingCheckins, setLoadingCheckins] = useState(false);
 
-
-  // Verificar si es un trabajador específico que puede solicitar materiales (rol 3)
-  const userRoleId = Number(roleId);
-  const canRequestMaterials = userRoleId === 3;
+  // Estado para determinar si el usuario puede solicitar materiales
+  const [canRequestMaterials, setCanRequestMaterials] = useState(false);
   
-  console.log("Dashboard empleados - Rol del usuario:", userRoleId, "- Puede solicitar materiales:", canRequestMaterials);
+  // useEffect para verificar si es un trabajador específico que puede solicitar materiales (rol 3)
+  useEffect(() => {
+    const userRoleId = Number(roleId);
+    const canRequest = userRoleId === 3;
+    setCanRequestMaterials(canRequest);
+    console.log("Dashboard empleados - Rol del usuario:", userRoleId, "- Puede solicitar materiales:", canRequest);
+  }, [roleId]);
 
   // Estados para el modal de ubicación
   const [showLocationModal, setShowLocationModal] = useState(true);
   const [locationStatus, setLocationStatus] = useState(null);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+
+  // Estado para filtro de zona
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState("");
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
@@ -251,15 +255,15 @@ export function DashboardEmpleados() {
 
   const loadRecentCheckIns = async () => {
     try {
-      setLoadingCheckIns(true);
+      setLoadingCheckins(true);
       const result = await fetchRecentCheckIns();
       if (result.success) {
-        setRecentCheckIns(result.checkIns);
+        setCheckins(result.checkIns);
       }
     } catch (error) {
       console.error('Error al cargar check-ins recientes:', error);
     } finally {
-      setLoadingCheckIns(false);
+      setLoadingCheckins(false);
     }
   };
 
@@ -520,7 +524,7 @@ export function DashboardEmpleados() {
 
   // Función para cargar los checkins del día (solo para jefes de obra)
   const loadCheckins = async () => {
-    if (userRoleId !== 3) return;
+    if (!canRequestMaterials) return;
     
     try {
       setLoadingCheckins(true);
@@ -535,10 +539,10 @@ export function DashboardEmpleados() {
 
   // Cargar checkins cuando se monta el componente si es jefe de obra
   useEffect(() => {
-    if (userRoleId === 3) {
+    if (canRequestMaterials) {
       loadCheckins();
     }
-  }, [userRoleId]);
+  }, [canRequestMaterials]);
 
   // Función para hacer checkout a un trabajador
   const handleCheckout = async (checkInId) => {
@@ -551,9 +555,34 @@ export function DashboardEmpleados() {
     }
   };
 
+  // Agrupar checkins por zona
+  const checkinsPorZona = checkins.reduce((acc, checkin) => {
+    const zona = checkin.zone_name || "Sin zona";
+    if (!acc[zona]) acc[zona] = [];
+    acc[zona].push(checkin);
+    return acc;
+  }, {});
+
+  const [zonasDisponiblesMap, setZonasDisponiblesMap] = useState({});
+  
+  // Cargar las zonas disponibles para mapear ID -> nombre
+  useEffect(() => {
+    // Usar las zonas que ya tenemos cargadas en savedZones
+    const mapaZonas = {};
+    savedZones.forEach(zona => {
+      mapaZonas[zona.id] = zona.name;
+    });
+    setZonasDisponiblesMap(mapaZonas);
+  }, [savedZones]);
+
   // Renderizar la sección de checkouts para jefes de obra
   const renderCheckouts = () => {
-    if (userRoleId !== 3) return null;
+    if (!canRequestMaterials) return null;
+
+    // Obtener todas las zonas únicas
+    const zonasUnicas = Object.keys(checkinsPorZona);
+    // Filtrar zonas si hay filtro
+    const zonasAMostrar = selectedZoneFilter ? [selectedZoneFilter] : zonasUnicas;
 
     return (
       <Card className="col-span-3">
@@ -564,61 +593,84 @@ export function DashboardEmpleados() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left p-2">Empleado</th>
-                  <th className="text-left p-2">Zona</th>
-                  <th className="text-left p-2">Hora de Check-in</th>
-                  <th className="text-left p-2">Estado</th>
-                  <th className="text-left p-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingCheckins ? (
-                  <tr>
-                    <td colSpan="5" className="text-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    </td>
-                  </tr>
-                ) : checkins.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center p-4 text-slate-400">
-                      No hay check-ins activos para el día de hoy
-                    </td>
-                  </tr>
-                ) : (
-                  checkins.map((checkin) => (
-                    <tr key={checkin.id} className="border-b border-slate-800">
-                      <td className="p-2">{checkin.employee_name}</td>
-                      <td className="p-2">{checkin.zone_name}</td>
-                      <td className="p-2">{new Date(checkin.check_in_time).toLocaleTimeString()}</td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded text-sm ${
-                          !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                        }`}>
-                          {!checkin.check_out_time ? 'Activo' : 'Terminado'}
-                        </span>
-                      </td>
-                      <td className="p-2">
-                        {!checkin.check_out_time && (
-                          <Button
-                            onClick={() => handleCheckout(checkin.id)}
-                            size="sm"
-                            className="bg-orange-500 hover:bg-orange-600"
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Check-out
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="mb-4 flex items-center gap-4">
+            <label className="font-medium">Filtrar por zona:</label>
+            <select
+              value={selectedZoneFilter}
+              onChange={e => setSelectedZoneFilter(e.target.value)}
+              className="p-2 border rounded"
+            >
+              <option value="">Todas</option>
+              {zonasUnicas.map(zona => (
+                <option key={zona} value={zona}>{zona}</option>
+              ))}
+            </select>
           </div>
+          {zonasAMostrar.map(zona => (
+            <div key={zona} className="mb-8">
+              <h3 className="font-bold text-lg mb-2">Zona: {zona}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left p-2">Empleado</th>
+                      <th className="text-left p-2">Zona</th>
+                      <th className="text-left p-2">Hora de Check-in</th>
+                      <th className="text-left p-2">Estado</th>
+                      <th className="text-left p-2">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingCheckins ? (
+                      <tr>
+                        <td colSpan="5" className="text-center p-4">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        </td>
+                      </tr>
+                    ) : checkinsPorZona[zona]?.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center p-4 text-slate-400">
+                          No hay check-ins activos para esta zona
+                        </td>
+                      </tr>
+                    ) : (
+                      checkinsPorZona[zona].map((checkin) => (
+                        <tr key={checkin.id} className="border-b border-slate-800">
+                          <td className="p-2">{checkin.employee_name}</td>
+                          <td className="p-2">
+                            {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
+                              ? checkin.zone_name 
+                              : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || '-')
+                            }
+                          </td>
+                          <td className="p-2">{checkin.check_in_time}</td>
+                          <td className="p-2">
+                            <span className={`px-2 py-1 rounded text-sm ${
+                              !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {!checkin.check_out_time && (
+                              <Button
+                                onClick={() => handleCheckout(checkin.id)}
+                                size="sm"
+                                className="bg-orange-500 hover:bg-orange-600"
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Check-out
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
@@ -630,43 +682,180 @@ export function DashboardEmpleados() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-      if (!user?.id) return;
-      setLoading(true);
-      axios.get(`/api/geo/user/${user.id}/attendance`)
-        .then(res => setAsistencias(res.data.data || []))
-        .finally(() => setLoading(false));
-    }, [user?.id]);
+      const cargarAsistencias = async () => {
+        if (!user?.id) return;
+        
+        try {
+          setLoading(true);
+          // Aumentamos el límite para obtener más registros históricos
+          const result = await fetchRecentCheckIns(100);
+          
+          if (result.success && result.checkIns) {
+            console.log("Todos los check-ins recibidos:", result.checkIns);
+            console.log("ID de usuario actual:", user.id, "Nombre de usuario:", user.username);
+            
+            // Filtrar solo los check-ins del usuario actual
+            // Intentamos con diferentes formatos de ID (string, number)
+            const misCheckIns = result.checkIns.filter(checkin => {
+              const matchId = checkin.employee_id === user.id || 
+                             checkin.employee_id === parseInt(user.id) || 
+                             checkin.employee_id === String(user.id);
+              
+              const matchName = checkin.employee_name === user.username || 
+                               checkin.employee_name === user.name;
+              
+              return matchId || matchName;
+            }).map(checkin => {
+              // Intentar encontrar el nombre de zona real usando el mapa de zonas
+              let zoneId = checkin.zone_id;
+              if (!zoneId && checkin.zone && checkin.zone.id) {
+                zoneId = checkin.zone.id;
+              }
+
+              // Si tenemos un ID y existe en nuestro mapa, usar el nombre real
+              if (zoneId && zonasDisponiblesMap[zoneId]) {
+                return {
+                  ...checkin,
+                  zone_name: zonasDisponiblesMap[zoneId]
+                };
+              }
+
+              return checkin;
+            });
+            
+            console.log("Check-ins filtrados para el usuario:", misCheckIns);
+            setAsistencias(misCheckIns);
+          } else {
+            console.log("No se recibieron check-ins o hubo un error:", result);
+            setAsistencias([]);
+          }
+        } catch (error) {
+          console.error("Error al cargar asistencias:", error);
+          setAsistencias([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      cargarAsistencias();
+    }, [user?.id, user?.username, user?.name, zonasDisponiblesMap]);
+
+    // Función para formatear fechas de manera segura
+    const formatearFecha = (fechaStr) => {
+      if (!fechaStr) return "-";
+      
+      try {
+        // Si la fecha ya parece estar formateada como DD/MM/YYYY, la devolvemos directamente
+        if (typeof fechaStr === 'string' && fechaStr.includes('/')) {
+          // Si tiene formato DD/MM/YYYY, devolver solo la parte de la fecha
+          if (fechaStr.includes(',')) {
+            return fechaStr.split(',')[0].trim();
+          }
+          return fechaStr;
+        }
+        
+        // Si no, intentamos parsear la fecha ISO
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+          console.log("Fecha inválida:", fechaStr);
+          return "-"; // Si la fecha no es válida
+        }
+        return fecha.toLocaleDateString();
+      } catch (error) {
+        console.error("Error al formatear fecha:", fechaStr, error);
+        return "-";
+      }
+    };
+
+    // Función para formatear horas de manera segura
+    const formatearHora = (fechaStr) => {
+      if (!fechaStr) return "-";
+      
+      try {
+        // Si la fecha ya parece estar formateada como DD/MM/YYYY, HH:MM:SS, extraemos la hora
+        if (typeof fechaStr === 'string' && fechaStr.includes('/') && fechaStr.includes(',')) {
+          const partes = fechaStr.split(',');
+          if (partes.length > 1) {
+            const horaParte = partes[1].trim();
+            // Si tiene formato HH:MM:SS, devolver solo HH:MM
+            const horaMinutos = horaParte.split(':');
+            if (horaMinutos.length >= 2) {
+              return `${horaMinutos[0]}:${horaMinutos[1]}`;
+            }
+            return horaParte;
+          }
+        }
+        
+        // Si no, intentamos parsear la fecha ISO
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+          console.log("Hora inválida:", fechaStr);
+          return "-"; // Si la fecha no es válida
+        }
+        return fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      } catch (error) {
+        console.error("Error al formatear hora:", fechaStr, error);
+        return "-";
+      }
+    };
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fadeIn"
+        className="max-w-4xl mx-auto mt-10 bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-lg p-8 animate-fadeIn border border-slate-700/50"
       >
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Mi Asistencia</h2>
+        <h2 className="text-2xl font-bold mb-6 text-white text-center flex items-center justify-center">
+          <Calendar className="mr-2 h-6 w-6 text-orange-400" />
+          Mi Historial de Asistencia
+        </h2>
+        
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <Loader2 className="animate-spin h-8 w-8 text-orange-500" />
           </div>
         ) : asistencias.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">No hay registros de asistencia.</div>
+          <div className="text-center text-slate-400 py-8 bg-slate-900/30 rounded-lg border border-slate-700/30">
+            No hay registros de asistencia disponibles.
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white rounded-lg shadow border">
+            <table className="w-full bg-slate-900/30 rounded-lg shadow border border-slate-700/30">
               <thead>
-                <tr>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Fecha</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Check-in</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700">Check-out</th>
+                <tr className="border-b border-slate-700">
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Fecha</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Zona</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Check-in</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Check-out</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {asistencias.map(a => (
-                  <tr key={a.id} className="border-t hover:bg-orange-50 transition">
-                    <td className="py-2 px-4">{a.checkIn ? new Date(a.checkIn).toLocaleDateString() : '-'}</td>
-                    <td className="py-2 px-4">{a.checkIn ? new Date(a.checkIn).toLocaleTimeString() : '-'}</td>
-                    <td className="py-2 px-4">{a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : '-'}</td>
+                {asistencias.map(asistencia => (
+                  <tr key={asistencia.id} className="border-t border-slate-800 hover:bg-slate-800/50 transition">
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearFecha(asistencia.check_in_time)}
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {(asistencia.zone_name && !asistencia.zone_name.startsWith('Zona ')) 
+                        ? asistencia.zone_name 
+                        : asistencia.zoneName || asistencia.zone?.name || '-'
+                      }
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearHora(asistencia.check_in_time)}
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearHora(asistencia.check_out_time)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        !asistencia.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                      }`}>
+                        {!asistencia.check_out_time ? 'Activo' : 'Completado'}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1176,7 +1365,7 @@ export function DashboardEmpleados() {
             </div>
 
             {/* Sección de checkouts para jefes de obra */}
-            {userRoleId === 3 && (
+            {canRequestMaterials && (
               <div className="mt-8">
                 {renderCheckouts()}
               </div>

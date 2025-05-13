@@ -296,7 +296,7 @@ export default function Dashboard() {
                                 value={workers?.length || '0'}
                                 icon={Users}
                                 color="purple"
-                                detail={`${attendance.filter(a => a.status === 'PRESENT').length} presentes`}
+                                detail={`${Array.isArray(attendance) ? attendance.filter(a => a.status === 'PRESENT').length : 0} presentes`}
                             />
                             <MetricCard
                                 title="Tareas"

@@ -18,6 +18,7 @@ const API_ENDPOINTS = {
   MATERIAL_ZONE: '/api/material-assignments',
   MATERIAL_REQUESTS: '/api/material-assignments/request',
   MATERIAL_REQUESTS_ALL: '/api/material-assignments/requests',
+  CHECK_INS_RECENT: '/api/check-in/recent',
 };
 
 export const apiClient = axios.create({
@@ -463,13 +464,42 @@ export const registerCheckIn = async (data) => {
   }
 };
 
-export const fetchRecentCheckIns = async (limit = 5) => {
+export const fetchRecentCheckIns = async (limit = 20) => {
   try {
     const response = await apiClient.get(`${API_ENDPOINTS.CHECK_INS_RECENT}?limit=${limit}`, {
       headers: getAuthHeaders()
     });
+    
+    console.log('Datos recibidos de check-ins:', response.data);
+    
+    // Asegurarnos de que los datos tienen el formato correcto
+    const formattedCheckIns = Array.isArray(response.data) ? response.data.map(checkin => {
+      // Intentamos encontrar el nombre de la zona desde varias posibles propiedades
+      let zoneName = checkin.zone_name || checkin.zoneName;
+      
+      // Si hay un objeto zone, intentamos obtener el nombre de ahí
+      if (!zoneName && checkin.zone && typeof checkin.zone === 'object') {
+        zoneName = checkin.zone.name || checkin.zone.nombre;
+      }
+      
+      // Si hay un ID de zona pero no nombre, usamos un valor por defecto
+      if (!zoneName && (checkin.zone_id || checkin.zoneId)) {
+        zoneName = `Zona ${checkin.zone_id || checkin.zoneId}`;
+      }
+      
+      return {
+        ...checkin,
+        // Asegurarnos de que las fechas tienen el formato correcto
+        check_in_time: checkin.check_in_time || checkin.checkInTime,
+        check_out_time: checkin.check_out_time || checkin.checkOutTime,
+        employee_id: checkin.employee_id || checkin.employeeId,
+        employee_name: checkin.employee_name || checkin.employeeName,
+        zone_name: zoneName || 'Sin asignar'
+      };
+    }) : [];
+    
     return {
-      checkIns: response.data || [],
+      checkIns: formattedCheckIns,
       success: true
     };
   } catch (error) {
