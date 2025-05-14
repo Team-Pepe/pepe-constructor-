@@ -35,6 +35,29 @@ export function DashboardEmpleados() {
   // Estado para determinar si el usuario puede solicitar materiales
   const [canRequestMaterials, setCanRequestMaterials] = useState(false);
   
+  // Add the missing renderUserCard function
+  const renderUserCard = () => {
+    if (!user) return null;
+    
+    return (
+      <div className="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 text-xl font-bold mb-3">
+            {user.username ? user.username.charAt(0).toUpperCase() : "U"}
+          </div>
+          <h3 className="font-bold text-gray-800">{user.username || user.name || "Usuario"}</h3>
+          {user.jobId && <p className="text-sm text-gray-500 mt-1">ID: {user.jobId}</p>}
+          {user.bloodType && <p className="text-xs text-gray-600 mt-1">Tipo de sangre: {user.bloodType}</p>}
+          <div className="mt-2 w-full">
+            <span className="inline-block bg-orange-50 text-orange-700 text-xs px-2 py-1 rounded-full border border-orange-200 w-full">
+              {roleId === 3 ? 'Jefe de Obra' : roleId === 2 ? 'Supervisor' : 'Trabajador'}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
   // useEffect para verificar si es un trabajador específico que puede solicitar materiales (rol 3)
   useEffect(() => {
     const userRoleId = Number(roleId);
