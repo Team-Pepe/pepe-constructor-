@@ -28,20 +28,16 @@ export function MaterialRequestsCard({ onRefresh }) {
       setLoading(true);
       console.log("Cargando solicitudes de materiales pendientes...");
       const response = await fetchMaterialRequests("pending");
-      console.log("Solicitudes cargadas:", response.data);
+      console.log("Solicitudes cargadas:", response);
       
-      // Asegurarse de que los datos son un array
-      if (response.data && Array.isArray(response.data)) {
-        setRequests(response.data);
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        // A veces la API puede devolver los datos dentro de un objeto 'data'
-        setRequests(response.data.data);
+      if (response.success) {
+        setRequests(response.data || []);
       } else {
-        console.error("Error: Los datos recibidos no son un array", response.data);
+        console.error("Error al cargar solicitudes:", response.error);
         setRequests([]);
       }
     } catch (error) {
-      console.error("Error al cargar solicitudes de materiales:", error);
+      console.error("Error inesperado al cargar solicitudes de materiales:", error);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -57,7 +53,8 @@ export function MaterialRequestsCard({ onRefresh }) {
   const handleUpdateStatus = async (requestId, status) => {
     try {
       setLoading(true);
-      await updateMaterialRequestStatus(requestId, status, "");
+      const response = await updateMaterialRequestStatus(requestId, status, "");
+      console.log(`Solicitud ${requestId} actualizada a "${status}"`, response);
       
       // Refresh the list
       await loadRequests();

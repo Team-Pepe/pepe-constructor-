@@ -78,6 +78,22 @@ function SolicitarMateriales() {
         return;
       }
       
+      // Validation checks
+      if (!formData.material.trim()) {
+        setError("El nombre del material es requerido.");
+        return;
+      }
+      
+      if (!formData.zoneId) {
+        setError("La zona de trabajo es requerida.");
+        return;
+      }
+      
+      if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
+        setError("La cantidad debe ser mayor a cero.");
+        return;
+      }
+      
       // Preparar los datos para la solicitud
       const requestData = {
         user_id: userId,
@@ -90,7 +106,9 @@ function SolicitarMateriales() {
       console.log("Enviando solicitud de materiales:", requestData);
       
       // Enviar la solicitud al backend
-      await createMaterialRequest(requestData);
+      const response = await createMaterialRequest(requestData);
+      
+      console.log("Respuesta del servidor:", response);
       
       // Mostrar mensaje de éxito
       setSuccess(true);
@@ -102,7 +120,22 @@ function SolicitarMateriales() {
       
     } catch (err) {
       console.error("Error al enviar solicitud:", err);
-      setError("Error al enviar la solicitud de materiales. Por favor, intenta nuevamente.");
+      let errorMessage = "Error al enviar la solicitud de materiales. ";
+      
+      // Check for specific API errors
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage += err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage += err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage += err.response.data.error;
+        }
+      } else {
+        errorMessage += "Por favor, intenta nuevamente.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

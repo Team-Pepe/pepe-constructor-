@@ -287,8 +287,15 @@ export const fetchAllDashboardData = async () => {
     const fetchSafely = async (apiCall, dataKey) => {
       try {
         const response = await apiCall();
-        console.log(`API ${dataKey} completada correctamente:`, response.status);
-        return response.data;
+        console.log(`API ${dataKey} completada correctamente:`, response.status || 'sin status');
+        
+        // Specifically handle the new material requests response format
+        if (dataKey === 'materialRequests' && response && response.data !== undefined) {
+          return response.data; // Return the data property directly
+        }
+        
+        // For other responses, try to return data or the whole response
+        return response && response.data !== undefined ? response.data : response;
       } catch (error) {
         console.error(`Error en API ${dataKey}:`, error);
         return null;
@@ -715,24 +722,19 @@ export default apiClient;
 // Material Request operations
 export const createMaterialRequest = async (data) => {
   try {
-    // Asegurarse de que los datos numéricos sean números
-    if (typeof data.user_id === 'string') {
-      data.user_id = parseInt(data.user_id);
-    }
+    // Validate required fields
+    if (!data.user_id) throw new Error('user_id is required');
+    if (!data.zone_id) throw new Error('zone_id is required');
+    if (!data.material) throw new Error('material is required');
+    if (!data.quantity_requested) throw new Error('quantity_requested is required');
     
-    if (typeof data.zone_id === 'string') {
-      data.zone_id = parseInt(data.zone_id);
-    }
-    
-    if (typeof data.quantity_requested === 'string') {
-      data.quantity_requested = parseFloat(data.quantity_requested);
-    }
-    
-    // Datos en el formato correcto para el backend
+    // Safely convert values to appropriate types
     const requestData = {
-      user_id: data.user_id,
-      zone_id: data.zone_id,
-      quantity_requested: data.quantity_requested,
+      user_id: typeof data.user_id === 'string' ? parseInt(data.user_id, 10) : data.user_id,
+      zone_id: typeof data.zone_id === 'string' ? parseInt(data.zone_id, 10) : data.zone_id,
+      quantity_requested: typeof data.quantity_requested === 'string' 
+        ? parseFloat(data.quantity_requested) 
+        : data.quantity_requested,
       message: data.message || "",
       material: data.material || "",
       status: "pending"
@@ -740,9 +742,12 @@ export const createMaterialRequest = async (data) => {
     
     console.log("Enviando solicitud de materiales:", requestData);
     
-    return await apiClient.post(API_ENDPOINTS.MATERIAL_REQUESTS, requestData, { 
+    const response = await apiClient.post(API_ENDPOINTS.MATERIAL_REQUESTS, requestData, { 
       headers: getAuthHeaders() 
     });
+    
+    console.log("Respuesta exitosa de solicitud de materiales:", response.data);
+    return response;
   } catch (error) {
     console.error("Error al crear solicitud de materiales:", error);
     if (error.response) {
@@ -766,7 +771,37 @@ export const fetchMaterialRequests = async (status = null) => {
     });
     
     console.log("Respuesta de API de solicitudes de materiales:", response);
-    return response;
+    
+    // Normalize response data to ensure it's in a consistent format
+    let requestsData = [];
+    
+    if (Array.isArray(response.data)) {
+      requestsData = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // Check if data is nested in a property
+      for (const key in response.data) {
+        if (Array.isArray(response.data[key])) {
+          console.log(`Encontrados datos de solicitudes en propiedad '${key}'`);
+          requestsData = response.data[key];
+          break;
+        }
+      }
+      
+      // If we didn't find an array in a nested property, try to use data itself
+      if (requestsData.length === 0 && Object.keys(response.data).length > 0) {
+        console.log("Usando response.data directamente");
+        requestsData = [response.data];
+      }
+    }
+    
+    console.log(`Procesadas ${requestsData.length} solicitudes de materiales`);
+    
+    // Return a consistent response format
+    return {
+      data: requestsData,
+      success: true,
+      original: response
+    };
   } catch (error) {
     console.error("Error al recuperar solicitudes de materiales:", error);
     if (error.response) {
@@ -775,7 +810,13 @@ export const fetchMaterialRequests = async (status = null) => {
         data: error.response.data
       });
     }
-    throw error;
+    
+    // Return an empty array with success=false instead of throwing
+    return {
+      data: [],
+      success: false,
+      error: error.message
+    };
   }
 };
 

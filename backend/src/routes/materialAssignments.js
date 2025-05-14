@@ -569,10 +569,22 @@ router.post('/request', async (req, res) => {
       data
     });
 
+    // Convertir BigInt a string antes de enviar
+    const safeResponse = {
+      id: materialRequest.id?.toString(),
+      user_id: materialRequest.user_id?.toString(),
+      zone_id: materialRequest.zone_id?.toString() || null,
+      message: materialRequest.message,
+      quantity_requested: materialRequest.quantity_requested,
+      material: materialRequest.material,
+      status: materialRequest.status,
+      created_at: materialRequest.created_at
+    };
+
     res.status(201).json({
       status: 'success',
       message: 'Solicitud de material creada correctamente',
-      data: materialRequest
+      data: safeResponse
     });
   } catch (error) {
     console.error('Error al crear solicitud de material:', error);
@@ -658,26 +670,52 @@ router.get('/requests', async (req, res) => {
       filter.status = status;
     }
     
-    // Obtener solicitudes de material
+    // Obtener solicitudes de material sin incluir relaciones
     const materialRequests = await prisma.MaterialRequest.findMany({
       where: filter,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            username: true
-          }
-        }
-      },
       orderBy: {
         created_at: 'desc'
       }
     });
+    
+    // Obtener usuarios para las solicitudes
+    const userIds = [...new Set(materialRequests.map(req => req.user_id).filter(Boolean))];
+    const users = userIds.length > 0 ? await prisma.User.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        email: true,
+        username: true
+      }
+    }) : [];
+    
+    // Crear mapa de usuarios para búsqueda rápida
+    const userMap = new Map(users.map(user => [user.id, user]));
+
+    // Convertir BigInt a string antes de enviar y añadir usuario manualmente
+    const safeRequests = materialRequests.map(request => {
+      const userData = request.user_id ? userMap.get(request.user_id) : null;
+      
+      return {
+        id: request.id?.toString(),
+        user_id: request.user_id?.toString() || null,
+        zone_id: request.zone_id?.toString() || null,
+        message: request.message,
+        quantity_requested: request.quantity_requested,
+        material: request.material,
+        status: request.status,
+        created_at: request.created_at,
+        user: userData ? {
+          id: userData.id?.toString(),
+          email: userData.email,
+          username: userData.username
+        } : null
+      };
+    });
 
     res.json({
       status: 'success',
-      data: materialRequests
+      data: safeRequests
     });
   } catch (error) {
     console.error('Error al obtener solicitudes de material:', error);
@@ -817,10 +855,22 @@ router.patch('/request/:id/status', async (req, res) => {
       data: updateData
     });
 
+    // Convertir BigInt a string antes de enviar
+    const safeResponse = {
+      id: updatedRequest.id?.toString(),
+      user_id: updatedRequest.user_id?.toString(),
+      zone_id: updatedRequest.zone_id?.toString() || null,
+      message: updatedRequest.message,
+      quantity_requested: updatedRequest.quantity_requested,
+      material: updatedRequest.material,
+      status: updatedRequest.status,
+      created_at: updatedRequest.created_at
+    };
+
     res.json({
       status: 'success',
       message: 'Estado de la solicitud actualizado correctamente',
-      data: updatedRequest
+      data: safeResponse
     });
   } catch (error) {
     console.error('Error al actualizar estado de solicitud:', error);

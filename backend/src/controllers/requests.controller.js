@@ -11,25 +11,52 @@ exports.getAllRequests = async (req, res) => {
       filter.status = status;
     }
     
+    // Obtener solicitudes sin incluir user
     const requests = await prisma.MaterialRequest.findMany({
       where: filter,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            username: true
-          }
-        }
-      },
       orderBy: {
         created_at: 'desc'
       }
     });
     
+    // Obtener usuarios relacionados
+    const userIds = [...new Set(requests.map(req => req.user_id).filter(Boolean))];
+    const users = userIds.length > 0 ? await prisma.User.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        email: true,
+        username: true
+      }
+    }) : [];
+    
+    // Crear mapa de usuarios para búsqueda rápida
+    const userMap = new Map(users.map(user => [user.id, user]));
+
+    // Convertir BigInt a string y agregar información de usuario
+    const safeRequests = requests.map(request => {
+      const userData = request.user_id ? userMap.get(request.user_id) : null;
+      
+      return {
+        id: request.id?.toString(),
+        user_id: request.user_id?.toString() || null,
+        zone_id: request.zone_id?.toString() || null,
+        message: request.message,
+        quantity_requested: request.quantity_requested,
+        material: request.material,
+        status: request.status,
+        created_at: request.created_at,
+        user: userData ? {
+          id: userData.id?.toString(),
+          email: userData.email,
+          username: userData.username
+        } : null
+      };
+    });
+    
     res.json({
       status: 'success',
-      data: requests
+      data: safeRequests
     });
   } catch (error) {
     console.error('Error al obtener solicitudes:', error);

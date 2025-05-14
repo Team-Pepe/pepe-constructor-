@@ -194,21 +194,18 @@ router.get('/recent-activities', async (req, res) => {
             }
         });
         
-        // Obtener solicitudes de materiales
+        // Obtener solicitudes de materiales sin incluir users
         const requests = await prisma.materialRequest.findMany({
             take: 2,
             orderBy: {
                 created_at: 'desc'
-            },
-            include: {
-                user: true
             }
         });
         
-        // Obtener usuarios relacionados
+        // Obtener usuarios relacionados (de tareas y solicitudes)
         const userIds = [
-            ...tasks.map(task => task.assignedTo)
-            // Ya no necesitamos extraer userIds de requests porque ya incluimos los usuarios
+            ...tasks.map(task => task.assignedTo),
+            ...requests.map(request => request.user_id).filter(Boolean)
         ];
         
         // Solo seleccionamos los campos que existen
@@ -241,9 +238,9 @@ router.get('/recent-activities', async (req, res) => {
                 location: task.workZone?.name || 'Zona de trabajo'
             })),
             ...requests.map(request => ({
-                id: `request-${request.id}`,
+                id: `request-${request.id?.toString()}`,
                 title: 'Solicitud de Material',
-                description: `${request.user?.username || 'Usuario'} solicitó ${request.quantity_requested} unidades de ${request.material}`,
+                description: `${userMap[request.user_id]?.username || 'Usuario'} solicitó ${request.quantity_requested} unidades de ${request.material}`,
                 time: request.created_at ? new Date(request.created_at).toLocaleString() : 'Fecha desconocida',
                 location: 'Almacén'
             }))
@@ -266,29 +263,42 @@ router.get('/recent-activities', async (req, res) => {
 // Obtener solicitudes de materiales recientes
 router.get('/material-requests', async (req, res) => {
     try {
+        // Obtener solicitudes sin incluir user
         const materialRequests = await prisma.materialRequest.findMany({
             take: 10, // Mostrar las 10 solicitudes más recientes
             orderBy: {
                 created_at: 'desc'
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                }
             }
         });
 
+        // Obtener usuarios relacionados
+        const userIds = [...new Set(materialRequests.map(req => req.user_id).filter(Boolean))];
+        const users = await prisma.user.findMany({
+            where: {
+                id: {
+                    in: userIds
+                }
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true
+            }
+        });
+
+        // Crear mapa de usuarios
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user.id] = user;
+        });
+
         const formattedRequests = materialRequests.map(request => ({
-            id: request.id,
+            id: request.id?.toString(),
             material: request.material,
             quantity: request.quantity_requested,
             status: request.status,
             date: request.created_at ? new Date(request.created_at).toLocaleString() : 'Fecha desconocida',
-            user: request.user?.username || request.user?.email || 'Usuario desconocido',
+            user: userMap[request.user_id]?.username || userMap[request.user_id]?.email || 'Usuario desconocido',
             message: request.message || 'Sin mensaje'
         }));
 
