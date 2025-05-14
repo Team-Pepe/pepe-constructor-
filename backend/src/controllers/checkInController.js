@@ -163,27 +163,40 @@ const registerCheckIn = async (req, res) => {
 
 const getRecentCheckIns = async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 5;
-        const userId = req.user?.id;
+        console.log('🚨 EJECUTANDO: getRecentCheckIns() - TRAYENDO CHECK-INS DE TODOS LOS EMPLEADOS 🚨');
 
-        if (!userId) {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Usuario no autenticado'
-            });
-        }
+        // Ya no filtramos por usuario, traemos todos los check-ins
+        console.log('🔍 getRecentCheckIns: Buscando check-ins de TODOS los empleados');
 
-        console.log('🔍 Buscando check-ins recientes:', { userId, limit });
-
-        const checkIns = await prisma.CheckIn.findMany({
-            where: { 
-                user_id: userId
-            },
-            take: limit,
+        // Obtener check-ins sin relaciones
+        const checkIns = await prisma.checkIn.findMany({
             orderBy: { 
                 checkInTime: 'desc'
             }
         });
+
+        console.log(`📊 getRecentCheckIns: Encontrados ${checkIns.length} check-ins totales`);
+
+        // Obtener ids únicos de usuarios y zonas
+        const userIds = [...new Set(checkIns.map(checkIn => checkIn.user_id))];
+        const zoneIds = [...new Set(checkIns.map(checkIn => checkIn.zone_id).filter(Boolean))];
+
+        console.log('🔄 getRecentCheckIns: Consultando información de usuarios y zonas');
+
+        // Obtener información de usuarios y zonas en consultas separadas
+        const users = await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, username: true }
+        });
+
+        const zones = await prisma.workZone.findMany({
+            where: { id: { in: zoneIds } },
+            select: { id: true, name: true }
+        });
+
+        // Crear mapas para acceso rápido
+        const userMap = new Map(users.map(user => [user.id, user]));
+        const zoneMap = new Map(zones.map(zone => [zone.id, zone]));
 
         const formattedCheckIns = checkIns.map(checkIn => {
             // Formatear check-in time
@@ -230,22 +243,48 @@ const getRecentCheckIns = async (req, res) => {
                 }
             }
 
+            // Preparar fecha para mostrar solo DD/MM/YYYY
+            let fecha = null;
+            if (checkIn.checkInTime) {
+                try {
+                    const checkInDate = new Date(checkIn.checkInTime);
+                    if (!isNaN(checkInDate.getTime())) {
+                        fecha = checkInDate.toLocaleDateString('es-CO', {
+                            timeZone: 'America/Bogota',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Error al formatear fecha:', error);
+                }
+            }
+
+            // Obtener datos de usuario y zona desde los mapas
+            const user = userMap.get(checkIn.user_id);
+            const zone = checkIn.zone_id ? zoneMap.get(checkIn.zone_id) : null;
+
             return {
                 id: checkIn.id?.toString(),
                 user_id: checkIn.user_id?.toString(),
                 zone_id: checkIn.zone_id?.toString() || null,
+                employee_name: user?.username || 'Usuario no encontrado',
+                zone_name: zone?.name || 'Zona no especificada',
                 check_in_time: check_in_time,
                 check_out_time: check_out_time,
+                fecha: fecha,
                 status: checkIn.status || 'unknown'
             };
         });
 
+        console.log('✅ getRecentCheckIns: Enviando respuesta con todos los check-ins:', formattedCheckIns.length);
         res.json(formattedCheckIns);
     } catch (error) {
-        console.error('❌ Error al obtener check-ins recientes:', error);
+        console.error('❌ Error en getRecentCheckIns:', error);
         res.status(500).json({ 
             status: 'error',
-            message: 'Error al obtener check-ins recientes',
+            message: 'Error al obtener check-ins',
             error: error.message 
         });
     }

@@ -16,15 +16,14 @@ model User {
   latitude         Float?
   longitude        Float?
   bloodType        String?
-  jobId            Int?       @map("job_id")
   resetToken       String?
   resetTokenExpiry DateTime?
+  jobId            Int?       @map("job_id")
   receivedMessages Message[]  @relation("ReceiverMessages")
   sentMessages     Message[]  @relation("SenderMessages")
   assignedTasks    Task[]     @relation("AssignedTasks")
-  materialRequests MaterialRequest[]
-  role             Role       @relation(fields: [roleId], references: [id])
   job              Job?       @relation(fields: [jobId], references: [id])
+  role             Role       @relation(fields: [roleId], references: [id])
   supervisedZones  WorkZone[]
 
   @@map("users")
@@ -48,17 +47,16 @@ model Job {
 }
 
 model WorkZone {
-  id                Int               @id @default(autoincrement())
-  name              String            @db.VarChar
-  description       String?
-  supervisorId      Int               @map("supervisor_id")
-  latitud           Float?            @db.Real
-  longitud          Float?            @db.Real
-  materiales        ZonaMaterial[]
-  materialRequests  MaterialRequest[]
-  metrics           Metric[]
-  tasks             Task[]
-  supervisor        User              @relation(fields: [supervisorId], references: [id])
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar
+  description  String?
+  supervisorId Int            @map("supervisor_id")
+  latitud      Float?         @db.Real
+  longitud     Float?         @db.Real
+  materiales   ZonaMaterial[]
+  metrics      Metric[]
+  tasks        Task[]
+  supervisor   User           @relation(fields: [supervisorId], references: [id])
 
   @@map("work_zones")
 }
@@ -135,15 +133,13 @@ model ZonaMaterial {
 
 model MaterialRequest {
   id                 BigInt    @id @default(autoincrement())
-  zone_id            Int       // Cambiado de BigInt a Int para coincidir con WorkZone
+  zone_id            BigInt
   quantity_requested Float?
   message            String?
   status             String?   @db.VarChar
   created_at         DateTime? @db.Timestamp(6)
   user_id            Int?
   material           String?
-  user               User?     @relation(fields: [user_id], references: [id])
-  workZone           WorkZone? @relation(fields: [zone_id], references: [id])
 
   @@map("material_requests")
 }
