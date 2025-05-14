@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MaterialRequestForm } from "@/components/ui/MaterialRequestForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchWorkZones, fetchMaterials, createMaterialRequest } from "@/services/dashboardService";
 import { getCookie } from "@/utils/cookies";
 import { useNavigate } from "react-router-dom";
