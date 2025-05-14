@@ -43,6 +43,7 @@ import { fetchAllDashboardData, updateUserLocation } from "@/services/dashboardS
 import { useAuth } from "@/features/auth";
 import Inventory from "./inventory";
 import UsersManagement from "./UsersManagement";
+import Reports from "./reports"; // Importar el componente de Reportes
 
 export default function Dashboard() {
     const { roleId } = useAuth();
@@ -322,6 +323,8 @@ export default function Dashboard() {
                         <MaterialRequestsCard onRefresh={loadDashboardData} />
                     </div>
                 );
+            case "reportes":
+                return <Reports />;
             case "asistencia":
                 return (
                     <div className="grid gap-6">
@@ -758,4 +761,5 @@ export default function Dashboard() {
             {/* Renderizar el modal de ubicación */}
             {renderLocationModal()}
         </div>
-    );}
+    );
+}
