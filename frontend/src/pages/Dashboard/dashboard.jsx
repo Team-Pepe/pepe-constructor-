@@ -538,41 +538,59 @@ export default function Dashboard() {
                                 <CardContent className="p-6">
                                     <TabsContent value="overview">
                                         <div className="space-y-4">
-                                            {projects.map(project => (
-                                                <WorkProgressCard
-                                                    key={project.id}
-                                                    title={project.title}
-                                                    progress={project.progress}
-                                                    workers={project.workers}
-                                                    tasks={project.tasks}
-                                                />
-                                            ))}
+                                            {projects && projects.length > 0 ? (
+                                                projects.map(project => (
+                                                    <WorkProgressCard
+                                                        key={project.id}
+                                                        title={project.title}
+                                                        progress={project.progress}
+                                                        workers={project.workers}
+                                                        tasks={project.tasks}
+                                                    />
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay proyectos activos
+                                                </div>
+                                            )}
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="attendance">
                                         <div className="space-y-4">
-                                            {attendance.map(record => (
-                                                <AttendanceCard
-                                                    key={record.id}
-                                                    name={record.name}
-                                                    role={record.role}
-                                                    status={record.status}
-                                                    time={record.time}
-                                                />
-                                            ))}
+                                            {attendance && attendance.length > 0 ? (
+                                                attendance.map(record => (
+                                                    <AttendanceCard
+                                                        key={record.id}
+                                                        name={record.name}
+                                                        role={record.role}
+                                                        status={record.status}
+                                                        time={record.time}
+                                                    />
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay registros de asistencia
+                                                </div>
+                                            )}
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="materials">
                                         <div className="space-y-4">
-                                            {materials.map(material => (
-                                                <MaterialCard
-                                                    key={material.id}
-                                                    name={material.name}
-                                                    used={material.used || 0}
-                                                    total={material.quantity}
-                                                    unit={"Unidades"}
-                                                />
-                                            ))}
+                                            {materials && materials.length > 0 ? (
+                                                materials.map(material => (
+                                                    <MaterialCard
+                                                        key={material.id}
+                                                        name={material.name}
+                                                        used={material.used || 0}
+                                                        total={material.quantity}
+                                                        unit={"Unidades"}
+                                                    />
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay materiales disponibles
+                                                </div>
+                                            )}
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="requests">

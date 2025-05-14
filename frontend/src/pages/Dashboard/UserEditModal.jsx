@@ -1,220 +1,180 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiClient, getAuthHeaders } from "@/services/dashboardService";
 
-export default function UserEditModal({ user, onClose, onSave, users }) {
+function UserEditModal({ user, onClose, onSave }) {
   const [form, setForm] = useState({
-    id: "",
     username: "",
     email: "",
     bloodType: "",
-    roleId: 2,
+    roleId: "2", // Default to worker
+    jobId: null  // Add jobId field
   });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Initialize form with user data if editing
   useEffect(() => {
     if (user) {
       setForm({
-        id: user.id || "",
         username: user.username || "",
         email: user.email || "",
         bloodType: user.bloodType || "",
-        roleId: user.roleId || 2,
-      });
-    } else {
-      setForm({
-        id: "",
-        username: "",
-        email: "",
-        bloodType: "",
-        roleId: 2,
+        roleId: user.roleId?.toString() || "2",
+        // Convertir jobId a string incluso si es null
+        jobId: user.job?.id ? user.job.id.toString() : user.jobId?.toString() || ""
       });
     }
-    setErrors({});
   }, [user]);
 
-  // Validaciones
-  const validate = async () => {
-    const csrfToken = localStorage.getItem('csrfToken');
-    if (!csrfToken) {
-      alert("Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.");
-      window.location.href = "/login";
-      return false;
-    }
-
-    const newErrors = {};
-    // Solo validar ID si es creación
-    if (!user) {
-      if (!/^\d{6,10}$/.test(form.id)) {
-        newErrors.id = "El ID debe tener entre 6 y 10 dígitos numéricos.";
-      } else {
-        try {
-          const res = await apiClient.get(`/api/users?id=${form.id}`, {
-            headers: getAuthHeaders()
-          });
-          const data = res.data;
-          if (Array.isArray(data) && data.length > 0) {
-            newErrors.id = "Ya existe un usuario con este ID.";
-          }
-        } catch {}
-      }
-    }
-    // Email: formato válido
-    if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(form.email)) {
-      newErrors.email = "Correo electrónico inválido.";
-    } else if (!user || form.email !== user.email) {
-      // Solo validar unicidad si es nuevo o cambió el correo
-      try {
-        const res = await apiClient.get(`/api/users?email=${form.email}`, {
-          headers: getAuthHeaders()
-        });
-        const data = res.data;
-        
-        // Corregido: Verificar correctamente si el correo pertenece a otro usuario
-        const emailExists = Array.isArray(data) && data.length > 0 && 
-          data.some(existingUser => 
-            existingUser.email === form.email && 
-            (!user || existingUser.id !== user.id)
-          );
-        
-        if (emailExists) {
-          newErrors.email = "Ya existe un usuario con este correo.";
-        }
-      } catch (error) {
-        console.error("Error al verificar email:", error);
-      }
-    }
-    // Username: requerido
-    if (!form.username.trim()) {
-      newErrors.username = "El nombre es obligatorio.";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSelectChange = (name, value) => {
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // In the handleSubmit function
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    if (await validate()) {
-      onSave(form);
-    }
-    setIsSubmitting(false);
+    
+    const formData = {
+      ...form,
+      roleId: Number(form.roleId),
+      // Asegurar conversión numérica incluso si viene de un valor string vacío
+      jobId: form.roleId === "2" && form.jobId ? Number(form.jobId) : null
+    };
+    
+    console.log("Enviando datos de usuario:", formData);
+    onSave(formData);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-slate-900 p-6 rounded-lg shadow-lg w-full max-w-md border border-slate-700 animate-fade-in-up">
-        <h3 className="text-xl font-bold mb-4 text-white">
-          {user ? "Editar Usuario" : "Nuevo Usuario"}
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="id" className="text-slate-200">ID (Documento)</Label>
-            <Input
-              name="id"
-              id="id"
-              placeholder="Número de documento"
-              value={form.id}
-              onChange={handleChange}
-              required
-              minLength={6}
-              maxLength={10}
-              pattern="[0-9]{6,10}"
-              inputMode="numeric"
-              disabled={!!user} // Solo editable al crear
-              className="bg-slate-800 text-white"
-            />
-            {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
-          </div>
-          <div>
-            <Label htmlFor="username" className="text-slate-200">Nombre</Label>
-            <Input
-              name="username"
-              id="username"
-              placeholder="Nombre completo"
-              value={form.username}
-              onChange={handleChange}
-              required
-              className="bg-slate-800 text-white"
-            />
-            {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
-          </div>
-          <div>
-            <Label htmlFor="email" className="text-slate-200">Correo Electrónico</Label>
-            <Input
-              name="email"
-              id="email"
-              placeholder="correo@ejemplo.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-              type="email"
-              className="bg-slate-800 text-white"
-            />
-            {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <Label htmlFor="bloodType" className="text-slate-200">Tipo de Sangre</Label>
-            <select
-              name="bloodType"
-              id="bloodType"
-              value={form.bloodType}
-              onChange={handleChange}
-              className="bg-slate-800 text-white w-full rounded px-3 py-2 border border-slate-700"
-            >
-              <option value="">Seleccionar tipo de sangre</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="roleId" className="text-slate-200">Rol</Label>
-            <select
-              name="roleId"
-              id="roleId"
-              value={form.roleId}
-              onChange={handleChange}
-              className="bg-slate-800 text-white w-full rounded px-3 py-2"
-            >
-              <option value={1}>Supervisor</option>
-              <option value={2}>Trabajador</option>
-              <option value={3}>Jefe de Obra</option>
-              <option value={4}>Admin</option>
-            </select>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-orange-600 hover:bg-orange-700" disabled={isSubmitting}>
-              Guardar
-            </Button>
-          </div>
-        </form>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-md relative animate-fade-in-up">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-2 top-2 text-slate-400 hover:text-white"
+          onClick={onClose}
+        >
+          <X size={18} />
+        </Button>
+        
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-white mb-4">
+            {user ? "Editar Usuario" : "Crear Usuario"}
+          </h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Nombre de Usuario</Label>
+              <Input
+                id="username"
+                name="username"
+                value={form.username}
+                onChange={handleChange}
+                placeholder="Nombre de usuario"
+                className="bg-slate-700"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="correo@ejemplo.com"
+                className="bg-slate-700"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="bloodType">Tipo de Sangre</Label>
+              <Select
+                value={form.bloodType || ""}
+                onValueChange={(value) => handleSelectChange("bloodType", value)}
+              >
+                <SelectTrigger className="bg-slate-700">
+                  <SelectValue placeholder="Seleccionar tipo de sangre" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A+">A+</SelectItem>
+                  <SelectItem value="A-">A-</SelectItem>
+                  <SelectItem value="B+">B+</SelectItem>
+                  <SelectItem value="B-">B-</SelectItem>
+                  <SelectItem value="AB+">AB+</SelectItem>
+                  <SelectItem value="AB-">AB-</SelectItem>
+                  <SelectItem value="O+">O+</SelectItem>
+                  <SelectItem value="O-">O-</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="roleId">Rol</Label>
+              <Select
+                value={form.roleId}
+                onValueChange={(value) => handleSelectChange("roleId", value)}
+              >
+                <SelectTrigger className="bg-slate-700">
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Supervisor</SelectItem>
+                  <SelectItem value="2">Trabajador</SelectItem>
+                  <SelectItem value="3">Jefe de obra</SelectItem>
+                  <SelectItem value="4">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Solo mostrar selección de trabajo si el rol es Trabajador (roleId = 2) */}
+            {form.roleId === "2" && (
+              <div className="space-y-2">
+                <Label htmlFor="jobId">Especialidad</Label>
+                <Select
+                  value={form.jobId}
+                  onValueChange={(value) => handleSelectChange("jobId", value)}
+                >
+                  <SelectTrigger className="bg-slate-700">
+                    <SelectValue placeholder="Seleccionar especialidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Electricista</SelectItem>
+                    <SelectItem value="2">Albañil</SelectItem>
+                    <SelectItem value="3">Fontanero</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                Guardar
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 }
+
+export default UserEditModal;
