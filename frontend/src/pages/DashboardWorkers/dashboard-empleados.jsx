@@ -4,6 +4,7 @@ import Inventario from "./inventario";
 import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { EmployeeCard } from "../Dashboard/components";
 import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock } from "lucide-react";
 import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
@@ -11,10 +12,13 @@ import { useAuth } from "@/features/auth";
 import { updateUserLocation, registerCheckIn, fetchRecentCheckIns, fetchUserById, fetchTodaysCheckins, registerCheckOut } from "@/services/dashboardService";
 import { useNavigate } from "react-router-dom";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
+import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
+import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
   const { user: authUser, roleId, logout } = useAuth(); // Renombramos user a authUser
+  const userRoleId = Number(roleId); // Añadir esta línea para definir userRoleId
   const [user, setUser] = useState(authUser); // Añadimos el estado local
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
