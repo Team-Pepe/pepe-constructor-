@@ -110,6 +110,7 @@ exports.getUserById = async (req, res) => {
         bloodType: true,
         latitude: true,
         longitude: true,
+        jobId: true, // Añadir jobId a la selección
         // Excluir campos sensibles como password
       }
     });

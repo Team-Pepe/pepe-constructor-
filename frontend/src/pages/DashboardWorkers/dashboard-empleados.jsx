@@ -40,6 +40,63 @@ export function DashboardEmpleados() {
   const userRoleId = Number(roleId);
   const canRequestMaterials = userRoleId === 3;
   
+  // Función para renderizar la tarjeta correcta según el job_id y roleId
+  const renderUserCard = () => {
+    // Si el usuario tiene roleId 3, siempre mostrar EmployeeCard (jefe de obra)
+    if (userRoleId === 3) {
+      return (
+        <EmployeeCard 
+          name={user?.name || user?.username || "Usuario"}
+          id={user?.id || "000000"}
+          role="Jefe de Obra"
+          bloodType={user?.bloodType || "O+"}
+        />
+      );
+    }
+    
+    // Para otros roles, verificar el job_id
+    const jobId = user?.jobId || 2; // Valor por defecto si no hay jobId
+    
+    switch (Number(jobId)) {
+      case 1:
+        return (
+          <ElectricianCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Electricista"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      case 2:
+        return (
+          <ConstructionWorkerCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Constructor"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      case 3:
+        return (
+          <PlumberCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Fontanero"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      default:
+        return (
+          <ConstructionWorkerCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Constructor"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+    }
+  };
+  
   console.log("Dashboard empleados - Rol del usuario:", userRoleId, "- Puede solicitar materiales:", canRequestMaterials);
 
   // Estados para el modal de ubicación
@@ -76,7 +133,8 @@ export function DashboardEmpleados() {
             username: response.data.username,
             name: response.data.username, // Usar username como nombre también
             bloodType: response.data.bloodType,
-            roleId: response.data.roleId
+            roleId: response.data.roleId,
+            jobId: response.data.jobId || response.data.job_id // Añadir jobId
           }));
         }
       } catch (error) {
@@ -713,17 +771,7 @@ export function DashboardEmpleados() {
 
           {/* Carnet de empleado */}
           <div className="p-4">
-            <ConstructionWorkerCard
-              name={user?.username || "Usuario"} // Usar directamente username
-              id={user?.id?.toString() || "N/A"}
-              role={
-                user?.roleId === 1 ? "Supervisor" :
-                user?.roleId === 2 ? "Trabajador" :
-                user?.roleId === 3 ? "Jefe de Obra" :
-                user?.roleId === 4 ? "Admin" : "Trabajador"
-              }
-              bloodType={user?.bloodType || "N/A"}
-            />
+            {renderUserCard()}
           </div>
 
           <nav className="p-4 space-y-2">
