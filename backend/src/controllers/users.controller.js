@@ -110,6 +110,7 @@ exports.getUserById = async (req, res) => {
         bloodType: true,
         latitude: true,
         longitude: true,
+        jobId: true, // Añadir jobId a la selección
         // Excluir campos sensibles como password
       }
     });
@@ -140,7 +141,7 @@ exports.getUserById = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, bloodType, roleId } = req.body;
+    const { username, email, bloodType, roleId, jobId } = req.body;
 
     // Verificar si existe otro usuario con el mismo email (excepto el actual)
     if (email) {
@@ -167,7 +168,13 @@ exports.updateUser = async (req, res) => {
     if (email !== undefined) updateData.email = email;
     if (bloodType !== undefined) updateData.bloodType = bloodType;
     if (roleId !== undefined) updateData.roleId = parseInt(roleId);
-
+   
+    // Handle jobId based on role
+    if (roleId == 2) { // Worker role
+      updateData.jobId = jobId ? parseInt(jobId) : null;
+    } else {
+      updateData.jobId = null; // Clear job if not worker
+    }
     // Asegurarnos de que haya al menos un campo para actualizar
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({

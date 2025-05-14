@@ -28,9 +28,15 @@ exports.getUsers = async (roleId = null) => {
       email: true,
       username: true,
       roleId: true,
+      job: {         // Include job relation
+        select: {
+          id: true,
+          name: true
+        }
+      },
       latitude: true,
       longitude: true,
       bloodType: true
     }
   });
-}; 
+};
