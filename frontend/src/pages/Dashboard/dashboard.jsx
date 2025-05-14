@@ -14,6 +14,8 @@ import {
     LogOut,
     PackageOpen,
     UserCog, // Añade este nuevo ícono
+    Clock,
+    Loader2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,11 +54,15 @@ export default function Dashboard() {
     const [materials, setMaterials] = useState([]);
     const [activities, setActivities] = useState([]);
     const [workers, setWorkers] = useState([]);
-    const [materialRequests, setMaterialRequests] = useState([]);
     const [activeSection, setActiveSection] = useState("resumen");
     const [locationStatus, setLocationStatus] = useState(null);
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+    const [selectedZoneFilter, setSelectedZoneFilter] = useState("");
+    const [loadingCheckins, setLoadingCheckins] = useState(true);
+    const [checkinsPorZona, setCheckinsPorZona] = useState({});
+    const [zonasDisponiblesMap, setZonasDisponiblesMap] = useState({});
+    const [searchEmployeeName, setSearchEmployeeName] = useState("");
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -178,19 +184,63 @@ export default function Dashboard() {
     // Extraer la función loadDashboardData para poder llamarla desde otros lugares
     const loadDashboardData = async () => {
         try {
+            setIsLoading(true);
             const data = await fetchAllDashboardData();
             
             setMetrics(data.metrics);
-            setProjects(data.projects);
-            setAttendance(data.attendance);
-            setMaterials(data.materials);
-            setActivities(data.activities);
-            setWorkers(data.workers);
-            setMaterialRequests(data.materialRequests || []);
+            setProjects(data.projects || []);
+            setAttendance(data.attendance || []);
+            setMaterials(data.materials || []);
+            setActivities(data.activities || []);
+            setWorkers(data.workers || []);
+            
+            console.log("Actualizando datos de check-ins en dashboard. Zonas disponibles:", Object.keys(data.checkinsPorZona || {}));
+            
+            // Actualizar el estado de check-ins
+            if (data.checkinsPorZona && Object.keys(data.checkinsPorZona).length > 0) {
+                setCheckinsPorZona(data.checkinsPorZona);
+            } else {
+                console.warn("No se encontraron check-ins para mostrar");
+                // Usar datos de muestra si no hay check-ins
+                setCheckinsPorZona({
+                    "Datos de Ejemplo": [
+                        {
+                            id: 1,
+                            employee_name: "Empleado Ejemplo",
+                            zone_name: "Zona Ejemplo",
+                            check_in_time: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+                            check_out_time: null
+                        }
+                    ]
+                });
+            }
+            
+            setZonasDisponiblesMap(data.zonasDisponiblesMap || {});
+
+            // Actualizar el estado de carga de check-ins
+            setLoadingCheckins(false);
             
             console.log("Solicitudes de materiales cargadas:", data.materialRequests);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
+            
+            // Incluso si hay error, terminar la carga
+            setLoadingCheckins(false);
+            
+            // Usar datos de muestra si hay error
+            if (Object.keys(checkinsPorZona).length === 0) {
+                setCheckinsPorZona({
+                    "Datos de Muestra (Error)": [
+                        {
+                            id: 999,
+                            employee_name: "Error en la carga de datos",
+                            zone_name: "Contacte al administrador",
+                            check_in_time: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+                            check_out_time: null
+                        }
+                    ]
+                });
+            }
         } finally {
             setIsLoading(false);
         }
@@ -270,6 +320,150 @@ export default function Dashboard() {
                     <div className="grid gap-6">
                         <h2 className="text-xl font-bold">Solicitudes de Materiales</h2>
                         <MaterialRequestsCard onRefresh={loadDashboardData} />
+                    </div>
+                );
+            case "asistencia":
+                return (
+                    <div className="grid gap-6">
+                        <Card className="bg-slate-800 border-slate-700 shadow-md">
+                            <CardHeader className="bg-slate-900 border-b border-slate-700">
+                                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                                    <Clock className="h-6 w-6 text-orange-400" />
+                                    Gestión de Check-ins
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="p-4 flex flex-wrap items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <label className="font-medium text-white">Filtrar por zona:</label>
+                                        <select
+                                            className="p-2 border rounded bg-slate-700 text-white border-slate-600"
+                                            onChange={(e) => setSelectedZoneFilter(e.target.value)}
+                                        >
+                                            <option value="">Todas</option>
+                                            {Object.keys(checkinsPorZona).map(zona => (
+                                                <option key={zona} value={zona}>{zona}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <label className="font-medium text-white">Buscar empleado:</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nombre de empleado..."
+                                            className="p-2 border rounded bg-slate-700 text-white border-slate-600"
+                                            value={searchEmployeeName}
+                                            onChange={(e) => setSearchEmployeeName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {Object.keys(checkinsPorZona)
+                                    .filter(zona => !selectedZoneFilter || zona === selectedZoneFilter)
+                                    .map(zona => {
+                                        console.log(`Procesando zona: ${zona} con ${checkinsPorZona[zona]?.length || 0} check-ins`);
+                                        
+                                        // Filtrar por nombre de empleado si hay búsqueda
+                                        const filteredCheckins = searchEmployeeName
+                                            ? checkinsPorZona[zona].filter(checkin => 
+                                                checkin.employee_name && 
+                                                checkin.employee_name.toLowerCase().includes(searchEmployeeName.toLowerCase()))
+                                            : checkinsPorZona[zona];
+                                                
+                                        if (filteredCheckins.length === 0) return null;
+                                        
+                                        return (
+                                            <div key={zona} className="mb-6">
+                                                <h3 className="font-bold text-lg mb-2 px-4 text-orange-400">Zona: {zona}</h3>
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-slate-700">
+                                                                <th className="text-left p-2 text-slate-300">Empleado</th>
+                                                                <th className="text-left p-2 text-slate-300">Zona</th>
+                                                                <th className="text-left p-2 text-slate-300">Fecha</th>
+                                                                <th className="text-left p-2 text-slate-300">Hora de Check-in</th>
+                                                                <th className="text-left p-2 text-slate-300">Estado</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {loadingCheckins ? (
+                                                                <tr>
+                                                                    <td colSpan="5" className="text-center p-4">
+                                                                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                                                                    </td>
+                                                                </tr>
+                                                            ) : filteredCheckins.length === 0 ? (
+                                                                <tr>
+                                                                    <td colSpan="5" className="text-center p-4 text-slate-400">
+                                                                        No hay check-ins que coincidan con los criterios de búsqueda
+                                                                    </td>
+                                                                </tr>
+                                                            ) : (
+                                                                filteredCheckins.map((checkin) => {
+                                                                    console.log("Renderizando check-in:", checkin);
+                                                                    
+                                                                    // Formatear fecha y hora
+                                                                    let fechaHora = null;
+                                                                    let fechaStr = "-";
+                                                                    let horaStr = "-";
+                                                                    
+                                                                    if (checkin.check_in_time) {
+                                                                        try {
+                                                                            // Intentar formatear según el formato que venga
+                                                                            if (checkin.check_in_time.includes('/')) {
+                                                                                // Ya está en formato DD/MM/YYYY
+                                                                                const partes = checkin.check_in_time.split(', ');
+                                                                                if (partes.length > 1) {
+                                                                                    fechaStr = partes[0];
+                                                                                    horaStr = partes[1];
+                                                                                } else {
+                                                                                    fechaStr = checkin.check_in_time;
+                                                                                }
+                                                                            } else {
+                                                                                // Formato ISO o timestamp
+                                                                                fechaHora = new Date(checkin.check_in_time);
+                                                                                if (!isNaN(fechaHora.getTime())) {
+                                                                                    fechaStr = fechaHora.toLocaleDateString();
+                                                                                    horaStr = fechaHora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                                                                }
+                                                                            }
+                                                                        } catch (error) {
+                                                                            console.error("Error formateando fecha:", error);
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    return (
+                                                                        <tr key={checkin.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                                                                            <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
+                                                                            <td className="p-2 text-white">
+                                                                                {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
+                                                                                    ? checkin.zone_name 
+                                                                                    : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || zona || '-')
+                                                                                }
+                                                                            </td>
+                                                                            <td className="p-2 text-white">{fechaStr}</td>
+                                                                            <td className="p-2 text-white">{horaStr}</td>
+                                                                            <td className="p-2">
+                                                                                <span className={`px-2 py-1 rounded text-sm ${
+                                                                                    !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                                                                                }`}>
+                                                                                    {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                                                                                </span>
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </CardContent>
+                        </Card>
                     </div>
                 );
             case "users-management":

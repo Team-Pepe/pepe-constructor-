@@ -275,7 +275,9 @@ export const fetchAllDashboardData = async () => {
     materials: [],
     activities: [],
     workers: [],
-    materialRequests: []
+    materialRequests: [],
+    checkinsPorZona: {},
+    zonasDisponiblesMap: {}
   };
 
   try {
@@ -301,7 +303,9 @@ export const fetchAllDashboardData = async () => {
       fetchSafely(fetchMaterials, 'materials'),
       fetchSafely(fetchRecentActivities, 'activities'),
       fetchSafely(fetchWorkers, 'workers'),
-      fetchSafely(() => fetchMaterialRequests("pending"), 'materialRequests')
+      fetchSafely(() => fetchMaterialRequests("pending"), 'materialRequests'),
+      fetchSafely(fetchWorkZones, 'workZones'),
+      fetchSafely(() => fetchRecentCheckIns(100), 'allCheckins') // Usar fetchRecentCheckIns con límite alto
     ]);
     
     // Asignar resultados al objeto de respuestas
@@ -312,17 +316,161 @@ export const fetchAllDashboardData = async () => {
       responses.materials,
       responses.activities,
       responses.workersRaw,
-      responses.materialRequests
+      responses.materialRequests,
+      responses.workZones,
+      responses.allCheckinsResult
     ] = results;
+
+    // Log para verificar los check-ins recibidos
+    console.log("Check-ins recibidos:", responses.allCheckinsResult);
     
     // Procesar específicamente los trabajadores con manejo adicional
     responses.workers = addLocationToWorkers(responses.workersRaw || []);
+    
+    // Crear mapa de zonas (ID -> nombre)
+    if (Array.isArray(responses.workZones)) {
+      const zonesMap = {};
+      responses.workZones.forEach(zona => {
+        zonesMap[zona.id] = zona.name;
+      });
+      responses.zonasDisponiblesMap = zonesMap;
+      console.log("Mapa de zonas creado:", zonesMap);
+    }
+    
+    // Plan B: Si no hay check-ins, intentar obtenerlos directamente
+    let checkins = [];
+    if (!responses.allCheckinsResult || !responses.allCheckinsResult.checkIns || responses.allCheckinsResult.checkIns.length === 0) {
+      console.log("No se encontraron check-ins en fetchRecentCheckIns, intentando con fetchTodaysCheckins...");
+      try {
+        const todayCheckins = await fetchTodaysCheckins();
+        if (Array.isArray(todayCheckins)) {
+          console.log("Check-ins obtenidos de fetchTodaysCheckins:", todayCheckins.length);
+          checkins = todayCheckins;
+        } else if (todayCheckins && Array.isArray(todayCheckins.data)) {
+          console.log("Check-ins obtenidos de fetchTodaysCheckins.data:", todayCheckins.data.length);
+          checkins = todayCheckins.data;
+        }
+      } catch (error) {
+        console.error("Error al obtener check-ins alternativos:", error);
+      }
+    } else if (responses.allCheckinsResult.checkIns) {
+      checkins = responses.allCheckinsResult.checkIns;
+      console.log("Check-ins obtenidos de allCheckinsResult:", checkins.length);
+    }
+    
+    // Agrupar check-ins por zona
+    if (checkins && checkins.length > 0) {
+      // Ordenar los check-ins por fecha (más recientes primero)
+      const sortedCheckins = [...checkins].sort((a, b) => {
+        // Intentar convertir fechas a objetos Date para comparar
+        let dateA, dateB;
+        
+        try {
+          // Manejar diferentes formatos de fecha
+          if (a.check_in_time && typeof a.check_in_time === 'string') {
+            if (a.check_in_time.includes('/')) {
+              // Formato DD/MM/YYYY, HH:MM:SS
+              const partesA = a.check_in_time.split(', ');
+              if (partesA.length > 1) {
+                const [dia, mes, anio] = partesA[0].split('/');
+                const [hora, min, seg] = partesA[1].split(':');
+                dateA = new Date(anio, mes-1, dia, hora, min, seg);
+              }
+            } else {
+              dateA = new Date(a.check_in_time);
+            }
+          }
+          
+          if (b.check_in_time && typeof b.check_in_time === 'string') {
+            if (b.check_in_time.includes('/')) {
+              // Formato DD/MM/YYYY, HH:MM:SS
+              const partesB = b.check_in_time.split(', ');
+              if (partesB.length > 1) {
+                const [dia, mes, anio] = partesB[0].split('/');
+                const [hora, min, seg] = partesB[1].split(':');
+                dateB = new Date(anio, mes-1, dia, hora, min, seg);
+              }
+            } else {
+              dateB = new Date(b.check_in_time);
+            }
+          }
+        } catch(e) {
+          console.error("Error al ordenar fechas:", e);
+        }
+        
+        // Si ambas fechas son válidas, comparar
+        if (dateA && dateB) {
+          return dateB - dateA; // Orden descendente (más reciente primero)
+        }
+        
+        // Si no se pueden ordenar por fecha, mantener el orden original
+        return 0;
+      });
+      
+      // Ver ejemplo de check-in para depuración
+      if (sortedCheckins.length > 0) {
+        console.log("Ejemplo de check-in para procesamiento:", sortedCheckins[0]);
+      }
+      
+      const checkinsAgrupados = sortedCheckins.reduce((acc, checkin) => {
+        // Determinar el nombre de la zona
+        let zoneName = checkin.zone_name;
+        
+        // Si no tiene zone_name pero tenemos el ID y el mapa de zonas
+        if (!zoneName && checkin.zone_id && responses.zonasDisponiblesMap[checkin.zone_id]) {
+          zoneName = responses.zonasDisponiblesMap[checkin.zone_id];
+        }
+        
+        // Si aún no tenemos nombre, usar 'Zona #ID'
+        zoneName = zoneName || `Zona ${checkin.zone_id || 'Sin asignar'}`;
+        
+        // Inicializar el array para esta zona si no existe
+        if (!acc[zoneName]) {
+          acc[zoneName] = [];
+        }
+        
+        // Añadir el check-in a la zona
+        acc[zoneName].push(checkin);
+        
+        return acc;
+      }, {});
+      
+      responses.checkinsPorZona = checkinsAgrupados;
+      console.log("Check-ins agrupados por zona:", Object.keys(checkinsAgrupados));
+      
+      // Si no hay zonas después de agrupar, algo está mal con los datos
+      if (Object.keys(checkinsAgrupados).length === 0) {
+        console.error("No se pudieron agrupar los check-ins por zona. Datos de check-in problemáticos:", sortedCheckins[0]);
+        
+        // Plan C: Crear al menos una zona con todos los check-ins
+        responses.checkinsPorZona = {
+          "Todas las zonas": sortedCheckins
+        };
+      }
+    } else {
+      console.log("No hay check-ins para mostrar. Usando datos de muestra...");
+      
+      // Plan D: Usar datos de muestra si no hay check-ins
+      responses.checkinsPorZona = {
+        "Datos de Ejemplo": [
+          {
+            id: 1,
+            employee_name: "Empleado Ejemplo",
+            zone_name: "Zona Ejemplo",
+            check_in_time: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+            check_out_time: null
+          }
+        ]
+      };
+    }
     
     console.log("Datos del dashboard cargados:", {
       metrics: responses.metrics ? "OK" : "Error",
       projects: Array.isArray(responses.projects) ? responses.projects.length : "Error",
       workers: Array.isArray(responses.workers) ? responses.workers.length : "Error",
-      attendance: Array.isArray(responses.attendance) ? responses.attendance.length : "Error"
+      attendance: Array.isArray(responses.attendance) ? responses.attendance.length : "Error",
+      checkins: Object.keys(responses.checkinsPorZona).length + " zonas con check-ins",
+      totalCheckins: responses.allCheckinsResult?.checkIns?.length || 0
     });
 
     return responses;
@@ -464,49 +612,78 @@ export const registerCheckIn = async (data) => {
   }
 };
 
-export const fetchRecentCheckIns = async (limit = 20) => {
+export const fetchRecentCheckIns = async (limit = 100) => {
   try {
+    console.log(`Solicitando check-ins recientes (límite: ${limit})...`);
     const response = await apiClient.get(`${API_ENDPOINTS.CHECK_INS_RECENT}?limit=${limit}`, {
       headers: getAuthHeaders()
     });
     
     console.log('Datos recibidos de check-ins:', response.data);
     
-    // Asegurarnos de que los datos tienen el formato correcto
-    const formattedCheckIns = Array.isArray(response.data) ? response.data.map(checkin => {
-      // Intentamos encontrar el nombre de la zona desde varias posibles propiedades
-      let zoneName = checkin.zone_name || checkin.zoneName;
-      
-      // Si hay un objeto zone, intentamos obtener el nombre de ahí
-      if (!zoneName && checkin.zone && typeof checkin.zone === 'object') {
-        zoneName = checkin.zone.name || checkin.zone.nombre;
+    let formattedCheckIns = [];
+    
+    // Si es un array, procesarlo directamente
+    if (Array.isArray(response.data)) {
+      formattedCheckIns = response.data;
+    }
+    // Si es un objeto con una propiedad que contiene el array
+    else if (response.data && typeof response.data === 'object') {
+      // Buscar cualquier propiedad que pueda contener el array de check-ins
+      for (const key in response.data) {
+        if (Array.isArray(response.data[key])) {
+          console.log(`Encontrado array de check-ins en propiedad ${key} con ${response.data[key].length} elementos`);
+          formattedCheckIns = response.data[key];
+          break;
+        }
       }
-      
-      // Si hay un ID de zona pero no nombre, usamos un valor por defecto
-      if (!zoneName && (checkin.zone_id || checkin.zoneId)) {
-        zoneName = `Zona ${checkin.zone_id || checkin.zoneId}`;
-      }
-      
-      return {
-        ...checkin,
-        // Asegurarnos de que las fechas tienen el formato correcto
-        check_in_time: checkin.check_in_time || checkin.checkInTime,
-        check_out_time: checkin.check_out_time || checkin.checkOutTime,
-        employee_id: checkin.employee_id || checkin.employeeId,
-        employee_name: checkin.employee_name || checkin.employeeName,
-        zone_name: zoneName || 'Sin asignar'
-      };
-    }) : [];
+    }
+    
+    // Formatear los check-ins con propiedades consistentes
+    const processedCheckIns = formattedCheckIns.map(checkin => ({
+      ...checkin,
+      // Asegurarnos de que las fechas tienen el formato correcto
+      id: checkin.id || Math.random().toString(36).substr(2, 9),
+      check_in_time: checkin.check_in_time || checkin.checkInTime || checkin.created_at || new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+      check_out_time: checkin.check_out_time || checkin.checkOutTime,
+      employee_id: checkin.employee_id || checkin.employeeId || checkin.user_id,
+      employee_name: checkin.employee_name || checkin.employeeName || checkin.username || "Empleado",
+      zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`
+    }));
+    
+    console.log(`Procesados ${processedCheckIns.length} check-ins`);
+    
+    // Si aún no hay check-ins, agregar un ejemplo
+    if (processedCheckIns.length === 0) {
+      console.log("No se encontraron check-ins, agregando ejemplo...");
+      processedCheckIns.push({
+        id: 'example-1',
+        employee_id: 'example',
+        employee_name: 'Ejemplo',
+        zone_id: 'example',
+        zone_name: 'Zona Ejemplo',
+        check_in_time: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+        check_out_time: null
+      });
+    }
     
     return {
-      checkIns: formattedCheckIns,
+      checkIns: processedCheckIns,
       success: true
     };
   } catch (error) {
     console.error('Error al obtener check-ins recientes:', error);
-    // En caso de error, devolver array vacío pero no romper la aplicación
+    // En caso de error, devolver datos de ejemplo para no romper la aplicación
     return {
-      checkIns: [],
+      checkIns: [{
+        id: 'error-1',
+        employee_id: 'error',
+        employee_name: 'Error en la carga',
+        zone_id: 'error',
+        zone_name: 'Error API',
+        check_in_time: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+        check_out_time: null
+      }],
       success: false,
       error: error.message
     };
