@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiClient, getAuthHeaders } from "@/services/dashboardService";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function UserEditModal({ user, onClose, onSave, users }) {
   const [form, setForm] = useState({
@@ -133,123 +127,269 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-slate-900 p-6 rounded-lg shadow-lg w-full max-w-md border border-slate-700 animate-fade-in-up">
-        <h3 className="text-xl font-bold mb-4 text-white">
-          {user ? "Editar Usuario" : "Nuevo Usuario"}
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="id" className="text-slate-200">ID (Documento)</Label>
-            <Input
-              name="id"
-              id="id"
-              placeholder="Número de documento"
-              value={form.id}
-              onChange={handleChange}
-              required
-              minLength={6}
-              maxLength={10}
-              pattern="[0-9]{6,10}"
-              inputMode="numeric"
-              disabled={!!user} // Solo editable al crear
-              className="bg-slate-800 text-white"
-            />
-            {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
-          </div>
-          <div>
-            <Label htmlFor="username" className="text-slate-200">Nombre</Label>
-            <Input
-              name="username"
-              id="username"
-              placeholder="Nombre completo"
-              value={form.username}
-              onChange={handleChange}
-              required
-              className="bg-slate-800 text-white"
-            />
-            {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
-          </div>
-          <div>
-            <Label htmlFor="email" className="text-slate-200">Correo Electrónico</Label>
-            <Input
-              name="email"
-              id="email"
-              placeholder="correo@ejemplo.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-              type="email"
-              className="bg-slate-800 text-white"
-            />
-            {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <Label htmlFor="bloodType" className="text-slate-200">Tipo de Sangre</Label>
-            <select
-              name="bloodType"
-              id="bloodType"
-              value={form.bloodType}
-              onChange={handleChange}
-              className="bg-slate-800 text-white w-full rounded px-3 py-2 border border-slate-700"
-            >
-              <option value="">Seleccionar tipo de sangre</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="roleId" className="text-slate-200">Rol</Label>
-            <select
-              name="roleId"
-              id="roleId"
-              value={form.roleId}
-              onChange={handleChange}
-              className="bg-slate-800 text-white w-full rounded px-3 py-2"
-            >
-              <option value={1}>Supervisor</option>
-              <option value={2}>Trabajador</option>
-              <option value={3}>Jefe de Obra</option>
-              <option value={4}>Admin</option>
-            </select>
-          </div>
+    <AnimatePresence>
+      <motion.div 
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <motion.div 
+          className="bg-slate-800 rounded-lg shadow-xl w-full max-w-md relative"
+          initial={{ scale: 0.9, y: 20, opacity: 0 }}
+          animate={{ 
+            scale: 1, 
+            y: 0, 
+            opacity: 1,
+            transition: { 
+              type: "spring", 
+              damping: 25, 
+              stiffness: 300,
+              delay: 0.1 
+            }
+          }}
+          exit={{ scale: 0.9, y: 20, opacity: 0 }}
+        >
+          <motion.button
+            className="absolute right-2 top-2 text-slate-400 hover:text-white bg-transparent border-none p-2 rounded-full"
+            onClick={onClose}
+            whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <X size={18} />
+          </motion.button>
           
-          {form.roleId === "2" && (
-            <div className="space-y-2"> 
-              <Label htmlFor="jobId">Especialidad</Label> 
-              <Select 
-                value={form.jobId} 
-                onValueChange={(value) => handleSelectChange("jobId", value)} 
-              > 
-                <SelectTrigger className="bg-slate-700">
-                  <SelectValue placeholder="Selecciona especialidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin especialidad</SelectItem>
-                  <SelectItem value="1">Electricista</SelectItem>
-                  <SelectItem value="2">Albañil</SelectItem>
-                  <SelectItem value="3">Fontanero</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-orange-600 hover:bg-orange-700" disabled={isSubmitting}>
-              Guardar
-            </Button>
+          <div className="p-6">
+            <motion.h2 
+              className="text-xl font-bold text-white mb-4"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
+            >
+              {user ? "Editar Usuario" : "Crear Usuario"}
+            </motion.h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Diseño en dos columnas para campos principales */}
+              <div className="grid grid-cols-2 gap-3">
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
+                >
+                  <Label htmlFor="id" className="text-sm text-slate-300">ID (Documento)</Label>
+                  <Input
+                    id="id"
+                    name="id"
+                    value={form.id}
+                    onChange={handleChange}
+                    placeholder="Documento"
+                    className="bg-slate-700 border-slate-600 h-9 text-sm"
+                    required
+                    minLength={6}
+                    maxLength={10}
+                    pattern="[0-9]{6,10}"
+                    inputMode="numeric"
+                    disabled={!!user}
+                  />
+                  {errors.id && (
+                    <motion.p 
+                      className="text-red-400 text-xs"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                    >
+                      {errors.id}
+                    </motion.p>
+                  )}
+                </motion.div>
+                
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }}
+                >
+                  <Label htmlFor="username" className="text-sm text-slate-300">Nombre</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    value={form.username}
+                    onChange={handleChange}
+                    placeholder="Nombre"
+                    className="bg-slate-700 border-slate-600 h-9 text-sm"
+                    required
+                  />
+                  {errors.username && (
+                    <motion.p 
+                      className="text-red-400 text-xs"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                    >
+                      {errors.username}
+                    </motion.p>
+                  )}
+                </motion.div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.5 } }}
+                >
+                  <Label htmlFor="email" className="text-sm text-slate-300">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="correo@ejemplo.com"
+                    className="bg-slate-700 border-slate-600 h-9 text-sm"
+                    required
+                  />
+                  {errors.email && (
+                    <motion.p 
+                      className="text-red-400 text-xs"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                    >
+                      {errors.email}
+                    </motion.p>
+                  )}
+                </motion.div>
+                
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }}
+                >
+                  <Label htmlFor="bloodType" className="text-sm text-slate-300">Tipo de Sangre</Label>
+                  <Select
+                    value={form.bloodType || ""}
+                    onValueChange={(value) => handleSelectChange("bloodType", value)}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm">
+                      <SelectValue placeholder="Tipo sangre" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="A+">A+</SelectItem>
+                      <SelectItem value="A-">A-</SelectItem>
+                      <SelectItem value="B+">B+</SelectItem>
+                      <SelectItem value="B-">B-</SelectItem>
+                      <SelectItem value="AB+">AB+</SelectItem>
+                      <SelectItem value="AB-">AB-</SelectItem>
+                      <SelectItem value="O+">O+</SelectItem>
+                      <SelectItem value="O-">O-</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* Si el rol NO es trabajador (2), el selector de rol ocupa ambas columnas */}
+                <motion.div 
+                  className={`space-y-1 ${form.roleId !== "2" ? "col-span-2" : ""}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.7 } }}
+                >
+                  <Label htmlFor="roleId" className="text-sm text-slate-300">Rol</Label>
+                  <Select
+                    value={form.roleId}
+                    onValueChange={(value) => handleSelectChange("roleId", value)}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm">
+                      <SelectValue placeholder="Rol" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="1">Supervisor</SelectItem>
+                      <SelectItem value="2">Trabajador</SelectItem>
+                      <SelectItem value="3">Jefe de obra</SelectItem>
+                      <SelectItem value="4">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+                
+                <AnimatePresence mode="wait">
+                  {form.roleId === "2" ? (
+                    <motion.div 
+                      key="job-field"
+                      className="space-y-1"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ 
+                        opacity: 1, 
+                        y: 0,
+                        scale: 1,
+                        transition: { 
+                          type: "spring", 
+                          damping: 20, 
+                          stiffness: 300,
+                          delay: 0.1
+                        }
+                      }}
+                      exit={{ 
+                        opacity: 0, 
+                        y: -10, 
+                        scale: 0.95,
+                        transition: {
+                          duration: 0.2
+                        }
+                      }}
+                    >
+                      <Label htmlFor="jobId" className="text-sm text-slate-300">Especialidad</Label>
+                      <Select
+                        value={form.jobId}
+                        onValueChange={(value) => handleSelectChange("jobId", value)}
+                      >
+                        <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm">
+                          <SelectValue placeholder="Especialidad" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700">
+                          <SelectItem value="none">Sin especialidad</SelectItem>
+                          <SelectItem value="1">Electricista</SelectItem>
+                          <SelectItem value="2">Albañil</SelectItem>
+                          <SelectItem value="3">Fontanero</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+              
+              <motion.div 
+                className="flex justify-end gap-2 pt-3 mt-2 border-t border-slate-700"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.8 } }}
+              >
+                <motion.button 
+                  type="button" 
+                  className="px-3 py-1.5 text-sm rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors"
+                  onClick={onClose}
+                  whileHover={{ scale: 1.03, backgroundColor: "rgba(51, 65, 85, 0.8)" }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Cancelar
+                </motion.button>
+                <motion.button 
+                  type="submit" 
+                  className="px-3 py-1.5 text-sm rounded-md bg-orange-600 text-white hover:bg-orange-700 transition-colors"
+                  disabled={isSubmitting}
+                  whileHover={{ scale: 1.03, backgroundColor: "#c2410c" }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-1">
+                      <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Guardando...
+                    </span>
+                  ) : "Guardar"}
+                </motion.button>
+              </motion.div>
+            </form>
           </div>
-        </form>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
