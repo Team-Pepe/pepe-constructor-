@@ -30,7 +30,13 @@ exports.getUsers = async (roleId = null) => {
       roleId: true,
       latitude: true,
       longitude: true,
-      bloodType: true
+      bloodType: true,
+      job: {         // Include job relation 
+        select: { 
+          id: true, 
+          name: true 
+        } 
+      }
     }
   });
-}; 
+};

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { apiClient, getAuthHeaders } from "@/services/dashboardService";
+import { 
+  apiClient, 
+  getAuthHeaders, 
+  updateUserData 
+} from "@/services/dashboardService"; 
 import { 
   Search, 
   Edit, 
@@ -45,10 +49,8 @@ function UsersManagement() {
       }
       
       if (modalUser) {
-        // Actualizar usuario existente
-        await apiClient.put(`/api/users/${modalUser.id}`, form, { 
-          headers: getAuthHeaders() 
-        });
+        // Actualizar usuario existente usando la nueva función 
+        await updateUserData(modalUser.id, form);
       } else {
         // Crear nuevo usuario
         await apiClient.post("/api/users", form, { 
@@ -137,16 +139,17 @@ function UsersManagement() {
   );
 
   // Function to get job name from job ID
-  const getJobName = (jobId) => {
-    if (!jobId) return "No asignado";
-    
-    switch (Number(jobId)) {
-      case 1: return "Eléctrico";
-      case 2: return "Albañil";
-      case 3: return "Fontanero";
-      default: return "No asignado";
-    }
-  };
+  // Simplificar la función getJobName para que devuelva un string vacío si no hay jobId 
+  const getJobName = (jobId) => { 
+    if (!jobId) return "No asignado"; // Handle null/undefined 
+      
+    switch (Number(jobId)) { 
+      case 1: return "Electricista"; 
+      case 2: return "Albañil"; 
+      case 3: return "Fontanero"; 
+      default: return "No asignado"; // Handle unknown values 
+    } 
+  }; 
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -177,19 +180,20 @@ function UsersManagement() {
               <th className="px-4 py-3 text-left text-sm text-slate-300">Email</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Tipo Sangre</th>
               <th className="px-4 py-3 text-left text-sm text-slate-300">Rol</th>
+              <th className="px-4 py-3 text-left text-sm text-slate-300">Especialidad</th>
               <th className="px-4 py-3 text-right text-sm text-slate-300 sticky right-0 bg-slate-800">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-8">
+                <td colSpan={7} className="text-center py-8">
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-slate-400">
+                <td colSpan={7} className="text-center py-8 text-slate-400">
                   No se encontraron usuarios
                 </td>
               </tr>
@@ -214,6 +218,19 @@ function UsersManagement() {
                        user.roleId === 2 ? 'Trabajador' : 
                        'Jefe de obra'}
                     </span>
+                  </td>
+                  <td className="px-4 py-3"> 
+                    {user.roleId === 2 ? ( 
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap 
+                        ${user.job?.id === 1 ? 'bg-blue-500/20 text-blue-300' : 
+                          user.job?.id === 2 ? 'bg-orange-500/20 text-orange-300' : 
+                          user.job?.id === 3 ? 'bg-green-500/20 text-green-300' : 
+                          ''}`}> 
+                        {user.job?.name || "No asignado"} 
+                      </span> 
+                    ) : ( 
+                      <span className="text-slate-400 text-xs">—</span> 
+                    )} 
                   </td>
                   <td className="px-4 py-3 text-right sticky right-0 bg-slate-800">
                     <Button

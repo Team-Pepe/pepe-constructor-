@@ -20,6 +20,7 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
     email: "",
     bloodType: "",
     roleId: 2,
+    jobId: ""
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,17 +30,20 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
       setForm({
         id: user.id || "",
         username: user.username || "",
-        email: user.email || "",
-        bloodType: user.bloodType || "",
-        roleId: user.roleId || 2,
-      });
+        email: user.email || "", 
+        bloodType: user.bloodType || "", 
+        roleId: user.roleId?.toString() || "2", 
+        // Convertir jobId a string incluso si es null 
+        jobId: user.job?.id ? user.job.id.toString() : user.jobId?.toString() || "" 
+      }); 
     } else {
       setForm({
         id: "",
         username: "",
         email: "",
         bloodType: "",
-        roleId: 2,
+        roleId: "2",
+        jobId: ""
       });
     }
     setErrors({});
@@ -109,13 +113,23 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
     setErrors({ ...errors, [e.target.name]: undefined });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    if (await validate()) {
-      onSave(form);
-    }
-    setIsSubmitting(false);
+  const handleSelectChange = (name, value) => { 
+    setForm(prev => ({ ...prev, [name]: value })); 
+  }; 
+
+  // In the handleSubmit function 
+  const handleSubmit = (e) => { 
+    e.preventDefault(); 
+
+    const formData = { 
+      ...form, 
+      roleId: Number(form.roleId), 
+      // Asegurar conversión numérica incluso si viene de un valor string vacío 
+      jobId: form.roleId === "2" && form.jobId && form.jobId !== "none" ? Number(form.jobId) : null 
+    }; 
+    
+    console.log("Enviando datos de usuario:", formData); 
+    onSave(formData); 
   };
 
   return (
@@ -205,6 +219,27 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
               <option value={4}>Admin</option>
             </select>
           </div>
+          
+          {form.roleId === "2" && (
+            <div className="space-y-2"> 
+              <Label htmlFor="jobId">Especialidad</Label> 
+              <Select 
+                value={form.jobId} 
+                onValueChange={(value) => handleSelectChange("jobId", value)} 
+              > 
+                <SelectTrigger className="bg-slate-700">
+                  <SelectValue placeholder="Selecciona especialidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin especialidad</SelectItem>
+                  <SelectItem value="1">Electricista</SelectItem>
+                  <SelectItem value="2">Albañil</SelectItem>
+                  <SelectItem value="3">Fontanero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar

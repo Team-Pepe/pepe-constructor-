@@ -884,3 +884,40 @@ export const registerCheckOut = async (checkInId) => {
   }
 };
 
+// Agregar esta función después de fetchUsers 
+export const updateUserData = async (userId, userData) => { 
+  try { 
+    console.log(`Actualizando usuario ${userId} con datos:`, userData); 
+    
+    // Asegurarse de que los datos sean correctos antes de enviar 
+    const dataToSend = { 
+      ...userData, 
+      // Asegurarse de que roleId sea número 
+      roleId: Number(userData.roleId), 
+      // Asegurarse de que jobId sea número o null 
+      jobId: userData.jobId !== undefined && userData.jobId !== "" ? Number(userData.jobId) : null 
+    }; 
+    
+    // Si no es trabajador, jobId debe ser null 
+    if (dataToSend.roleId !== 2) { 
+      dataToSend.jobId = null; 
+    } 
+    
+    console.log(`Datos finales para actualizar usuario ${userId}:`, dataToSend); 
+    
+    const response = await apiClient.put(`${API_ENDPOINTS.USERS}/${userId}`, dataToSend, { 
+      headers: getAuthHeaders() 
+    }); 
+    
+    console.log(`Respuesta de actualización de usuario ${userId}:`, response); 
+    return response.data; 
+  } catch (error) { 
+    console.error(`Error al actualizar usuario ${userId}:`, error); 
+    if (error.response) { 
+      console.error("Respuesta del servidor:", error.response.data); 
+      console.error("Estado HTTP:", error.response.status); 
+    } 
+    throw error; 
+  } 
+};
+
