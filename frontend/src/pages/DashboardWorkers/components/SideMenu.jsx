@@ -12,7 +12,8 @@ export const SideMenu = ({
   setSelectedZone,
   canRequestMaterials,
   navigate,
-  logout
+  logout,
+  renderUserCard
 }) => {
   return (
     <aside
@@ -27,17 +28,7 @@ export const SideMenu = ({
 
         {/* Employee card */}
         <div className="p-4">
-          <ConstructionWorkerCard
-            name={user?.username || "Usuario"}
-            id={user?.id?.toString() || "N/A"}
-            role={
-              user?.roleId === 1 ? "Supervisor" :
-              user?.roleId === 2 ? "Trabajador" :
-              user?.roleId === 3 ? "Jefe de Obra" :
-              user?.roleId === 4 ? "Admin" : "Trabajador"
-            }
-            bloodType={user?.bloodType || "N/A"}
-          />
+          {renderUserCard()}
         </div>
 
         <nav className="p-4 space-y-2">
@@ -157,4 +148,4 @@ export const SideMenu = ({
       </div>
     </aside>
   );
-}; 
+};

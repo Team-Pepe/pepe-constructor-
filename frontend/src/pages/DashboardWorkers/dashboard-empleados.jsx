@@ -35,6 +35,10 @@ import { CheckInSection } from "./components/CheckInSection";
 import { AttendanceHistory } from "./components/AttendanceHistory";
 import { CheckOutsManager } from "./components/CheckOutsManager";
 import { DashboardHome } from "./components/DashboardHome";
+import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
+import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
+import { PlumberCard } from "../Dashboard/components/PlumberCard";
+import { EmployeeCard } from "../Dashboard/components/EmployeeCard";
 
 export function DashboardEmpleados() {
   const { user: authUser, roleId, logout } = useAuth();
@@ -95,8 +99,12 @@ export function DashboardEmpleados() {
             username: response.data.username,
             name: response.data.username,
             bloodType: response.data.bloodType,
-            roleId: response.data.roleId
+            roleId: response.data.roleId,
+            jobId: response.data.jobId
           }));
+          
+          // Guardar el jobId en el estado
+          setJobId(response.data.jobId);
         }
       } catch (error) {
         console.error("Error al obtener datos del usuario:", error);
@@ -351,6 +359,66 @@ export function DashboardEmpleados() {
     }
   };
 
+  // Función para renderizar la tarjeta correcta según el jobId y roleId
+  const renderUserCard = () => {
+    // Si el roleId es 3 (jefe de obra), mostrar EmployeeCard sin importar el jobId
+    if (Number(user?.roleId) === 3) {
+      return (
+        <EmployeeCard
+          name={user?.username || "Usuario"}
+          id={user?.id?.toString() || "N/A"}
+          role="Jefe de Obra"
+          bloodType={user?.bloodType || "N/A"}
+        />
+      );
+    }
+    
+    // Si no, mostrar la tarjeta según el jobId
+    switch (Number(user?.jobId)) {
+      case 1:
+        return (
+          <ElectricianCard
+            name={user?.username || "Usuario"}
+            id={user?.id?.toString() || "N/A"}
+            role="Electricista"
+            bloodType={user?.bloodType || "N/A"}
+          />
+        );
+      case 2:
+        return (
+          <ConstructionWorkerCard
+            name={user?.username || "Usuario"}
+            id={user?.id?.toString() || "N/A"}
+            role="Albañil"
+            bloodType={user?.bloodType || "N/A"}
+          />
+        );
+      case 3:
+        return (
+          <PlumberCard
+            name={user?.username || "Usuario"}
+            id={user?.id?.toString() || "N/A"}
+            role="Fontanero"
+            bloodType={user?.bloodType || "N/A"}
+          />
+        );
+      default:
+        return (
+          <ConstructionWorkerCard
+            name={user?.username || "Usuario"}
+            id={user?.id?.toString() || "N/A"}
+            role={
+              user?.roleId === 1 ? "Supervisor" :
+              user?.roleId === 2 ? "Trabajador" :
+              user?.roleId === 3 ? "Jefe de Obra" :
+              user?.roleId === 4 ? "Admin" : "Trabajador"
+            }
+            bloodType={user?.bloodType || "N/A"}
+          />
+        );
+    }
+  };
+  
   return (
     <div
       className="min-h-screen flex"
@@ -392,6 +460,7 @@ export function DashboardEmpleados() {
         canRequestMaterials={canRequestMaterials}
         navigate={navigate}
         logout={logout}
+        renderUserCard={renderUserCard}
       />
 
       {/* Main content */}
