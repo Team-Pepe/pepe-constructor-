@@ -19,6 +19,9 @@
   },
   "homepage": "https://github.com/Team-Pepe/pepe-constructor-#readme",
   "dependencies": {
-    "framer-motion": "^12.10.5"
+    "dom-to-image": "^2.6.0",
+    "framer-motion": "^12.10.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1"
   }
 }

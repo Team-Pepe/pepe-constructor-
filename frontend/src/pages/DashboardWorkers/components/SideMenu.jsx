@@ -1,7 +1,8 @@
 import React from "react";
 import { ConstructionWorkerCard } from "../../Dashboard/components/ConstructionWorkerCard";
 import { 
-  Home, Calendar, Map, MapPin, MapPinned, Warehouse, Package, LogOut
+  Home, Calendar, Map, MapPin, MapPinned, Warehouse, Package, LogOut,
+  CreditCard
 } from "lucide-react";
 
 export const SideMenu = ({
@@ -56,6 +57,19 @@ export const SideMenu = ({
           >
             <Calendar className="mr-2 h-4 w-4" />
             Check In
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveSection("mi-carnet");
+              setSelectedZone(null);
+            }}
+            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+              activeSection === "mi-carnet" ? "bg-gray-100" : ""
+            } flex items-center`}
+          >
+            <CreditCard className="mr-2 h-4 w-4" />
+            Mi Carnet
           </button>
 
           <button

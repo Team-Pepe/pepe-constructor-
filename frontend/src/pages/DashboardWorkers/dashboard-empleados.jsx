@@ -35,6 +35,7 @@ import { CheckInSection } from "./components/CheckInSection";
 import { AttendanceHistory } from "./components/AttendanceHistory";
 import { CheckOutsManager } from "./components/CheckOutsManager";
 import { DashboardHome } from "./components/DashboardHome";
+import { MyCardSection } from "./components/MyCardSection";
 import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
@@ -412,6 +413,11 @@ export function DashboardEmpleados() {
             name={user?.name}
             zonasDisponiblesMap={zonasDisponiblesMap}
           />
+        );
+      
+      case "mi-carnet":
+        return (
+          <MyCardSection renderUserCard={renderUserCard} />
         );
       
       default:
