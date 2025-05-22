@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
   const [scanning, setScanning] = useState(false);
   const [permission, setPermission] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
@@ -36,6 +37,7 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
     if (!hasPermission) return;
 
     setScanning(true);
+    setScanSuccess(false);
     
     try {
       html5QrCodeRef.current = new Html5Qrcode("reader");
@@ -43,12 +45,19 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
       const qrCodeSuccessCallback = (decodedText, decodedResult) => {
         // Procesar el código escaneado para extraer solo el ID
         const userId = extraerIdUsuario(decodedText);
-        if (userId && onScan) {
-          onScan(userId, decodedResult);
-        } else if (onScan) {
-          onScan(decodedText, decodedResult);
-        }
-        stopScanner();
+        
+        // Mostrar animación de éxito
+        setScanSuccess(true);
+        
+        // Esperar un momento para que se vea la animación antes de cerrar
+        setTimeout(() => {
+          if (userId && onScan) {
+            onScan(userId, decodedResult);
+          } else if (onScan) {
+            onScan(decodedText, decodedResult);
+          }
+          stopScanner();
+        }, 1500); // Esperar 1.5 segundos para mostrar la animación
       };
       
       const config = { fps: 10, qrbox: { width: 250, height: 250 } };
@@ -165,6 +174,28 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
     tap: { scale: 0.95 }
   };
 
+  // Variantes para la animación de éxito
+  const successVariants = {
+    hidden: { 
+      scale: 0.5, 
+      opacity: 0 
+    },
+    visible: { 
+      scale: 1, 
+      opacity: 1,
+      transition: {
+        type: "spring",
+        damping: 10,
+        stiffness: 200
+      }
+    },
+    exit: { 
+      scale: 1.5, 
+      opacity: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div 
@@ -201,15 +232,51 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
           {/* Contenido */}
           <div className="p-4">
             <div className="flex flex-col items-center">
-              <motion.div 
-                id="reader" 
-                ref={scannerRef} 
-                className="w-full h-64 bg-slate-700 rounded-md overflow-hidden"
-                variants={scannerVariants}
-                animate={scanning ? "scanning" : "idle"}
-                initial={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: 0.3 }}
-              />
+              <div className="relative w-full">
+                <motion.div 
+                  id="reader" 
+                  ref={scannerRef} 
+                  className="w-full h-64 bg-slate-700 rounded-md overflow-hidden"
+                  variants={scannerVariants}
+                  animate={scanning ? "scanning" : "idle"}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: 0.3 }}
+                />
+                
+                {/* Animación de éxito */}
+                <AnimatePresence>
+                  {scanSuccess && (
+                    <motion.div 
+                      className="absolute inset-0 flex items-center justify-center bg-green-500/80 rounded-md"
+                      variants={successVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <div className="flex flex-col items-center">
+                        <motion.div 
+                          className="text-white bg-green-600 rounded-full p-4 mb-2"
+                          initial={{ rotate: -90, scale: 0.5 }}
+                          animate={{ rotate: 0, scale: 1 }}
+                          transition={{ type: "spring", damping: 10, stiffness: 100, delay: 0.1 }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </motion.div>
+                        <motion.p 
+                          className="text-white font-bold text-xl"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          ¡Escaneado con éxito!
+                        </motion.p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               
               <motion.div 
                 className="mt-4 flex gap-2"
