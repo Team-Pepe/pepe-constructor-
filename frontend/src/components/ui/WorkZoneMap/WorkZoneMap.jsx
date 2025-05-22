@@ -1069,7 +1069,7 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
               </MapContainer>
               
               {/* Custom Zoom Controls outside of MapContainer */}
-              <div className="absolute top-2 right-2 z-[500] flex flex-col space-y-1">
+              <div className="absolute top-2 right-2 z-[50] flex flex-col space-y-1">
                 <button 
                   className="bg-white rounded-md p-1 shadow-md hover:bg-gray-100"
                   onClick={() => zoomIn()}

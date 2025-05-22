@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchWorkZones, fetchZoneMaterials } from "@/services/dashboardService";
-import { Loader2, Package } from "lucide-react";
+import { Loader2, Package, MapPin } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 
 function ZonasDeTrabajo({ onSelectZone }) {
   const [zonas, setZonas] = useState([]);
@@ -177,46 +178,88 @@ function ZonasDeTrabajo({ onSelectZone }) {
 
   return (
     <>
-      <div className="space-y-4">
-        {zonas.map((zona) => (
-          <Card key={zona.id}>
-            <CardHeader>
-              <CardTitle>{zona.nombre}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{zona.descripcion}</p>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Estado:</strong> {zona.estado}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Radio:</strong> {zona.radio}m
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between pt-0">
-              <Button
-                onClick={() => handleVerDetalles(zona)}
-                variant="outline"
-                className="gap-2"
+      <motion.section 
+        id="zonas-de-trabajo"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          transition: { 
+            type: "spring",
+            damping: 25,
+            stiffness: 300
+          }
+        }}
+      >
+        {loading ? (
+          <div className="flex justify-center items-center h-48">
+            <Loader2 className="h-12 w-12 animate-spin text-slate-500" />
+          </div>
+        ) : zonas.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {zonas.map((zona) => (
+              <motion.div
+                key={zona.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  transition: {
+                    delay: 0.1,
+                    duration: 0.3
+                  }
+                }}
               >
-                <Package size={16} />
-                Ver detalles
-              </Button>
-              <Button
-                onClick={() => onSelectZone(zona.nombre)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Seleccionar
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                <Card className="bg-slate-800/80 border-slate-700/50 hover:border-slate-500/30 transition-colors shadow-lg">
+                  <CardHeader className="bg-slate-900/50 border-b border-slate-700/50">
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-orange-500" />
+                      {zona.nombre}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <p className="text-slate-300">{zona.descripcion}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-900/50 p-2 rounded-md border border-slate-700/50">
+                        <p className="text-sm text-slate-400">Estado</p>
+                        <p className="text-sm font-medium text-white">{zona.estado}</p>
+                      </div>
+                      <div className="bg-slate-900/50 p-2 rounded-md border border-slate-700/50">
+                        <p className="text-sm text-slate-400">Radio</p>
+                        <p className="text-sm font-medium text-white">{zona.radio}m</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={() => handleVerDetalles(zona)}
+                        variant="outline"
+                        className="flex-1 bg-slate-900/50 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:text-white"
+                      >
+                        <Package size={16} className="mr-2 text-orange-500" /> {/* Added text-orange-500 here */}
+                        Ver detalles
+                      </Button>
+                      <Button
+                        onClick={() => onSelectZone(zona.nombre)}
+                        className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
+                      >
+                        Seleccionar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-slate-800/80 p-8 rounded-lg border border-slate-700/50 text-center"
+          >
+            <p className="text-slate-400">No hay zonas de trabajo disponibles.</p>
+          </motion.div>
+        )}
+      </motion.section>
 
       {/* Modal para mostrar los materiales de la zona */}
       <Dialog open={showMaterialsDialog} onOpenChange={setShowMaterialsDialog}>
@@ -253,7 +296,7 @@ function ZonasDeTrabajo({ onSelectZone }) {
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium text-white">{material.name}</h4>
                         <div className="flex items-center gap-2">
-                          <span className="text-base font-bold text-white bg-blue-600 px-3 py-1 rounded">
+                          <span className="text-base font-bold text-white bg-orange-500 px-3 py-1 rounded">
                             {material.quantity}
                           </span>
                           <span className="text-sm text-white bg-slate-600 px-2 py-1 rounded">
@@ -274,7 +317,7 @@ function ZonasDeTrabajo({ onSelectZone }) {
           <DialogFooter>
             <Button 
               onClick={() => setShowMaterialsDialog(false)} 
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-orange-500 hover:bg-orange-600"
             >
               Cerrar
             </Button>

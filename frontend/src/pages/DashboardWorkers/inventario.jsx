@@ -9,6 +9,7 @@ import { ShoppingCart, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchMaterials, fetchWorkZones } from "@/services/dashboardService";
+import { motion } from "framer-motion";
 
 export default function Inventario() {
   const [materials, setMaterials] = useState([]);
@@ -210,10 +211,25 @@ export default function Inventario() {
           ) : filteredMaterials.length > 0 ? (
             <ScrollArea className="h-[calc(100vh-220px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
-                {filteredMaterials.map(material => (
-                  <div key={material.id}>
+                {filteredMaterials.map((material, index) => (
+                  <motion.div
+                    key={material.id}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1, 
+                      y: 0,
+                      transition: {
+                        delay: index * 0.1,
+                        duration: 0.3,
+                        type: "spring",
+                        damping: 25,
+                        stiffness: 300
+                      }
+                    }}
+                  >
                     <InventoryCard {...material} />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </ScrollArea>
@@ -234,10 +250,25 @@ export default function Inventario() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
                 {filteredMaterials
                   .filter(material => material.quantity > 0)
-                  .map(material => (
-                    <div key={material.id}>
+                  .map((material, index) => (
+                    <motion.div
+                      key={material.id}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1, 
+                        y: 0,
+                        transition: {
+                          delay: index * 0.1,
+                          duration: 0.3,
+                          type: "spring",
+                          damping: 25,
+                          stiffness: 300
+                        }
+                      }}
+                    >
                       <InventoryCard {...material} />
-                    </div>
+                    </motion.div>
                   ))}
               </div>
             </ScrollArea>
@@ -258,4 +289,4 @@ export default function Inventario() {
       </Dialog>
     </div>
   );
-} 
+}

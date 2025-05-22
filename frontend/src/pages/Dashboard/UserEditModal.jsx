@@ -267,18 +267,18 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
                     value={form.bloodType || ""}
                     onValueChange={(value) => handleSelectChange("bloodType", value)}
                   >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm">
-                      <SelectValue placeholder="Tipo sangre" />
+                    <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm text-white">
+                      <SelectValue placeholder="Tipo sangre" className="text-white" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
+                      <SelectItem value="A+" className="text-white hover:bg-slate-700">A+</SelectItem>
+                      <SelectItem value="A-" className="text-white hover:bg-slate-700">A-</SelectItem>
+                      <SelectItem value="B+" className="text-white hover:bg-slate-700">B+</SelectItem>
+                      <SelectItem value="B-" className="text-white hover:bg-slate-700">B-</SelectItem>
+                      <SelectItem value="AB+" className="text-white hover:bg-slate-700">AB+</SelectItem>
+                      <SelectItem value="AB-" className="text-white hover:bg-slate-700">AB-</SelectItem>
+                      <SelectItem value="O+" className="text-white hover:bg-slate-700">O+</SelectItem>
+                      <SelectItem value="O-" className="text-white hover:bg-slate-700">O-</SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>
@@ -300,10 +300,10 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
                       <SelectValue placeholder="Rol" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
-                      <SelectItem value="1">Supervisor</SelectItem>
-                      <SelectItem value="2">Trabajador</SelectItem>
-                      <SelectItem value="3">Jefe de obra</SelectItem>
-                      <SelectItem value="4">Admin</SelectItem>
+                      <SelectItem value="1" className="text-white hover:bg-slate-700">Supervisor</SelectItem>
+                      <SelectItem value="2" className="text-white hover:bg-slate-700">Trabajador</SelectItem>
+                      <SelectItem value="3" className="text-white hover:bg-slate-700">Jefe de obra</SelectItem>
+                      <SelectItem value="4" className="text-white hover:bg-slate-700">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>
@@ -339,14 +339,14 @@ export default function UserEditModal({ user, onClose, onSave, users }) {
                         value={form.jobId}
                         onValueChange={(value) => handleSelectChange("jobId", value)}
                       >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm">
-                          <SelectValue placeholder="Especialidad" />
+                        <SelectTrigger className="bg-slate-700 border-slate-600 h-9 text-sm text-white">
+                          <SelectValue placeholder="Especialidad" className="text-white" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
-                          <SelectItem value="none">Sin especialidad</SelectItem>
-                          <SelectItem value="1">Electricista</SelectItem>
-                          <SelectItem value="2">Albañil</SelectItem>
-                          <SelectItem value="3">Fontanero</SelectItem>
+                          <SelectItem value="none" className="text-white hover:bg-slate-700">Sin especialidad</SelectItem>
+                          <SelectItem value="1" className="text-white hover:bg-slate-700">Electricista</SelectItem>
+                          <SelectItem value="2" className="text-white hover:bg-slate-700">Albañil</SelectItem>
+                          <SelectItem value="3" className="text-white hover:bg-slate-700">Fontanero</SelectItem>
                         </SelectContent>
                       </Select>
                     </motion.div>

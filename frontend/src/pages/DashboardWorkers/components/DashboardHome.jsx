@@ -1,9 +1,23 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 export const DashboardHome = ({ setActiveSection, canRequestMaterials, navigate }) => {
   return (
     <div className="text-center mt-40">
-      <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+      <motion.div 
+        className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          transition: {
+            type: "spring",
+            damping: 25,
+            stiffness: 300
+          }
+        }}
+      >
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Bienvenido al Panel de Empleados</h3>
         <div className="text-gray-600 mb-6">
           <p>Selecciona una opción del menú para empezar:</p>
@@ -36,7 +50,7 @@ export const DashboardHome = ({ setActiveSection, canRequestMaterials, navigate 
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
-}; 
+};

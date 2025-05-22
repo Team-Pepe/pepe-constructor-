@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, MapPinned, AlertTriangle, Loader2, Check, Camera, X, Info, Clock } from "lucide-react";
 
@@ -18,13 +19,38 @@ export const CheckInSection = ({
   setCameraStream
 }) => {
   return (
-    <section id="check-in" className="animate-fadeIn">
+    <motion.section 
+      id="check-in" 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        transition: { 
+          type: "spring",
+          damping: 25,
+          stiffness: 300
+        }
+      }}
+      exit={{ opacity: 0, y: 20 }}
+    >
       <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <h2 className="text-2xl font-bold mb-4 text-white flex items-center">
+          <motion.h2 
+            className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block flex items-center"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+              transition: {
+                duration: 0.3,
+                ease: "easeOut"
+              }
+            }}
+          >
             <Calendar className="mr-2 h-6 w-6 text-orange-400 animate-pulse" />
             Check In
-          </h2>
+          </motion.h2>
+
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 p-6">
             <div className="flex items-center space-x-4 mb-6 bg-slate-900/50 p-4 rounded-lg border border-slate-700/30">
               <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -50,7 +76,6 @@ export const CheckInSection = ({
                         if (!zoneName) {
                           setSelectedCheckInZone(null);
                         } else {
-                          // Find the complete zone object
                           const zoneObj = savedZones.find(zone => zone.name === zoneName);
                           if (zoneObj) {
                             setSelectedCheckInZone(zoneObj);
@@ -198,6 +223,6 @@ export const CheckInSection = ({
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
-}; 
+};

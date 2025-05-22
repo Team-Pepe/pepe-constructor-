@@ -30,7 +30,7 @@ export function ConstructionWorkerCard({ name, id, role, bloodType }) {
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-gray-600">ESPECIALIDAD:</span>
-                        <span className="text-sm font-bold text-orange-600">Constructor</span>
+                        <span className="text-sm font-bold text-orange-600">Albañil</span>
                     </div>
                 </div>
                 

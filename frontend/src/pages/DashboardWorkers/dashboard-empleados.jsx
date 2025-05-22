@@ -17,7 +17,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 // Icons
 import {
-  MapPin, AlertTriangle, Menu, X
+  MapPin, AlertTriangle, Menu, X, Calendar
 } from "lucide-react";
 
 // Background
@@ -39,6 +39,8 @@ import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { EmployeeCard } from "../Dashboard/components/EmployeeCard";
+
+import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
   const { user: authUser, roleId, logout } = useAuth();
@@ -200,7 +202,20 @@ export function DashboardEmpleados() {
       case "zonas-de-trabajo":
         return (
           <section id="zonas-de-trabajo">
-            <h2 className="text-2xl font-bold mb-4">Zonas de Trabajo</h2>
+            <motion.h2 
+              className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.3,
+                  ease: "easeOut"
+                }
+              }}
+            >
+              Zonas de Trabajo
+            </motion.h2>
             <ZonasDeTrabajo onSelectZone={(zone) => setSelectedZone(zone)} />
           </section>
         );
@@ -208,7 +223,20 @@ export function DashboardEmpleados() {
       case "mapa":
         return (
           <section id="mapa-ubicacion">
-            <h2 className="text-2xl font-bold mb-4">Mi Ubicación en Mapa</h2>
+            <motion.h2 
+              className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.3,
+                  ease: "easeOut"
+                }
+              }}
+            >
+              Mi Ubicación en Mapa
+            </motion.h2>
             <EmployeeMap
               workers={currentWorker}
               defaultCenter={[workerLocation?.lat || 4.8133, workerLocation?.lng || -75.6961]}
@@ -242,8 +270,22 @@ export function DashboardEmpleados() {
       
       case "zonas-guardadas":
         return (
-          <section id="zonas-guardadas">
-            <h2 className="text-2xl font-bold mb-4">Zonas de Trabajo Guardadas</h2>
+          <motion.section 
+            id="zonas-guardadas"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+              transition: { 
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }
+            }}
+          >
+            <h2 className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block">
+              Zonas de Trabajo Guardadas
+            </h2>
 
             {zonesLoading ? (
               <div className="flex justify-center items-center h-48">
@@ -251,59 +293,115 @@ export function DashboardEmpleados() {
               </div>
             ) : savedZones.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {savedZones.map((zone) => (
-                  <Card key={zone.id} className="bg-black shadow-md hover:shadow-lg transition-shadow">
-                    <CardHeader className="bg-gradient-to-r from-white-500 to-gray-600 text-white">
-                      <CardTitle>{zone.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 bg-white">
-                      <p>{zone.description}</p>
-                      <p className="text-sm text-gray mt-2">
-                        <strong>Radio:</strong> {zone.radius || 500}m
-                      </p>
-                      <Button
-                        onClick={() => setSelectedZone(zone.name)}
-                        className="mt-4 w-full"
-                      >
-                        Ver detalles
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {savedZones.map((zone, index) => (
+                  <motion.div
+                    key={zone.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      transition: {
+                        delay: index * 0.1,
+                        duration: 0.3
+                      }
+                    }}
+                  >
+                    <Card className="bg-black shadow-md hover:shadow-lg transition-shadow">
+                      <CardHeader className="bg-gradient-to-r from-white-500 to-gray-600 text-white">
+                        <CardTitle>{zone.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 bg-white">
+                        <p>{zone.description}</p>
+                        <p className="text-sm text-gray mt-2">
+                          <strong>Radio:</strong> {zone.radius || 500}m
+                        </p>
+                        <Button
+                          onClick={() => setSelectedZone(zone.name)}
+                          className="mt-4 w-full"
+                        >
+                          Ver detalles
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             ) : (
-              <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white p-8 rounded-lg shadow-md text-center"
+              >
                 <p className="text-gray-500">No hay zonas de trabajo guardadas disponibles.</p>
-              </div>
+              </motion.div>
             )}
-          </section>
+          </motion.section>
         );
       
       case "inventario":
         return (
-          <section id="inventario">
-            <h2 className="text-2xl font-bold mb-4">Inventario de Materiales</h2>
-            <Inventario />
-          </section>
+          <motion.section 
+            id="inventario"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+              transition: { 
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }
+            }}
+          >
+            <motion.h2 
+              className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.3,
+                  ease: "easeOut"
+                }
+              }}
+            >
+              Inventario de Materiales
+            </motion.h2>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                transition: {
+                  delay: 0.1,
+                  duration: 0.3
+                }
+              }}
+            >
+              <Inventario />
+            </motion.div>
+          </motion.section>
         );
       
       case "check-in":
         return (
-          <CheckInSection
-            selectedCheckInZone={selectedCheckInZone}
-            setSelectedCheckInZone={setSelectedCheckInZone}
-            savedZones={savedZones}
-            checkInStatus={checkInStatus}
-            handleCheckIn={handleCheckIn}
-            locationLoading={locationLoading}
-            showCamera={showCamera}
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            takePicture={takePicture}
-            cameraStream={cameraStream}
-            setShowCamera={setShowCamera}
-            setCameraStream={setCameraStream}
-          />
+          <section id="check-in">
+            <CheckInSection
+              selectedCheckInZone={selectedCheckInZone}
+              setSelectedCheckInZone={setSelectedCheckInZone}
+              savedZones={savedZones}
+              checkInStatus={checkInStatus}
+              handleCheckIn={handleCheckIn}
+              locationLoading={locationLoading}
+              showCamera={showCamera}
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              takePicture={takePicture}
+              cameraStream={cameraStream}
+              setShowCamera={setShowCamera}
+              setCameraStream={setCameraStream}
+            />
+          </section>
         );
       
       case "mi-asistencia":
@@ -320,7 +418,9 @@ export function DashboardEmpleados() {
         if (selectedZone) {
           return (
             <section id="solicitar-materiales">
-              <h2 className="text-2xl font-bold mb-4">Solicitar Materiales - {selectedZone}</h2>
+              <h2 className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block">
+                Solicitar Materiales - {selectedZone}
+              </h2>
               <div className="bg-white rounded-lg shadow-md p-6">
                 <p className="mb-4">
                   Para solicitar materiales para la zona <strong>{selectedZone}</strong>, por favor

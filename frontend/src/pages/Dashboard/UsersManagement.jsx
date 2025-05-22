@@ -171,7 +171,7 @@ function UsersManagement() {
       </div>
 
       {/* Tabla de Usuarios - Con columna de acciones fija */}
-      <div className="rounded-lg border border-slate-700 overflow-x-auto relative">
+      <div className="rounded-lg border border-slate-700 overflow-x-auto relative [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600">
         <table className="w-full">
           <thead className="bg-slate-800/50">
             <tr>
@@ -225,7 +225,7 @@ function UsersManagement() {
                         ${user.job?.id === 1 ? 'bg-blue-500/20 text-blue-300' : 
                           user.job?.id === 2 ? 'bg-orange-500/20 text-orange-300' : 
                           user.job?.id === 3 ? 'bg-green-500/20 text-green-300' : 
-                          ''}`}> 
+                          'bg-slate-500/20 text-slate-300'}`}> 
                         {user.job?.name || "No asignado"} 
                       </span> 
                     ) : ( 

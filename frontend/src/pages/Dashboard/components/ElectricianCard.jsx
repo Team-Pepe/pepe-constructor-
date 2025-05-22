@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from 'prop-types';
 import electricoPepe from "../../../assets/electricoPepe.png";
-
+import Barcode from 'react-barcode';
 export function ElectricianCard({ name, id, role, bloodType }) {
     return (
         <div className="bg-slate-50 rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105 relative border-2 border-black">
@@ -32,11 +32,17 @@ export function ElectricianCard({ name, id, role, bloodType }) {
                         <span className="text-sm font-bold text-blue-600">Electricista</span>
                     </div>
                 </div>
-                {/* Footer del carnet */}
+                {/* Footer con código de barras */}
                 <div className="mt-3 pt-3 border-t border-gray-300">
-                    <div className="flex justify-between">
-                        <div className="text-xs text-gray-500">ID: PPC-JOB-{Math.floor(Math.random() * 1000)}</div>
-                        <div className="text-xs text-gray-500">Válido: 2025-2026</div>
+                    <div className="flex justify-center">
+                        <Barcode 
+                            value={`PPC-${id}`}
+                            width={1.5}
+                            height={40}
+                            fontSize={12}
+                            margin={0}
+                            displayValue={true} // Muestra el valor debajo del código
+                        />
                     </div>
                 </div>
             </div>
