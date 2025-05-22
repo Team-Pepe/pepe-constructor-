@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { 
-  apiClient, 
-  getAuthHeaders, 
-  updateUserData 
-} from "@/services/dashboardService"; 
-import { 
-  Search, 
-  Edit, 
-  Trash2, 
-  Loader2 
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Edit, Trash2, Loader2, UserPlus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiClient, getAuthHeaders, updateUserData } from "@/services/dashboardService";
 import UserEditModal from "./UserEditModal";
+import BarcodeScanner from "./BarcodeScanner"; // Añade esta importación
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 function UsersManagement() {
   const [users, setUsers] = useState([]);
@@ -21,6 +15,12 @@ function UsersManagement() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalUser, setModalUser] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
+
+  // Función para abrir/cerrar el escáner
+  const toggleScanner = () => {
+    setShowScanner(!showScanner);
+  };
 
   async function fetchUsers() {
     try {
@@ -68,7 +68,6 @@ function UsersManagement() {
   };
 
   // Añade esta función para verificar si el usuario existe
-  // Modifica la función checkUserExists para usar la misma ruta que usas para obtener todos los usuarios
   const checkUserExists = async (id) => {
     try {
       // En lugar de intentar obtener un usuario específico por ID,
@@ -88,8 +87,6 @@ function UsersManagement() {
     }
   };
   
-  // También podemos simplificar la función handleDeleteUser para evitar la verificación
-  // y manejar directamente el error 404 si ocurre
   const handleDeleteUser = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
     
@@ -139,7 +136,6 @@ function UsersManagement() {
   );
 
   // Function to get job name from job ID
-  // Simplificar la función getJobName para que devuelva un string vacío si no hay jobId 
   const getJobName = (jobId) => { 
     if (!jobId) return "No asignado"; // Handle null/undefined 
       
@@ -151,12 +147,18 @@ function UsersManagement() {
     } 
   }; 
 
+  const handleScanComplete = (barcode) => {
+    // Establecer el código escaneado como término de búsqueda
+    setSearchTerm(barcode);
+    setShowScanner(false);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header y Buscador */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-white">Gestión de Usuarios</h2>
-        <div className="w-full sm:w-auto">
+        <div className="w-full sm:w-auto flex gap-2">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
             <Input
@@ -167,6 +169,14 @@ function UsersManagement() {
               className="pl-10 bg-slate-800/50 w-full"
             />
           </div>
+          <Button 
+            variant="outline" 
+            className="bg-slate-800 border-slate-700 hover:bg-slate-700"
+            onClick={() => setShowScanner(true)}
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            Escanear
+          </Button>
         </div>
       </div>
 
@@ -269,6 +279,29 @@ function UsersManagement() {
           }}
           onSave={handleSaveUser}
         />
+      )}
+
+      {/* Modal para el escáner de códigos de barras */}
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-6 rounded-lg shadow-lg w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Escanear Código</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowScanner(false)}
+                className="hover:bg-slate-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </Button>
+            </div>
+            <BarcodeScanner 
+              onScan={handleScanComplete} 
+              onClose={() => setShowScanner(false)} 
+            />
+          </div>
+        </div>
       )}
     </div>
   );
