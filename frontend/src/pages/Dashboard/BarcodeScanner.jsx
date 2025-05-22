@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Html5Qrcode } from 'html5-qrcode';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
   const [scanning, setScanning] = useState(false);
@@ -9,7 +10,6 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
   const html5QrCodeRef = useRef(null);
 
   useEffect(() => {
-    // NO iniciar el escáner automáticamente
     // Limpiar el escáner cuando el componente se desmonte
     return () => {
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
@@ -97,55 +97,163 @@ const BarcodeScanner = ({ onScan, onError, className, onClose }) => {
     return barcode; // Si no tiene el formato esperado, devolver el código original
   }
 
+  // Variantes de animación para el modal
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { duration: 0.3 }
+    },
+    exit: { 
+      opacity: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
+  const modalVariants = {
+    hidden: { 
+      scale: 0.8, 
+      opacity: 0,
+      y: 20
+    },
+    visible: { 
+      scale: 1, 
+      opacity: 1,
+      y: 0,
+      transition: { 
+        type: "spring", 
+        damping: 25, 
+        stiffness: 300,
+        delay: 0.1
+      }
+    },
+    exit: { 
+      scale: 0.8, 
+      opacity: 0,
+      y: 20,
+      transition: { duration: 0.2 }
+    }
+  };
+
+  // Variantes para el escáner
+  const scannerVariants = {
+    idle: {
+      opacity: 1,
+      scale: 1
+    },
+    scanning: {
+      opacity: 1,
+      scale: 1,
+      boxShadow: [
+        "0 0 0 0px rgba(255, 165, 0, 0)",
+        "0 0 0 4px rgba(255, 165, 0, 0.3)",
+        "0 0 0 8px rgba(255, 165, 0, 0)"
+      ],
+      transition: {
+        repeat: Infinity,
+        duration: 1.5
+      }
+    }
+  };
+
+  // Variantes para el botón
+  const buttonVariants = {
+    hover: { 
+      scale: 1.05,
+      transition: { type: "spring", stiffness: 400, damping: 10 }
+    },
+    tap: { scale: 0.95 }
+  };
+
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 ${className || ''}`}>
-      <div className="bg-slate-800 rounded-lg shadow-xl overflow-hidden w-full max-w-md border border-slate-700">
-        {/* Encabezado */}
-        <div className="bg-slate-900 p-4 flex justify-between items-center border-b border-slate-700">
-          <h3 className="text-lg font-bold text-white">Escáner de Código de Barras</h3>
-          {onClose && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClose}
-              className="text-slate-400 hover:text-white hover:bg-slate-700 rounded-full h-8 w-8 p-0"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </Button>
-          )}
-        </div>
-        
-        {/* Contenido */}
-        <div className="p-4">
-          <div className="flex flex-col items-center">
-            <div 
-              id="reader" 
-              ref={scannerRef} 
-              className="w-full h-64 bg-slate-700 rounded-md overflow-hidden"
-            ></div>
-            
-            <div className="mt-4 flex gap-2">
-              {!scanning ? (
-                <Button 
-                  onClick={startScanner} 
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  Iniciar Escáner
-                </Button>
-              ) : (
-                <Button 
-                  onClick={stopScanner} 
-                  variant="destructive"
-                  className="bg-red-500 hover:bg-red-600"
-                >
-                  Detener Escáner
-                </Button>
-              )}
+    <AnimatePresence>
+      <motion.div 
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 ${className || ''}`}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        variants={backdropVariants}
+      >
+        <motion.div 
+          className="bg-slate-800 rounded-lg shadow-xl overflow-hidden w-full max-w-md border border-slate-700"
+          variants={modalVariants}
+        >
+          {/* Encabezado */}
+          <motion.div 
+            className="bg-slate-900 p-4 flex justify-between items-center border-b border-slate-700"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="text-lg font-bold text-white">Escáner de Código de Barras</h3>
+            {onClose && (
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="text-slate-400 hover:text-white hover:bg-slate-700 rounded-full h-8 w-8 p-0 flex items-center justify-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </motion.button>
+            )}
+          </motion.div>
+          
+          {/* Contenido */}
+          <div className="p-4">
+            <div className="flex flex-col items-center">
+              <motion.div 
+                id="reader" 
+                ref={scannerRef} 
+                className="w-full h-64 bg-slate-700 rounded-md overflow-hidden"
+                variants={scannerVariants}
+                animate={scanning ? "scanning" : "idle"}
+                initial={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: 0.3 }}
+              />
+              
+              <motion.div 
+                className="mt-4 flex gap-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <AnimatePresence mode="wait">
+                  {!scanning ? (
+                    <motion.button 
+                      key="start"
+                      onClick={startScanner} 
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium"
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      Iniciar Escáner
+                    </motion.button>
+                  ) : (
+                    <motion.button 
+                      key="stop"
+                      onClick={stopScanner} 
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-medium"
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      Detener Escáner
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
