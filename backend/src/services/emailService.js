@@ -3,13 +3,16 @@ const crypto = require('crypto');
 const { prisma } = require('../config/db');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  debug: true, // Añadir para ver logs detallados
-  logger: true // Añadir para ver logs detallados
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // Función para probar la conexión del email
@@ -98,7 +101,12 @@ const sendPasswordResetEmail = async (toEmail) => {
     return { success: true };
 
   } catch (error) {
-    console.error('❌ Error en sendPasswordResetEmail:', error);
+    console.error('❌ Error detallado:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     throw error;
   }
 };
