@@ -265,6 +265,22 @@ const getRecentCheckIns = async (req, res) => {
             const user = userMap.get(checkIn.user_id);
             const zone = checkIn.zone_id ? zoneMap.get(checkIn.zone_id) : null;
 
+            console.log('Mapping check-in and user data (getRecentCheckIns):', {
+                checkinId: checkIn.id,
+                userId: checkIn.user_id,
+                userJob: user?.job,
+                fullUser: user, // Log the full user object
+                fullCheckin: checkIn // Log the full checkin object
+            });
+
+            // Mapeo robusto del cargo
+            let cargo = 'no encontrado';
+            if (!user?.job || !user?.job?.name) {
+              cargo = 'jefe de obra';
+            } else {
+              cargo = user.job.name.trim().toLowerCase();
+            }
+
             return {
                 id: checkIn.id?.toString(),
                 user_id: checkIn.user_id?.toString(),
@@ -275,7 +291,7 @@ const getRecentCheckIns = async (req, res) => {
                 check_out_time: check_out_time,
                 fecha: fecha,
                 status: checkIn.status || 'unknown',
-                job: user?.job || 'Albañil'
+                job: cargo
             };
         });
 
@@ -403,6 +419,22 @@ const getTodayCheckIn = async (req, res) => {
             const user = userMap.get(checkIn.user_id);
             const zone = checkIn.zone_id ? zoneMap.get(checkIn.zone_id) : null;
 
+            console.log('Mapping check-in and user data (getTodayCheckIn):', {
+                checkinId: checkIn.id,
+                userId: checkIn.user_id,
+                userJob: user?.job,
+                fullUser: user, // Log the full user object
+                fullCheckin: checkIn // Log the full checkin object
+            });
+
+            // Mapeo robusto del cargo
+            let cargo = 'no encontrado';
+            if (!user?.job || !user?.job?.name) {
+              cargo = 'jefe de obra';
+            } else {
+              cargo = user.job.name.trim().toLowerCase();
+            }
+
             return {
                 id: checkIn.id?.toString(),
                 user_id: checkIn.user_id?.toString(),
@@ -412,7 +444,7 @@ const getTodayCheckIn = async (req, res) => {
                 check_in_time: check_in_time,
                 check_out_time: check_out_time,
                 status: checkIn.status || 'unknown',
-                job: user?.job || 'Albañil'
+                job: cargo
             };
         });
 

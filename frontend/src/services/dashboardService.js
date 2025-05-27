@@ -654,7 +654,11 @@ export const fetchRecentCheckIns = async (limit = 100) => {
     }
     
     // Formatear los check-ins con propiedades consistentes
-    const processedCheckIns = formattedCheckIns.map(checkin => ({
+    const processedCheckIns = formattedCheckIns.map(checkin => {
+      // Prioritize checkin.job, fallback to checkin job_type/jobType, then default to 'jefe de obra'
+       const jobType = typeof checkin.job === 'string' && checkin.job ? checkin.job : typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : typeof checkin.jobType === 'string' && checkin.jobType ? checkin.jobType : 'jefe de obra';
+
+      return ({
       ...checkin,
       // Asegurarnos de que las fechas tienen el formato correcto
       id: checkin.id || Math.random().toString(36).substr(2, 9),
@@ -663,8 +667,9 @@ export const fetchRecentCheckIns = async (limit = 100) => {
       employee_id: checkin.employee_id || checkin.employeeId || checkin.user_id,
       employee_name: checkin.employee_name || checkin.employeeName || checkin.username || "Empleado",
       zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`,
-      job_type: checkin.job || checkin.job_type || checkin.jobType || 'mason' // Prioritize checkin.job
-    }));
+      job_type: jobType.toLowerCase() // Ensure lowercase for consistent lookup
+    });
+});
     
     console.log(`Procesados ${processedCheckIns.length} check-ins`);
     
@@ -912,6 +917,9 @@ export const fetchTodaysCheckins = async () => {
     // Formatear los check-ins con propiedades consistentes
     const processedCheckIns = checkIns.map(checkin => {
       const user = userMap.get(checkin.user_id);
+      // Prioritize user.job, fallback to checkin job fields, then default to 'jefe de obra'
+      const jobType = typeof user?.job === 'string' && user.job ? user.job : typeof checkin.job === 'string' && checkin.job ? checkin.job : typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : typeof checkin.jobType === 'string' && checkin.jobType ? checkin.jobType : 'jefe de obra';
+
       return {
         ...checkin,
         id: checkin.id?.toString() || Math.random().toString(36).substr(2, 9),
@@ -920,7 +928,7 @@ export const fetchTodaysCheckins = async () => {
         employee_id: checkin.user_id,
         employee_name: user?.username || user?.name || checkin.employee_name || "Empleado",
         zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`,
-        job_type: user?.job || checkin.job_type || checkin.jobType || 'mason' // Prioritize user.job
+        job_type: jobType.toLowerCase() // Ensure lowercase for consistent lookup
       };
     });
     

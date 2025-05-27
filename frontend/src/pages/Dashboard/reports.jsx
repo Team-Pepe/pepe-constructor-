@@ -28,13 +28,20 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [hourlyRates, setHourlyRates] = useState({
+    // Tarifas en inglés (por compatibilidad)
     electrician: 15,
     plumber: 12,
     mason: 10,
     'jefe de obra': 20,
+    // Tarifas en español (que es lo que envía el backend ahora)
     'fontanero': 12,
-    'electricista': 15,
-    'albañil': 10
+    'eléctrico': 15,
+    'albañil': 10,
+    'eléctrico': 15,
+    // Con espacios por si acaso
+    'fontanero ': 12,
+    'eléctrico ': 15,
+    'albañil ': 10
   });
   const [dateFilter, setDateFilter] = useState('today'); // 'today', 'general' for payments tab
 
@@ -48,9 +55,16 @@ const Reports = () => {
       let todayCheckIns = [];
       let recentCheckIns = [];
 
+      console.log('🚀 loadCheckInsData INICIANDO...');
+      console.log('🚀 Llamando fetchTodaysCheckins...');
       // Fetch both sets of data
       const todayResponse = await fetchTodaysCheckins();
+      console.log('🚀 Llamando fetchRecentCheckIns...');
       const generalResponse = await fetchRecentCheckIns(1000);
+      
+      console.log('===== REPORTS.JSX DEBUG =====');
+      console.log('todayResponse from fetchTodaysCheckins:', todayResponse);
+      console.log('generalResponse from fetchRecentCheckIns:', generalResponse);
       
       // Process today's check-ins
       if (Array.isArray(todayResponse)) {
@@ -69,6 +83,23 @@ const Reports = () => {
         recentCheckIns = generalResponse.checkIns;
       }
       setGeneralCheckIns(recentCheckIns); // Set state for 'Check-ins Generales' tab
+      
+      // Log the processed data before filtering for payments
+      console.log('todayCheckIns after processing:', todayCheckIns.map(item => ({
+        id: item.id,
+        employee_name: item.employee_name,
+        job_type: item.job_type,
+        job: item.job,
+        jobRaw: item.job
+      })));
+      
+      console.log('recentCheckIns after processing:', recentCheckIns.map(item => ({
+        id: item.id,
+        employee_name: item.employee_name,
+        job_type: item.job_type,
+        job: item.job,
+        jobRaw: item.job
+      })));
       
       // Filter data for 'Pagos' tab based on selected filter
       if (dateFilter === 'today') {
@@ -135,20 +166,52 @@ const Reports = () => {
 
   const calculatePayment = (hours, jobType) => {
     // Ensure jobType is a string before calling toLowerCase
-    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase() : 'mason';
-    const rate = hourlyRates[safeJobType] || hourlyRates.mason;
+    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase().trim() : 'mason';
+    
+    // Intentar obtener la tarifa por tipo de trabajo
+    let rate = hourlyRates[safeJobType];
+    
+    // Si no se encuentra, intentar con fallbacks
+    if (!rate) {
+      // Fallbacks para mapeos inglés-español
+      const fallbackMap = {
+        'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
+        'plumber': hourlyRates['fontanero'] || hourlyRates.plumber,
+        'mason': hourlyRates['albañil'] || hourlyRates.mason,
+        'eléctrico': hourlyRates.eléctrico || hourlyRates.electrician,
+        'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
+        'albañil': hourlyRates['albañil'] || hourlyRates.mason
+      };
+      
+      rate = fallbackMap[safeJobType];
+    }
+    
+    // Fallback final a albañil/mason
+    if (!rate) {
+      rate = hourlyRates['albañil'] || hourlyRates.mason || 10;
+    }
+    
     return Math.round(hours * rate * 100) / 100;
   };
 
   const getJobTypeDisplay = (jobType) => {
     const types = {
+      // Mapeos en inglés (por si acaso)
       'electrician': 'Electricista',
       'plumber': 'Fontanero',
       'mason': 'Albañil',
-      'jefe de obra': 'Jefe de Obra'
+      'jefe de obra': 'Jefe de Obra',
+      // Mapeos en español (que es lo que envía el backend ahora)
+      'fontanero': 'Fontanero',
+      'eléctrico': 'Electricista',
+      'albañil': 'Albañil',
+      // Otros posibles mapeos
+      'fontanero ': 'Fontanero', // por si viene con espacio
+      'eléctrico ': 'Electricista', // por si viene con espacio
+      'albañil ': 'Albañil' // por si viene con espacio
     };
     // Ensure jobType is a string before calling toLowerCase
-    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase() : 'mason';
+    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase().trim() : 'mason';
     return types[safeJobType] || 'Albañil';
   };
 
@@ -238,20 +301,50 @@ const Reports = () => {
     // Preparar datos para la tabla de pagos
     const paymentData = data
       .filter(checkin => checkin.check_out_time)
-      .map(checkin => {
+      .map((checkin, index) => {
+        // Log each checkin data for debugging
+        console.log(`Payment processing for checkin ${index}:`, {
+          id: checkin.id,
+          employee_name: checkin.employee_name,
+          job_type: checkin.job_type,
+          job: checkin.job,
+          jobTypeType: typeof checkin.job_type,
+          jobType: typeof checkin.job,
+          jobName: checkin.job?.name
+        });
+        
         const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
         // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
         const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
-        const rate = hourlyRates[jobType.toLowerCase()] || hourlyRates.mason;
+        
+        // Calcular tarifa por hora
+        const safeJobType = jobType.toLowerCase().trim();
+        let hourlyRate = hourlyRates[safeJobType];
+        
+        if (!hourlyRate) {
+          const fallbackMap = {
+            'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
+            'plumber': hourlyRates['fontanero'] || hourlyRates.plumber,
+            'mason': hourlyRates['albañil'] || hourlyRates.mason,
+            'eléctrico': hourlyRates.eléctrico || hourlyRates.electrician,
+            'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
+            'albañil': hourlyRates['albañil'] || hourlyRates.mason
+          };
+          hourlyRate = fallbackMap[safeJobType];
+        }
+        
+        if (!hourlyRate) {
+          hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
+        }
+        
+        // Calcular pago total
         const payment = calculatePayment(hours, jobType);
         
         console.log('Payment calculation details:', {
           employee: checkin.employee_name,
           jobType: jobType,
           hourlyRates: hourlyRates, // Log the whole object to see available rates
-          rateUsed: hourlyRates[jobType.toLowerCase()], // Log the specific rate found
-          fallbackRate: hourlyRates.mason,
-          finalRate: rate,
+          hourlyRate: hourlyRate,
           hours: hours,
           payment: payment
         });
@@ -513,40 +606,46 @@ const Reports = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="electrician" className="text-white">Electricista ($/hora)</Label>
+                    <Label htmlFor="eléctrico" className="text-white">Electricista ($/hora)</Label>
                     <Input
-                      id="electrician"
+                      id="eléctrico"
                       type="number"
-                      value={hourlyRates.electrician}
+                      value={hourlyRates.eléctrico}
                       onChange={(e) => setHourlyRates(prev => ({
                         ...prev,
-                        electrician: parseFloat(e.target.value) || 0
+                        eléctrico: parseFloat(e.target.value) || 0,
+                        'eléctrico ': parseFloat(e.target.value) || 0, // con espacio también
+                        electrician: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
                       }))}
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="plumber" className="text-white">Fontanero ($/hora)</Label>
+                    <Label htmlFor="fontanero" className="text-white">Fontanero ($/hora)</Label>
                     <Input
-                      id="plumber"
+                      id="fontanero"
                       type="number"   
-                      value={hourlyRates.plumber}
+                      value={hourlyRates.fontanero}
                       onChange={(e) => setHourlyRates(prev => ({
                         ...prev,
-                        plumber: parseFloat(e.target.value) || 0
+                        fontanero: parseFloat(e.target.value) || 0,
+                        'fontanero ': parseFloat(e.target.value) || 0, // con espacio también
+                        plumber: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
                       }))}
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="mason" className="text-white">Albañil ($/hora)</Label>
+                    <Label htmlFor="albanil" className="text-white">Albañil ($/hora)</Label>
                     <Input
-                      id="mason"
+                      id="albanil"
                       type="number"
-                      value={hourlyRates.mason}
+                      value={hourlyRates['albañil']}
                       onChange={(e) => setHourlyRates(prev => ({
                         ...prev,
-                        mason: parseFloat(e.target.value) || 0
+                        'albañil': parseFloat(e.target.value) || 0,
+                        'albañil ': parseFloat(e.target.value) || 0, // con espacio también
+                        mason: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
                       }))}
                       className="bg-slate-700 border-slate-600 text-white"
                     />
@@ -571,20 +670,49 @@ const Reports = () => {
                         {paymentsCheckIns
                           .filter(checkin => checkin.check_out_time)
                           .map((checkin, index) => {
+                            // Log each checkin data for debugging
+                            console.log(`Payment processing for checkin ${index}:`, {
+                              id: checkin.id,
+                              employee_name: checkin.employee_name,
+                              job_type: checkin.job_type,
+                              job: checkin.job,
+                              jobTypeType: typeof checkin.job_type,
+                              jobType: typeof checkin.job,
+                              jobName: checkin.job?.name
+                            });
+                            
                             const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
                             // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
                             const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
                             
-                            const rate = hourlyRates[jobType.toLowerCase()] || hourlyRates.mason;
+                            // Calcular tarifa por hora
+                            const safeJobType = jobType.toLowerCase().trim();
+                            let hourlyRate = hourlyRates[safeJobType];
+                            
+                            if (!hourlyRate) {
+                              const fallbackMap = {
+                                'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
+                                'plumber': hourlyRates['fontanero'] || hourlyRates.plumber,
+                                'mason': hourlyRates['albañil'] || hourlyRates.mason,
+                                'eléctrico': hourlyRates.eléctrico || hourlyRates.electrician,
+                                'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
+                                'albañil': hourlyRates['albañil'] || hourlyRates.mason
+                              };
+                              hourlyRate = fallbackMap[safeJobType];
+                            }
+                            
+                            if (!hourlyRate) {
+                              hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
+                            }
+                            
+                            // Calcular pago total
                             const payment = calculatePayment(hours, jobType);
                             
                             console.log('Payment calculation details:', {
                               employee: checkin.employee_name,
                               jobType: jobType,
                               hourlyRates: hourlyRates, // Log the whole object to see available rates
-                              rateUsed: hourlyRates[jobType.toLowerCase()], // Log the specific rate found
-                              fallbackRate: hourlyRates.mason,
-                              finalRate: rate,
+                              hourlyRate: hourlyRate,
                               hours: hours,
                               payment: payment
                             });
@@ -594,7 +722,7 @@ const Reports = () => {
                                 <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
                                 <td className="p-2 text-white">{getJobTypeDisplay(jobType)}</td>
                                 <td className="p-2 text-white">{hours} hrs</td>
-                                <td className="p-2 text-white">${rate}/hr</td>
+                                <td className="p-2 text-white">${hourlyRate}/hr</td>
                                 <td className="p-2 text-white">${payment}</td>
                               </tr>
                             );
