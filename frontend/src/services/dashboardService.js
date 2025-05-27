@@ -628,6 +628,13 @@ export const fetchRecentCheckIns = async (limit = 100) => {
     
     console.log('Datos recibidos de check-ins:', response.data);
     
+    // Log job fields for debugging
+    if (Array.isArray(response.data)) {
+       console.log('Job fields in fetchRecentCheckIns response:', response.data.map(item => item.job));
+    } else if (response.data && typeof response.data === 'object' && Array.isArray(response.data.checkIns)) {
+       console.log('Job fields in fetchRecentCheckIns response.checkIns:', response.data.checkIns.map(item => item.job));
+    }
+
     let formattedCheckIns = [];
     
     // Si es un array, procesarlo directamente
@@ -655,7 +662,8 @@ export const fetchRecentCheckIns = async (limit = 100) => {
       check_out_time: checkin.check_out_time || checkin.checkOutTime,
       employee_id: checkin.employee_id || checkin.employeeId || checkin.user_id,
       employee_name: checkin.employee_name || checkin.employeeName || checkin.username || "Empleado",
-      zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`
+      zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`,
+      job_type: checkin.job || checkin.job_type || checkin.jobType || 'mason' // Prioritize checkin.job
     }));
     
     console.log(`Procesados ${processedCheckIns.length} check-ins`);
@@ -860,13 +868,70 @@ export const assignMaterialToZone = async (data) => {
 
 export const fetchTodaysCheckins = async () => {
   try {
+    console.log('Solicitando check-ins del día...');
     const response = await apiClient.get(API_ENDPOINTS.TODAYS_CHECKINS, {
       headers: getAuthHeaders()
     });
-    return response.data;
+    
+    console.log('Respuesta de check-ins del día:', response.data);
+    
+    // Procesar la respuesta para asegurar un formato consistente
+    let checkIns = [];
+    
+    if (Array.isArray(response.data)) {
+      checkIns = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // Buscar cualquier propiedad que pueda contener el array de check-ins
+      for (const key in response.data) {
+        if (Array.isArray(response.data[key])) {
+          console.log(`Encontrado array de check-ins en propiedad ${key} con ${response.data[key].length} elementos`);
+          checkIns = response.data[key];
+          break;
+        }
+      }
+    }
+    
+    // Obtener información de usuarios para enriquecer los check-ins
+    const userIds = [...new Set(checkIns.map(checkin => checkin.user_id))];
+    let users = [];
+    
+    if (userIds.length > 0) {
+      try {
+        const usersResponse = await apiClient.get(`${API_ENDPOINTS.USERS}?ids=${userIds.join(',')}`, {
+          headers: getAuthHeaders()
+        });
+        users = Array.isArray(usersResponse.data) ? usersResponse.data : [];
+      } catch (error) {
+        console.error('Error al obtener información de usuarios:', error);
+      }
+    }
+    
+    // Crear mapa de usuarios para acceso rápido
+    const userMap = new Map(users.map(user => [user.id, user]));
+    
+    // Formatear los check-ins con propiedades consistentes
+    const processedCheckIns = checkIns.map(checkin => {
+      const user = userMap.get(checkin.user_id);
+      return {
+        ...checkin,
+        id: checkin.id?.toString() || Math.random().toString(36).substr(2, 9),
+        check_in_time: checkin.check_in_time || checkin.checkInTime || checkin.created_at || new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString(),
+        check_out_time: checkin.check_out_time || checkin.checkOutTime,
+        employee_id: checkin.user_id,
+        employee_name: user?.username || user?.name || checkin.employee_name || "Empleado",
+        zone_name: checkin.zone_name || checkin.zoneName || `Zona ${checkin.zone_id || ""}`,
+        job_type: user?.job || checkin.job_type || checkin.jobType || 'mason' // Prioritize user.job
+      };
+    });
+    
+    console.log(`Procesados ${processedCheckIns.length} check-ins del día`);
+    return processedCheckIns;
   } catch (error) {
     console.error('Error al obtener checkins del día:', error);
-    throw error;
+    if (error.response && error.response.status === 404) {
+      return []; // Return empty array for 404 errors
+    }
+    throw error; // Re-throw other errors
   }
 };
 

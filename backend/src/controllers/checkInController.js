@@ -186,7 +186,7 @@ const getRecentCheckIns = async (req, res) => {
         // Obtener información de usuarios y zonas en consultas separadas
         const users = await prisma.user.findMany({
             where: { id: { in: userIds } },
-            select: { id: true, username: true }
+            select: { id: true, username: true, job: true }
         });
 
         const zones = await prisma.workZone.findMany({
@@ -274,7 +274,8 @@ const getRecentCheckIns = async (req, res) => {
                 check_in_time: check_in_time,
                 check_out_time: check_out_time,
                 fecha: fecha,
-                status: checkIn.status || 'unknown'
+                status: checkIn.status || 'unknown',
+                job: user?.job || 'Albañil'
             };
         });
 
@@ -321,10 +322,8 @@ const getTodayCheckIn = async (req, res) => {
         console.log(`📊 Se encontraron ${todayCheckIns.length} check-ins`);
 
         if (todayCheckIns.length === 0) {
-            console.log('❌ No se encontraron check-ins para el día de hoy');
-            return res.status(404).json({
-                message: 'No se encontraron check-ins para el día de hoy'
-            });
+            console.log('ℹ️ No se encontraron check-ins para el día de hoy');
+            return res.json([]);
         }
 
         // Obtener información de usuarios y zonas
@@ -336,7 +335,8 @@ const getTodayCheckIn = async (req, res) => {
             select: {
                 id: true,
                 username: true,
-                email: true
+                email: true,
+                job: true
             }
         });
 
@@ -411,7 +411,8 @@ const getTodayCheckIn = async (req, res) => {
                 zone_name: zone?.name || 'Zona no especificada',
                 check_in_time: check_in_time,
                 check_out_time: check_out_time,
-                status: checkIn.status || 'unknown'
+                status: checkIn.status || 'unknown',
+                job: user?.job || 'Albañil'
             };
         });
 

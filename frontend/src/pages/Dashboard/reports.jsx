@@ -24,57 +24,65 @@ import {
 const Reports = () => {
   const [checkIns, setCheckIns] = useState([]);
   const [generalCheckIns, setGeneralCheckIns] = useState([]);
+  const [paymentsCheckIns, setPaymentsCheckIns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [hourlyRates, setHourlyRates] = useState({
     electrician: 15,
     plumber: 12,
-    mason: 10
+    mason: 10,
+    'jefe de obra': 20,
+    'fontanero': 12,
+    'electricista': 15,
+    'albañil': 10
   });
+  const [dateFilter, setDateFilter] = useState('today'); // 'today', 'general' for payments tab
 
   useEffect(() => {
-    loadCheckInsData();
-  }, []);
+    loadCheckInsData(); // Load data initially and whenever dateFilter changes
+  }, [dateFilter]);
 
   const loadCheckInsData = async () => {
     try {
       setLoading(true);
-      // Cargar check-ins del día
+      let todayCheckIns = [];
+      let recentCheckIns = [];
+
+      // Fetch both sets of data
       const todayResponse = await fetchTodaysCheckins();
-      // Cargar check-ins generales
-      const generalResponse = await fetchRecentCheckIns(1000); // Obtener más registros históricos
+      const generalResponse = await fetchRecentCheckIns(1000);
       
-      // Procesar check-ins del día
+      // Process today's check-ins
       if (Array.isArray(todayResponse)) {
-        setCheckIns(todayResponse);
-      } 
-      else if (todayResponse && todayResponse.checkIns) {
-        setCheckIns(todayResponse.checkIns);
+        todayCheckIns = todayResponse;
+      } else {
+        // Handle cases where the response might not be a direct array, though fetchTodaysCheckins should return one
+        console.warn("fetchTodaysCheckins did not return an array directly:", todayResponse);
+        todayCheckIns = Array.isArray(todayResponse?.data) ? todayResponse?.data : [];
       }
-      else if (todayResponse && typeof todayResponse === 'object') {
-        const arrayProps = Object.keys(todayResponse).find(key => Array.isArray(todayResponse[key]));
-        if (arrayProps) {
-          setCheckIns(todayResponse[arrayProps]);
-        }
+      setCheckIns(todayCheckIns); // Set state for 'Check-ins del Día' tab
+      
+      // Process recent check-ins
+      if (Array.isArray(generalResponse)) {
+        recentCheckIns = generalResponse;
+      } else if (generalResponse && generalResponse.checkIns) {
+        recentCheckIns = generalResponse.checkIns;
+      }
+      setGeneralCheckIns(recentCheckIns); // Set state for 'Check-ins Generales' tab
+      
+      // Filter data for 'Pagos' tab based on selected filter
+      if (dateFilter === 'today') {
+        setPaymentsCheckIns(todayCheckIns); // Use today's check-ins for 'Hoy'
+      } else {
+        setPaymentsCheckIns(recentCheckIns); // Use all recent check-ins for 'Generales'
       }
 
-      // Procesar check-ins generales
-      if (Array.isArray(generalResponse)) {
-        setGeneralCheckIns(generalResponse);
-      }
-      else if (generalResponse && generalResponse.checkIns) {
-        setGeneralCheckIns(generalResponse.checkIns);
-      }
-      else if (generalResponse && typeof generalResponse === 'object') {
-        const arrayProps = Object.keys(generalResponse).find(key => Array.isArray(generalResponse[key]));
-        if (arrayProps) {
-          setGeneralCheckIns(generalResponse[arrayProps]);
-        }
-      }
-      
       setLoading(false);
     } catch (error) {
       console.error("Error al cargar los check-ins:", error);
+      setCheckIns([]);
+      setGeneralCheckIns([]);
+      setPaymentsCheckIns([]);
       setLoading(false);
     }
   };
@@ -82,19 +90,66 @@ const Reports = () => {
   const calculateHoursWorked = (checkInTime, checkOutTime) => {
     if (!checkInTime || !checkOutTime) return 0;
     
-    const start = new Date(checkInTime);
-    const end = new Date(checkOutTime);
+    // Robust date parsing function
+    const parseDate = (dateString) => {
+      if (!dateString) return null;
+      
+      // Attempt to parse DD/MM/YYYY, HH:MM:SS format
+      const parts = dateString.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/);
+      if (parts) {
+        // parts[3]=YYYY, parts[2]=MM, parts[1]=DD, parts[4]=HH, parts[5]=MM, parts[6]=SS
+        // Month is 0-indexed in Date constructor
+        return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5], parts[6]);
+      }
+      
+      // Fallback to standard Date parsing
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
+    const start = parseDate(checkInTime);
+    const end = parseDate(checkOutTime);
     
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    console.log('calculateHoursWorked inputs and parsed dates:', {
+      checkInTime: checkInTime,
+      checkOutTime: checkOutTime,
+      parsedStart: start,
+      parsedEnd: end
+    });
+
+    if (!start || !end) {
+      console.warn('Failed to parse dates for hours calculation:', { checkInTime, checkOutTime });
+      return 0;
+    }
     
-    const diffMs = end - start;
+    const diffMs = end.getTime() - start.getTime();
+    
+    if (diffMs < 0) { // Handle cases where check-out is before check-in (shouldn't happen but as a safeguard)
+        console.warn('Check-out time is before check-in time:', { checkInTime, checkOutTime });
+        return 0;
+    }
+
     const diffHours = diffMs / (1000 * 60 * 60);
     return Math.round(diffHours * 100) / 100; // Round to 2 decimal places
   };
 
   const calculatePayment = (hours, jobType) => {
-    const rate = hourlyRates[jobType.toLowerCase()] || hourlyRates.mason;
+    // Ensure jobType is a string before calling toLowerCase
+    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase() : 'mason';
+    const rate = hourlyRates[safeJobType] || hourlyRates.mason;
     return Math.round(hours * rate * 100) / 100;
+  };
+
+  const getJobTypeDisplay = (jobType) => {
+    const types = {
+      'electrician': 'Electricista',
+      'plumber': 'Fontanero',
+      'mason': 'Albañil',
+      'jefe de obra': 'Jefe de Obra'
+    };
+    // Ensure jobType is a string before calling toLowerCase
+    const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase() : 'mason';
+    return types[safeJobType] || 'Albañil';
   };
 
   const generatePDF = (type) => {
@@ -112,12 +167,12 @@ const Reports = () => {
         generateCheckInsPDF(doc, dateStr, generalCheckIns);
         break;
       case 'payments':
-        generatePaymentsPDF(doc, dateStr, checkIns);
+        generatePaymentsPDF(doc, dateStr, paymentsCheckIns);
         break;
       case 'all':
         generateCheckInsPDF(doc, dateStr, checkIns);
         doc.addPage();
-        generatePaymentsPDF(doc, dateStr, checkIns);
+        generatePaymentsPDF(doc, dateStr, paymentsCheckIns);
         break;
     }
 
@@ -185,7 +240,22 @@ const Reports = () => {
       .filter(checkin => checkin.check_out_time)
       .map(checkin => {
         const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
-        const payment = calculatePayment(hours, checkin.job_type || 'mason');
+        // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
+        const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
+        const rate = hourlyRates[jobType.toLowerCase()] || hourlyRates.mason;
+        const payment = calculatePayment(hours, jobType);
+        
+        console.log('Payment calculation details:', {
+          employee: checkin.employee_name,
+          jobType: jobType,
+          hourlyRates: hourlyRates, // Log the whole object to see available rates
+          rateUsed: hourlyRates[jobType.toLowerCase()], // Log the specific rate found
+          fallbackRate: hourlyRates.mason,
+          finalRate: rate,
+          hours: hours,
+          payment: payment
+        });
+
         return [
           checkin.employee_name || "Sin nombre",
           checkin.job_type || "Albañil",
@@ -264,15 +334,11 @@ const Reports = () => {
             <th className="text-left p-2 text-slate-300">Fecha</th>
             <th className="text-left p-2 text-slate-300">Check-in</th>
             <th className="text-left p-2 text-slate-300">Check-out</th>
-            <th className="text-left p-2 text-slate-300">Horas</th>
             <th className="text-left p-2 text-slate-300">Estado</th>
           </tr>
         </thead>
         <tbody>
           {data.map((checkin, index) => {
-            const hours = checkin.check_out_time 
-              ? calculateHoursWorked(checkin.check_in_time, checkin.check_out_time)
-              : null;
             return (
               <tr key={checkin.id || index} className="border-b border-slate-800 hover:bg-slate-800/50">
                 <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
@@ -280,7 +346,6 @@ const Reports = () => {
                 <td className="p-2 text-white">{formatDate(checkin.check_in_time)}</td>
                 <td className="p-2 text-white">{formatTime(checkin.check_in_time)}</td>
                 <td className="p-2 text-white">{checkin.check_out_time ? formatTime(checkin.check_out_time) : "-"}</td>
-                <td className="p-2 text-white">{hours ? `${hours} hrs` : "-"}</td>
                 <td className="p-2">
                   <span className={`px-2 py-1 rounded text-sm ${
                     !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
@@ -414,9 +479,41 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Filtro de fecha para Pagos */}
+                <div className="flex gap-4 mb-4">
+                  <Button
+                    variant={dateFilter === 'today' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('today')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Hoy
+                  </Button>
+                  <Button
+                    variant={dateFilter === 'general' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('general')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Generales
+                  </Button>
+                </div>
+
+                {/* Tarifas por hora */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="electrician" className="text-white" >Electricista ($/hora)</Label>
+                    <Label htmlFor="jefe" className="text-white">Jefe de Obra ($/hora)</Label>
+                    <Input
+                      id="jefe"
+                      type="number"
+                      value={hourlyRates['jefe de obra']}
+                      onChange={(e) => setHourlyRates(prev => ({
+                        ...prev,
+                        'jefe de obra': parseFloat(e.target.value) || 0
+                      }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="electrician" className="text-white">Electricista ($/hora)</Label>
                     <Input
                       id="electrician"
                       type="number"
@@ -456,6 +553,7 @@ const Reports = () => {
                   </div>
                 </div>
 
+                {/* Tabla de pagos */}
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-white mb-4">Resumen de Pagos</h3>
                   <div className="overflow-x-auto">
@@ -465,20 +563,38 @@ const Reports = () => {
                           <th className="text-left p-2 text-slate-300">Empleado</th>
                           <th className="text-left p-2 text-slate-300">Cargo</th>
                           <th className="text-left p-2 text-slate-300">Horas Trabajadas</th>
-                          <th className="text-left p-2 text-slate-300">Pago</th>
+                          <th className="text-left p-2 text-slate-300">Tarifa/Hora</th>
+                          <th className="text-left p-2 text-slate-300">Total</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {checkIns
+                        {paymentsCheckIns
                           .filter(checkin => checkin.check_out_time)
                           .map((checkin, index) => {
                             const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
-                            const payment = calculatePayment(hours, checkin.job_type || 'mason');
+                            // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
+                            const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
+                            
+                            const rate = hourlyRates[jobType.toLowerCase()] || hourlyRates.mason;
+                            const payment = calculatePayment(hours, jobType);
+                            
+                            console.log('Payment calculation details:', {
+                              employee: checkin.employee_name,
+                              jobType: jobType,
+                              hourlyRates: hourlyRates, // Log the whole object to see available rates
+                              rateUsed: hourlyRates[jobType.toLowerCase()], // Log the specific rate found
+                              fallbackRate: hourlyRates.mason,
+                              finalRate: rate,
+                              hours: hours,
+                              payment: payment
+                            });
+
                             return (
                               <tr key={checkin.id || index} className="border-b border-slate-800 hover:bg-slate-800/50">
                                 <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
-                                <td className="p-2 text-white">{checkin.job_type || "Albañil"}</td>
+                                <td className="p-2 text-white">{getJobTypeDisplay(jobType)}</td>
                                 <td className="p-2 text-white">{hours} hrs</td>
+                                <td className="p-2 text-white">${rate}/hr</td>
                                 <td className="p-2 text-white">${payment}</td>
                               </tr>
                             );
