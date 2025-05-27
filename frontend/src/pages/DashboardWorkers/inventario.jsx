@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/features/auth";
 import { InventoryCard } from "@/components/ui/InventoryCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchMaterials, fetchWorkZones } from "@/services/dashboardService";
+import { fetchMaterials, fetchWorkZones, createMaterialRequest } from "@/services/dashboardService";
 import { motion } from "framer-motion";
 
 export default function Inventario() {
+  const { user } = useAuth();
   const [materials, setMaterials] = useState([]);
   const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,6 +136,64 @@ export default function Inventario() {
     material.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Manejar solicitud directamente desde el card (nueva funcionalidad)
+  const handleCardRequest = async (formData) => {
+    try {
+      console.log("Solicitud enviada desde card:", formData);
+      
+      // Validar que tengamos un usuario válido
+      if (!user?.id) {
+        throw new Error("Usuario no identificado. Por favor, inicia sesión nuevamente.");
+      }
+      
+      // Preparar los datos para la API
+      const requestData = {
+        user_id: user.id,
+        zone_id: formData.zoneId,
+        material: formData.materialName,
+        quantity_requested: formData.quantity,
+        message: formData.notes || ""
+      };
+      
+      console.log("Enviando datos a la API:", requestData);
+      
+      // Enviar la solicitud usando el servicio real
+      const response = await createMaterialRequest(requestData);
+      
+      console.log("Respuesta de la API:", response);
+      
+      // Mostrar mensaje de éxito
+      setRequestSuccess(`Solicitud enviada correctamente para ${formData.materialName} - Cantidad: ${formData.quantity} ${materials.find(m => m.id === formData.materialId)?.unit || 'unidades'} - Zona: ${formData.zoneName}`);
+      
+      // Limpiar mensaje después de unos segundos
+      setTimeout(() => {
+        setRequestSuccess(null);
+      }, 5000);
+    } catch (err) {
+      console.error("Error al enviar solicitud:", err);
+      let errorMessage = "No se pudo enviar la solicitud. ";
+      
+      // Manejar errores específicos de la API
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage += err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage += err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage += err.response.data.error;
+        }
+      } else if (err.message) {
+        errorMessage += err.message;
+      } else {
+        errorMessage += "Intente de nuevo más tarde.";
+      }
+      
+      setError(errorMessage);
+      throw err; // Re-lanzar el error para que el componente lo maneje
+    }
+  };
+
+  // Mantener la funcionalidad anterior para compatibilidad
   const handleRequestMaterial = (material) => {
     setSelectedMaterial(material);
     setIsDialogOpen(true);
@@ -227,7 +287,11 @@ export default function Inventario() {
                       }
                     }}
                   >
-                    <InventoryCard {...material} />
+                    <InventoryCard 
+                      {...material} 
+                      showRequestButton={true}
+                      onRequestMaterial={handleCardRequest}
+                    />
                   </motion.div>
                 ))}
               </div>
@@ -266,7 +330,11 @@ export default function Inventario() {
                         }
                       }}
                     >
-                      <InventoryCard {...material} />
+                      <InventoryCard 
+                        {...material} 
+                        showRequestButton={true}
+                        onRequestMaterial={handleCardRequest}
+                      />
                     </motion.div>
                   ))}
               </div>

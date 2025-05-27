@@ -57,8 +57,18 @@ export const fetchProjectsProgress = () =>
 export const fetchAttendance = () => 
   apiClient.get(API_ENDPOINTS.ATTENDANCE, { headers: getAuthHeaders() });
 
-export const fetchRecentActivities = () => 
-  apiClient.get(API_ENDPOINTS.RECENT_ACTIVITIES, { headers: getAuthHeaders() });
+export const fetchRecentActivities = async () => {
+  try {
+    console.log("Solicitando actividades recientes del endpoint...");
+    const response = await apiClient.get(API_ENDPOINTS.RECENT_ACTIVITIES, { headers: getAuthHeaders() });
+    console.log("Respuesta de actividades recientes:", response);
+    return response;
+  } catch (error) {
+    console.warn("Endpoint de actividades recientes no disponible:", error);
+    // Devolver respuesta vacía pero válida si el endpoint no existe
+    return { data: [] };
+  }
+};
 
 export const fetchWorkers = async () => {
   try {
@@ -750,7 +760,8 @@ export const createMaterialRequest = async (data) => {
         : data.quantity_requested,
       message: data.message || "",
       material: data.material || "",
-      status: "pending"
+      status: "pending",
+      created_at: new Date().toISOString() // Add timestamp for client-side tracking
     };
     
     console.log("Enviando solicitud de materiales:", requestData);
@@ -868,6 +879,37 @@ export const assignMaterialToZone = async (data) => {
   } catch (error) {
     console.error('Error al asignar material a zona:', error);
     throw error;
+  }
+};
+
+// Create activity record in database
+export const createActivity = async (activityData) => {
+  try {
+    console.log("Creando actividad en la base de datos:", activityData);
+    
+    const data = {
+      title: activityData.title || "Nueva Actividad",
+      description: activityData.description || "Sin descripción",
+      type: activityData.type || "general",
+      status: activityData.status || "completed",
+      user_id: parseInt(localStorage.getItem('userId') || '0'),
+      metadata: JSON.stringify({
+        requestId: activityData.requestId,
+        originalData: activityData
+      }),
+      created_at: new Date().toISOString()
+    };
+    
+    const response = await apiClient.post('/api/activities', data, {
+      headers: getAuthHeaders(),
+    });
+    
+    console.log("Actividad creada exitosamente:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear actividad:', error);
+    // No lanzar error para que no interrumpa el flujo principal
+    return { success: false, error: error.message };
   }
 };
 

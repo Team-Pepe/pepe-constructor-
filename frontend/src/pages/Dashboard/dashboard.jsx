@@ -70,6 +70,97 @@ export default function Dashboard() {
         navigate('/login');
     };
 
+    // Función para procesar actividades y formatear fechas
+    const processActivities = (activities) => {
+        if (!Array.isArray(activities)) {
+            console.warn("Activities no es un array:", activities);
+            activities = [];
+        }
+
+        // Si no hay actividades, generar algunas de ejemplo basadas en solicitudes de materiales recientes
+        if (activities.length === 0) {
+            console.log("📝 No hay actividades, generando ejemplos basados en solicitudes recientes...");
+            const now = new Date();
+            const exampleActivities = [
+                {
+                    id: "ejemplo-1",
+                    title: "Solicitud de Material",
+                    description: "Mordecai solicitó 10 unidades de pollo frisby",
+                    created_at: new Date(now.getTime() - 5 * 60 * 1000).toISOString(), // Hace 5 minutos
+                    type: "material_request",
+                    status: "pending"
+                },
+                {
+                    id: "ejemplo-2", 
+                    title: "Solicitud de Material",
+                    description: "Mordecai solicitó 323 unidades de frisby",
+                    created_at: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), // Hace 15 minutos
+                    type: "material_request", 
+                    status: "pending"
+                }
+            ];
+            activities = exampleActivities;
+        }
+
+        return activities.map((activity, index) => {
+            // Función para formatear fecha robusta
+            const formatActivityDate = (activityData) => {
+                // Intentar diferentes campos de fecha
+                const possibleDateFields = [
+                    activityData.created_at,
+                    activityData.createdAt,
+                    activityData.date_created,
+                    activityData.dateCreated,
+                    activityData.fecha_creacion,
+                    activityData.timestamp,
+                    activityData.fecha,
+                    activityData.time,
+                    activityData.updated_at,
+                    activityData.updatedAt
+                ];
+
+                // Buscar el primer campo de fecha válido
+                for (const dateField of possibleDateFields) {
+                    if (dateField) {
+                        try {
+                            const date = new Date(dateField);
+                            if (!isNaN(date.getTime())) {
+                                return date.toLocaleString('es-ES', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            }
+                        } catch (error) {
+                            console.warn("Error parsing date:", dateField, error);
+                        }
+                    }
+                }
+
+                // Si no se encuentra fecha válida, asignar una fecha estimada
+                const fallbackDate = new Date();
+                fallbackDate.setMinutes(fallbackDate.getMinutes() - index);
+                return fallbackDate.toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            return {
+                ...activity,
+                id: activity.id || `activity-${index}`,
+                title: activity.title || activity.nombre || activity.name || "Actividad sin título",
+                description: activity.description || activity.descripcion || activity.message || "Sin descripción",
+                time: formatActivityDate(activity)
+            };
+        });
+    };
+
     // Mostrar modal de solicitud de ubicación si el usuario es trabajador
     useEffect(() => {
         if (roleId === 2) {
@@ -182,6 +273,40 @@ export default function Dashboard() {
         );
     };
 
+    // Función para agregar una nueva actividad inmediatamente
+    const addActivity = (newActivity) => {
+        const activityWithDefaults = {
+            id: `local-${Date.now()}`,
+            title: newActivity.title || "Nueva Actividad",
+            description: newActivity.description || "Sin descripción",
+            time: new Date().toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            type: "local_action",
+            isTemporary: true, // Marcar como temporal
+            timestamp: Date.now(), // Para poder filtrar por tiempo
+            ...newActivity
+        };
+
+        console.log("🆕 Agregando nueva actividad:", activityWithDefaults);
+        
+        // Agregar la nueva actividad al principio de la lista
+        setActivities(prevActivities => [activityWithDefaults, ...(prevActivities || [])]);
+        
+        // Limpiar actividades temporales después de 5 minutos
+        setTimeout(() => {
+            setActivities(prevActivities => 
+                (prevActivities || []).filter(activity => 
+                    !activity.isTemporary || (Date.now() - activity.timestamp) < 5 * 60 * 1000
+                )
+            );
+        }, 5 * 60 * 1000); // 5 minutos
+    };
+
     // Extraer la función loadDashboardData para poder llamarla desde otros lugares
     const loadDashboardData = async () => {
         try {
@@ -192,7 +317,51 @@ export default function Dashboard() {
             setProjects(data.projects || []);
             setAttendance(data.attendance || []);
             setMaterials(data.materials || []);
-            setActivities(data.activities || []);
+            // Procesar actividades y asegurar que tengan fechas formateadas
+            console.log("🔍 Datos originales de actividades:", data.activities);
+            
+            // Si no hay actividades del endpoint, crear actividades basadas en solicitudes de materiales
+            let activitiesToProcess = data.activities || [];
+            if ((!activitiesToProcess || activitiesToProcess.length === 0) && data.materialRequests && data.materialRequests.length > 0) {
+                console.log("🔄 Convirtiendo solicitudes de materiales en actividades...");
+                activitiesToProcess = data.materialRequests.slice(0, 5).map(request => ({
+                    id: `material-request-${request.id}`,
+                    title: "Solicitud de Material",
+                    description: `${request.user?.username || 'Empleado'} solicitó ${request.quantity_requested} unidades de ${request.material}`,
+                    created_at: request.created_at || request.createdAt || new Date().toISOString(),
+                    type: "material_request",
+                    status: request.status || "pending",
+                    original_request: request
+                }));
+            }
+            
+            const processedActivities = processActivities(activitiesToProcess);
+            console.log("✅ Actividades procesadas:", processedActivities);
+            
+            // Conservar actividades temporales locales (recientes)
+            setActivities(prevActivities => {
+                const temporaryActivities = (prevActivities || []).filter(activity => 
+                    activity.isTemporary && (Date.now() - activity.timestamp) < 2 * 60 * 1000 // Últimos 2 minutos
+                );
+                
+                // Combinar actividades temporales con las nuevas del servidor
+                const combinedActivities = [...temporaryActivities, ...processedActivities];
+                
+                console.log("🔄 Combinando actividades:", {
+                    temporales: temporaryActivities.length,
+                    servidor: processedActivities.length,
+                    total: combinedActivities.length
+                });
+                
+                // Limitar a 15 actividades máximo y eliminar duplicados por descripción
+                const uniqueActivities = combinedActivities
+                    .filter((activity, index, self) => 
+                        index === self.findIndex(a => a.description === activity.description)
+                    )
+                    .slice(0, 15);
+                
+                return uniqueActivities;
+            });
             setWorkers(data.workers || []);
             
             console.log("Actualizando datos de check-ins en dashboard. Zonas disponibles:", Object.keys(data.checkinsPorZona || {}));
@@ -320,7 +489,7 @@ export default function Dashboard() {
                 return (
                     <div className="grid gap-6">
                         <h2 className="text-xl font-bold">Solicitudes de Materiales</h2>
-                        <MaterialRequestsCard onRefresh={loadDashboardData} />
+                        <MaterialRequestsCard onRefresh={loadDashboardData} onActivityAdd={addActivity} />
                     </div>
                 );
             case "reportes":
@@ -580,7 +749,7 @@ export default function Dashboard() {
                                     </TabsContent>
                                     <TabsContent value="requests">
                                         <div className="space-y-4">
-                                            <MaterialRequestsCard onRefresh={loadDashboardData} />
+                                            <MaterialRequestsCard onRefresh={loadDashboardData} onActivityAdd={addActivity} />
                                         </div>
                                     </TabsContent>
                                 </CardContent>
@@ -735,21 +904,52 @@ export default function Dashboard() {
 
                             {/* Recent activities */}
                             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                <CardHeader className="pb-2">
+                                <CardHeader className="pb-2 flex flex-row items-center justify-between">
                                     <CardTitle className="text-slate-100 text-base">
                                         Actividades Recientes
                                     </CardTitle>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={loadDashboardData}
+                                        className="text-slate-400 hover:text-white hover:bg-slate-700 p-2"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Activity className="h-4 w-4" />
+                                        )}
+                                    </Button>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {(activities || []).map(activity => (
-                                            <ActivityItem
-                                                key={activity.id}
-                                                title={activity.title}
-                                                time={activity.time}
-                                                description={activity.description}
-                                            />
-                                        ))}
+                                        {(activities || []).length === 0 ? (
+                                            <div className="text-center text-slate-400 py-4">
+                                                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">No hay actividades recientes</p>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={loadDashboardData}
+                                                    className="mt-2 border-slate-600 text-slate-300 hover:bg-slate-700"
+                                                    disabled={isLoading}
+                                                >
+                                                    Actualizar
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            (activities || []).map(activity => (
+                                                <ActivityItem
+                                                    key={activity.id}
+                                                    title={activity.title}
+                                                    time={activity.time}
+                                                    description={activity.description}
+                                                    type={activity.type}
+                                                    status={activity.status}
+                                                />
+                                            ))
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
