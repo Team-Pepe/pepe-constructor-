@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Loader2, Check, Search } from "lucide-react";
+import { Clock, Loader2, Check, Search, Camera } from "lucide-react";
+import BarcodeScanner from "../../../pages/Dashboard/BarcodeScanner";
 
 export const CheckOutsManager = ({
   checkinsPorZona,
@@ -15,6 +16,8 @@ export const CheckOutsManager = ({
   const [searchTerm, setSearchTerm] = useState("");
   // Estado para los resultados filtrados
   const [filteredCheckins, setFilteredCheckins] = useState({});
+  // Estado para mostrar/ocultar el escáner
+  const [showScanner, setShowScanner] = useState(false);
 
   // Get all unique zones
   const zonasUnicas = Object.keys(checkinsPorZona);
@@ -50,6 +53,22 @@ export const CheckOutsManager = ({
     setFilteredCheckins(filtered);
   }, [searchTerm, checkinsPorZona]);
 
+  // Función para manejar el escaneo completado
+  const handleScanComplete = (barcode) => {
+    // Extraer el ID si el código tiene formato "PPC-XXX"
+    let searchValue = barcode;
+    const regex = /^ppc-(\d+)$/i;
+    const match = barcode.match(regex);
+    
+    if (match && match[1]) {
+      searchValue = match[1]; // Usar solo la parte numérica
+    }
+    
+    // Establecer el código escaneado como término de búsqueda
+    setSearchTerm(searchValue);
+    setShowScanner(false);
+  };
+
   // Determinar qué datos mostrar: filtrados o todos
   const datosAMostrar = searchTerm.trim() ? filteredCheckins : checkinsPorZona;
   
@@ -82,7 +101,7 @@ export const CheckOutsManager = ({
             </select>
           </div>
           
-          {/* Buscador */}
+          {/* Buscador con botón de escaneo */}
           <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
             <div className="relative w-full md:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -104,6 +123,16 @@ export const CheckOutsManager = ({
                 </button>
               )}
             </div>
+            
+            {/* Botón de escaneo */}
+            <Button 
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={() => setShowScanner(true)}
+            >
+              <Camera className="h-4 w-4 mr-1" />
+              Escanear
+            </Button>
           </div>
         </div>
         
@@ -177,6 +206,14 @@ export const CheckOutsManager = ({
           ))
         )}
       </CardContent>
+
+      {/* Modal para el escáner de códigos de barras */}
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleScanComplete} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
     </Card>
   );
 };
