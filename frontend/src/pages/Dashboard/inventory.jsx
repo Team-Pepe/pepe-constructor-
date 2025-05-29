@@ -12,6 +12,7 @@ import { fetchMaterials, createMaterial, updateMaterial, deleteMaterial, fetchWo
 import { MaterialAssignmentModal } from "@/components/ui/WorkZoneMap/MaterialAssignmentModal";
 import { ViewMaterialsModal } from "@/components/ui/WorkZoneMap/ViewMaterialsModal";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
 
 
 export default function Inventory() {
@@ -248,7 +249,6 @@ export default function Inventory() {
   return (
     <div className="container mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Inventario de Materiales</h1>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -298,128 +298,220 @@ export default function Inventory() {
         </TabsList>
 
         <TabsContent value="all" className="mt-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-          ) : materials.length > 0 ? (
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                {filteredMaterials.map(material => (
-                  <div key={material.id} className="relative group">
-                    <InventoryCard {...material} />
-                    
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditDialog(material)}
-                        className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                        className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ 
+              opacity: 1, 
+              x: 0,
+              transition: {
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }
+            }}
+          >
+            {isLoading ? (
+              <div className="flex justify-center items-center h-48">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
               </div>
-            </ScrollArea>
-          ) : (
-            <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
-              <p className="text-slate-300 mb-4">No hay materiales en el inventario</p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                Agregar el Primer Material
-              </Button>
-            </div>
-          )}
+            ) : materials.length > 0 ? (
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                  {filteredMaterials.map((material, index) => (
+                    <motion.div
+                      key={material.id}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1, 
+                        y: 0,
+                        transition: {
+                          delay: index * 0.1,
+                          duration: 0.3
+                        }
+                      }}
+                      className="relative group"
+                    >
+                      <InventoryCard {...material} />
+                      
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openEditDialog(material)}
+                          className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
+                        >
+                          <Edit size={16} />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleDeleteMaterial(material.id)}
+                          className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                <p className="text-slate-300 mb-4">No hay materiales en el inventario</p>
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  Agregar el Primer Material
+                </Button>
+              </div>
+            )}
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="low" className="mt-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-          ) : filteredMaterials.length > 0 ? (
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                {filteredMaterials.map(material => (
-                  <div key={material.id} className="relative group">
-                    <InventoryCard {...material} />
-                    
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditDialog(material)}
-                        className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                        className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ 
+              opacity: 1, 
+              x: 0,
+              transition: {
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }
+            }}
+          >
+            {isLoading ? (
+              <div className="flex justify-center items-center h-48">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
               </div>
-            </ScrollArea>
-          ) : (
-            <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
-              <p className="text-slate-300 mb-4">No hay materiales con stock bajo</p>
-            </div>
-          )}
+            ) : filteredMaterials.length > 0 ? (
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                  {filteredMaterials.map((material, index) => (
+                    <motion.div
+                      key={material.id}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1, 
+                        y: 0,
+                        transition: {
+                          delay: index * 0.1,
+                          duration: 0.3
+                        }
+                      }}
+                      className="relative group"
+                    >
+                      <InventoryCard {...material} />
+                      
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openEditDialog(material)}
+                          className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
+                        >
+                          <Edit size={16} />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleDeleteMaterial(material.id)}
+                          className="bg-slate-800/80 border-red-500 text-red-500 hover:bg-red-500/20 hover:text-red-400"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                <p className="text-slate-300 mb-4">No hay materiales con stock bajo</p>
+              </div>
+            )}
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="zones" className="mt-0">
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4">Zonas de Trabajo</h2>
-            {loadingZones ? (
-              <div className="flex justify-center items-center h-24">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-              </div>
-            ) : zones.length === 0 ? (
-              <div className="text-slate-300">No hay zonas registradas.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {zones.map(zone => (
-                  <Card key={zone.id} className="bg-slate-800/80 border-slate-700/50">
-                    <CardHeader>
-                      <CardTitle className="text-white">{zone.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-slate-300 mb-2">{zone.description}</div>
-                      <div className="flex flex-col gap-2 mt-4">
-                        <Button
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => handleAssignMaterials(zone)}
-                        >
-                          Agregar Materiales
-                        </Button>
-                        <Button
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleViewMaterials(zone)}
-                        >
-                          Ver Materiales
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ 
+              opacity: 1, 
+              x: 0,
+              transition: {
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }
+            }}
+          >
+            <div className="mb-8">
+              <motion.h2 
+                className="text-xl font-semibold text-white mb-4"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  transition: {
+                    duration: 0.3,
+                    ease: "easeOut"
+                  }
+                }}
+              >
+                Zonas de Trabajo
+              </motion.h2>
+              {loadingZones ? (
+                <div className="flex justify-center items-center h-24">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                </div>
+              ) : zones.length === 0 ? (
+                <div className="text-slate-300">No hay zonas registradas.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {zones.map((zone, index) => (
+                    <motion.div
+                      key={zone.id}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1, 
+                        y: 0,
+                        transition: {
+                          delay: index * 0.1,
+                          duration: 0.3
+                        }
+                      }}
+                    >
+                      <Card className="bg-slate-800/80 border-slate-700/50">
+                        <CardHeader>
+                          <CardTitle className="text-white">{zone.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-slate-300 mb-2">{zone.description}</div>
+                          <div className="flex flex-col gap-2 mt-4">
+                            <Button
+                              className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
+                              onClick={() => handleAssignMaterials(zone)}
+                            >
+                              Agregar Materiales
+                            </Button>
+                            <Button
+                              className="bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                              onClick={() => handleViewMaterials(zone)}
+                            >
+                              Ver Materiales
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
 
@@ -444,4 +536,4 @@ export default function Inventory() {
       />
     </div>
   );
-} 
+}

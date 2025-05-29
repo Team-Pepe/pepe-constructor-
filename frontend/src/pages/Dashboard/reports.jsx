@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FileText, Download, Loader2, DollarSign, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { motion } from "framer-motion";
 
 import { fetchTodaysCheckins, fetchRecentCheckIns } from "@/services/dashboardService";
 import { Button } from "@/components/ui/button";
@@ -455,12 +456,22 @@ const Reports = () => {
   );
 
   return (
-    <div className="grid gap-6">
+    <motion.div className="grid gap-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold flex items-center">
+        <motion.h2 
+          className="text-xl font-bold flex items-center"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ 
+              opacity: 1, 
+              x: 0,
+              transition: {
+                  duration: 0.3
+              }
+          }}
+        >
           <FileText className="h-5 w-5 mr-2 text-orange-400" />
           Reportes
-        </h2>
+        </motion.h2>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -515,229 +526,265 @@ const Reports = () => {
         </TabsList>
 
         <TabsContent value="checkins">
-          <Card className="bg-slate-800 border-slate-700 shadow-md">
-            <CardHeader className="bg-slate-900 border-b border-slate-700">
-              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                <FileText className="h-6 w-6 text-orange-400" />
-                Check-ins del Día
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-                </div>
-              ) : checkIns.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  No hay datos de check-ins disponibles
-                </div>
-              ) : (
-                renderCheckInsTable(checkIns)
-              )}
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ 
+                opacity: 1, 
+                scale: 1,
+                transition: {
+                    delay: 0.1,
+                    duration: 0.3
+                }
+            }}
+          >
+            <Card className="bg-slate-800 border-slate-700 shadow-md">
+              <CardHeader className="bg-slate-900 border-b border-slate-700">
+                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                  <FileText className="h-6 w-6 text-orange-400" />
+                  Check-ins del Día
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+                  </div>
+                ) : checkIns.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    No hay datos de check-ins disponibles
+                  </div>
+                ) : (
+                  renderCheckInsTable(checkIns)
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="general">
-          <Card className="bg-slate-800 border-slate-700 shadow-md">
-            <CardHeader className="bg-slate-900 border-b border-slate-700">
-              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-orange-400" />
-                Check-ins Generales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-                </div>
-              ) : generalCheckIns.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  No hay datos de check-ins disponibles
-                </div>
-              ) : (
-                renderCheckInsTable(generalCheckIns)
-              )}
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ 
+                opacity: 1, 
+                scale: 1,
+                transition: {
+                    delay: 0.1,
+                    duration: 0.3
+                }
+            }}
+          >
+            <Card className="bg-slate-800 border-slate-700 shadow-md">
+              <CardHeader className="bg-slate-900 border-b border-slate-700">
+                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                  <Calendar className="h-6 w-6 text-orange-400" />
+                  Check-ins Generales
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+                  </div>
+                ) : generalCheckIns.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    No hay datos de check-ins disponibles
+                  </div>
+                ) : (
+                  renderCheckInsTable(generalCheckIns)
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="payments">
-          <Card className="bg-slate-800 border-slate-700 shadow-md">
-            <CardHeader className="bg-slate-900 border-b border-slate-700">
-              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                <DollarSign className="h-6 w-6 text-orange-400" />
-                Configuración de Pagos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6">
-                {/* Filtro de fecha para Pagos */}
-                <div className="flex gap-4 mb-4">
-                  <Button
-                    variant={dateFilter === 'today' ? 'default' : 'outline'}
-                    onClick={() => setDateFilter('today')}
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    Hoy
-                  </Button>
-                  <Button
-                    variant={dateFilter === 'general' ? 'default' : 'outline'}
-                    onClick={() => setDateFilter('general')}
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    Generales
-                  </Button>
-                </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ 
+                opacity: 1, 
+                scale: 1,
+                transition: {
+                    delay: 0.1,
+                    duration: 0.3
+                }
+            }}
+          >
+            <Card className="bg-slate-800 border-slate-700 shadow-md">
+              <CardHeader className="bg-slate-900 border-b border-slate-700">
+                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                  <DollarSign className="h-6 w-6 text-orange-400" />
+                  Configuración de Pagos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6">
+                  {/* Filtro de fecha para Pagos */}
+                  <div className="flex gap-4 mb-4">
+                    <Button
+                      variant={dateFilter === 'today' ? 'default' : 'outline'}
+                      onClick={() => setDateFilter('today')}
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      Hoy
+                    </Button>
+                    <Button
+                      variant={dateFilter === 'general' ? 'default' : 'outline'}
+                      onClick={() => setDateFilter('general')}
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      Generales
+                    </Button>
+                  </div>
 
-                {/* Tarifas por hora */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="jefe" className="text-white">Jefe de Obra ($/hora)</Label>
-                    <Input
-                      id="jefe"
-                      type="number"
-                      value={hourlyRates['jefe de obra']}
-                      onChange={(e) => setHourlyRates(prev => ({
-                        ...prev,
-                        'jefe de obra': parseFloat(e.target.value) || 0
-                      }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
+                  {/* Tarifas por hora */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="jefe" className="text-white">Jefe de Obra ($/hora)</Label>
+                      <Input
+                        id="jefe"
+                        type="number"
+                        value={hourlyRates['jefe de obra']}
+                        onChange={(e) => setHourlyRates(prev => ({
+                          ...prev,
+                          'jefe de obra': parseFloat(e.target.value) || 0
+                        }))}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="eléctrico" className="text-white">Electricista ($/hora)</Label>
+                      <Input
+                        id="eléctrico"
+                        type="number"
+                        value={hourlyRates.eléctrico}
+                        onChange={(e) => setHourlyRates(prev => ({
+                          ...prev,
+                          eléctrico: parseFloat(e.target.value) || 0,
+                          'eléctrico ': parseFloat(e.target.value) || 0, // con espacio también
+                          electrician: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
+                        }))}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fontanero" className="text-white">Fontanero ($/hora)</Label>
+                      <Input
+                        id="fontanero"
+                        type="number"   
+                        value={hourlyRates.fontanero}
+                        onChange={(e) => setHourlyRates(prev => ({
+                          ...prev,
+                          fontanero: parseFloat(e.target.value) || 0,
+                          'fontanero ': parseFloat(e.target.value) || 0, // con espacio también
+                          plumber: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
+                        }))}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="albanil" className="text-white">Albañil ($/hora)</Label>
+                      <Input
+                        id="albanil"
+                        type="number"
+                        value={hourlyRates['albañil']}
+                        onChange={(e) => setHourlyRates(prev => ({
+                          ...prev,
+                          'albañil': parseFloat(e.target.value) || 0,
+                          'albañil ': parseFloat(e.target.value) || 0, // con espacio también
+                          mason: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
+                        }))}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="eléctrico" className="text-white">Electricista ($/hora)</Label>
-                    <Input
-                      id="eléctrico"
-                      type="number"
-                      value={hourlyRates.eléctrico}
-                      onChange={(e) => setHourlyRates(prev => ({
-                        ...prev,
-                        eléctrico: parseFloat(e.target.value) || 0,
-                        'eléctrico ': parseFloat(e.target.value) || 0, // con espacio también
-                        electrician: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
-                      }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fontanero" className="text-white">Fontanero ($/hora)</Label>
-                    <Input
-                      id="fontanero"
-                      type="number"   
-                      value={hourlyRates.fontanero}
-                      onChange={(e) => setHourlyRates(prev => ({
-                        ...prev,
-                        fontanero: parseFloat(e.target.value) || 0,
-                        'fontanero ': parseFloat(e.target.value) || 0, // con espacio también
-                        plumber: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
-                      }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="albanil" className="text-white">Albañil ($/hora)</Label>
-                    <Input
-                      id="albanil"
-                      type="number"
-                      value={hourlyRates['albañil']}
-                      onChange={(e) => setHourlyRates(prev => ({
-                        ...prev,
-                        'albañil': parseFloat(e.target.value) || 0,
-                        'albañil ': parseFloat(e.target.value) || 0, // con espacio también
-                        mason: parseFloat(e.target.value) || 0 // mantener compatibilidad inglés
-                      }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
+
+                  {/* Tabla de pagos */}
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Resumen de Pagos</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-700">
+                            <th className="text-left p-2 text-slate-300">Empleado</th>
+                            <th className="text-left p-2 text-slate-300">Cargo</th>
+                            <th className="text-left p-2 text-slate-300">Horas Trabajadas</th>
+                            <th className="text-left p-2 text-slate-300">Tarifa/Hora</th>
+                            <th className="text-left p-2 text-slate-300">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paymentsCheckIns
+                            .filter(checkin => checkin.check_out_time)
+                            .map((checkin, index) => {
+                              // Log each checkin data for debugging
+                              console.log(`Payment processing for checkin ${index}:`, {
+                                id: checkin.id,
+                                employee_name: checkin.employee_name,
+                                job_type: checkin.job_type,
+                                job: checkin.job,
+                                jobTypeType: typeof checkin.job_type,
+                                jobType: typeof checkin.job,
+                                jobName: checkin.job?.name
+                              });
+                              
+                              const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
+                              // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
+                              const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
+                              
+                              // Calcular tarifa por hora
+                              const safeJobType = jobType.toLowerCase().trim();
+                              let hourlyRate = hourlyRates[safeJobType];
+                              
+                              if (!hourlyRate) {
+                                const fallbackMap = {
+                                  'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
+                                  'plumber': hourlyRates['fontanero'] || hourlyRates.plumber,
+                                  'mason': hourlyRates['albañil'] || hourlyRates.mason,
+                                  'eléctrico': hourlyRates.eléctrico || hourlyRates.electrician,
+                                  'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
+                                  'albañil': hourlyRates['albañil'] || hourlyRates.mason
+                                };
+                                hourlyRate = fallbackMap[safeJobType];
+                              }
+                              
+                              if (!hourlyRate) {
+                                hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
+                              }
+                              
+                              // Calcular pago total
+                              const payment = calculatePayment(hours, jobType);
+                              
+                              console.log('Payment calculation details:', {
+                                employee: checkin.employee_name,
+                                jobType: jobType,
+                                hourlyRates: hourlyRates, // Log the whole object to see available rates
+                                hourlyRate: hourlyRate,
+                                hours: hours,
+                                payment: payment
+                              });
+
+                              return (
+                                <tr key={checkin.id || index} className="border-b border-slate-800 hover:bg-slate-800/50">
+                                  <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
+                                  <td className="p-2 text-white">{getJobTypeDisplay(jobType)}</td>
+                                  <td className="p-2 text-white">{hours} hrs</td>
+                                  <td className="p-2 text-white">${hourlyRate}/hr</td>
+                                  <td className="p-2 text-white">${payment}</td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-
-                {/* Tabla de pagos */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Resumen de Pagos</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-700">
-                          <th className="text-left p-2 text-slate-300">Empleado</th>
-                          <th className="text-left p-2 text-slate-300">Cargo</th>
-                          <th className="text-left p-2 text-slate-300">Horas Trabajadas</th>
-                          <th className="text-left p-2 text-slate-300">Tarifa/Hora</th>
-                          <th className="text-left p-2 text-slate-300">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paymentsCheckIns
-                          .filter(checkin => checkin.check_out_time)
-                          .map((checkin, index) => {
-                            // Log each checkin data for debugging
-                            console.log(`Payment processing for checkin ${index}:`, {
-                              id: checkin.id,
-                              employee_name: checkin.employee_name,
-                              job_type: checkin.job_type,
-                              job: checkin.job,
-                              jobTypeType: typeof checkin.job_type,
-                              jobType: typeof checkin.job,
-                              jobName: checkin.job?.name
-                            });
-                            
-                            const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
-                            // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
-                            const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
-                            
-                            // Calcular tarifa por hora
-                            const safeJobType = jobType.toLowerCase().trim();
-                            let hourlyRate = hourlyRates[safeJobType];
-                            
-                            if (!hourlyRate) {
-                              const fallbackMap = {
-                                'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
-                                'plumber': hourlyRates['fontanero'] || hourlyRates.plumber,
-                                'mason': hourlyRates['albañil'] || hourlyRates.mason,
-                                'eléctrico': hourlyRates.eléctrico || hourlyRates.electrician,
-                                'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
-                                'albañil': hourlyRates['albañil'] || hourlyRates.mason
-                              };
-                              hourlyRate = fallbackMap[safeJobType];
-                            }
-                            
-                            if (!hourlyRate) {
-                              hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
-                            }
-                            
-                            // Calcular pago total
-                            const payment = calculatePayment(hours, jobType);
-                            
-                            console.log('Payment calculation details:', {
-                              employee: checkin.employee_name,
-                              jobType: jobType,
-                              hourlyRates: hourlyRates, // Log the whole object to see available rates
-                              hourlyRate: hourlyRate,
-                              hours: hours,
-                              payment: payment
-                            });
-
-                            return (
-                              <tr key={checkin.id || index} className="border-b border-slate-800 hover:bg-slate-800/50">
-                                <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
-                                <td className="p-2 text-white">{getJobTypeDisplay(jobType)}</td>
-                                <td className="p-2 text-white">{hours} hrs</td>
-                                <td className="p-2 text-white">${hourlyRate}/hr</td>
-                                <td className="p-2 text-white">${payment}</td>
-                              </tr>
-                            );
-                          })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 };
 
-export default Reports; 
+export default Reports;

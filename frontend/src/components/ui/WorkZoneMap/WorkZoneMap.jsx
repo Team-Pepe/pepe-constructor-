@@ -1112,7 +1112,16 @@ function WorkZoneMap({ workers = [], defaultCenter = [4.8133, -75.6961], default
             </div>
           </div>
           
-          <div className="md:col-span-1 overflow-auto max-h-[400px] border rounded-md">
+          <div className="md:col-span-1 overflow-auto max-h-[400px] border rounded-md 
+              [&::-webkit-scrollbar]:w-2 
+              [&::-webkit-scrollbar-track]:bg-slate-800 
+              [&::-webkit-scrollbar-thumb]:bg-slate-600
+              [&::-webkit-scrollbar-thumb]:border-2
+              [&::-webkit-scrollbar-thumb]:border-slate-800
+              [&::-webkit-scrollbar-thumb]:rounded-full
+              hover:[&::-webkit-scrollbar-thumb]:bg-slate-500
+              border-slate-700/50"
+          >
             <div className="p-4">
               <h3 className="font-semibold mb-2">Estado de Trabajadores</h3>
               {!workers || workers.length === 0 ? (

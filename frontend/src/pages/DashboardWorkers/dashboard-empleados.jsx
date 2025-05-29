@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import { 
   fetchRecentCheckIns,
@@ -40,6 +40,7 @@ import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { EmployeeCard } from "../Dashboard/components/EmployeeCard";
+import TaskList from "./components/TaskList";
 
 import { motion } from "framer-motion";
 
@@ -50,6 +51,7 @@ export function DashboardEmpleados() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Role based permissions
   const canRequestMaterials = useMemo(() => Number(roleId) === 3, [roleId]);
@@ -271,19 +273,7 @@ export function DashboardEmpleados() {
       
       case "zonas-guardadas":
         return (
-          <motion.section 
-            id="zonas-guardadas"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0,
-              transition: { 
-                type: "spring",
-                damping: 25,
-                stiffness: 300
-              }
-            }}
-          >
+          <section id="zonas-guardadas">
             <h2 className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block">
               Zonas de Trabajo Guardadas
             </h2>
@@ -317,8 +307,13 @@ export function DashboardEmpleados() {
                           <strong>Radio:</strong> {zone.radius || 500}m
                         </p>
                         <Button
-                          onClick={() => setSelectedZone(zone.name)}
-                          className="mt-4 w-full"
+                          onClick={() => navigate(`/tasks/${zone.id}`, { 
+                            state: { 
+                              zoneName: zone.nombre,
+                              zoneId: zone.id 
+                            } 
+                          })}
+                          className="mt-4 w-full bg-slate-800 hover:bg-slate-700 text-white"
                         >
                           Ver detalles
                         </Button>
@@ -336,7 +331,7 @@ export function DashboardEmpleados() {
                 <p className="text-gray-500">No hay zonas de trabajo guardadas disponibles.</p>
               </motion.div>
             )}
-          </motion.section>
+          </section>
         );
       
       case "inventario":
@@ -420,6 +415,31 @@ export function DashboardEmpleados() {
           <MyCardSection renderUserCard={renderUserCard} />
         );
       
+      case "tasks":
+        return (
+          <section id="tasks">
+            <motion.h2 
+              className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.3,
+                  ease: "easeOut"
+                }
+              }}
+            >
+              Tareas en {location.state?.zoneName || "Zona"}
+            </motion.h2>
+            <TaskList 
+              zoneId={location.state?.zoneId}
+              zoneName={location.state?.zoneName}
+              onBack={() => setActiveSection("zonas-guardadas")}
+            />
+          </section>
+        );
+
       default:
         if (selectedZone) {
           return (

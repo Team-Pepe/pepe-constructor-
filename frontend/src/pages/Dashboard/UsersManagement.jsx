@@ -7,6 +7,7 @@ import { apiClient, getAuthHeaders, updateUserData } from "@/services/dashboardS
 import UserEditModal from "./UserEditModal";
 import BarcodeScanner from "./BarcodeScanner"; // Añade esta importación
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { motion } from "framer-motion";
 
 function UsersManagement() {
   const [users, setUsers] = useState([]);
@@ -154,9 +155,32 @@ function UsersManagement() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header y Buscador */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <motion.div 
+      className="space-y-6 animate-fade-in"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        transition: { 
+          type: "spring",
+          damping: 25,
+          stiffness: 300
+        }
+      }}
+    >
+      {/* Header y Buscador con animación */}
+      <motion.div 
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            delay: 0.2,
+            duration: 0.3
+          }
+        }}
+      >
         <h2 className="text-2xl font-bold text-white">Gestión de Usuarios</h2>
         <div className="w-full sm:w-auto flex gap-2">
           <div className="relative w-full sm:w-96">
@@ -178,10 +202,21 @@ function UsersManagement() {
             Escanear
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Tabla de Usuarios - Con columna de acciones fija */}
-      <div className="rounded-lg border border-slate-700 overflow-x-auto relative [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600">
+      {/* Tabla con animación */}
+      <motion.div 
+        className="rounded-lg border border-slate-700 overflow-x-auto relative [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            delay: 0.3,
+            duration: 0.3
+          }
+        }}
+      >
         <table className="w-full">
           <thead className="bg-slate-800/50">
             <tr>
@@ -208,9 +243,18 @@ function UsersManagement() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => (
-                <tr 
-                  key={user.id} 
+              filteredUsers.map((user, index) => (
+                <motion.tr 
+                  key={user.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    x: 0,
+                    transition: {
+                      delay: index * 0.05,
+                      duration: 0.3
+                    }
+                  }}
                   className="border-t border-slate-700 hover:bg-slate-800/50 transition-colors"
                 >
                   <td className="px-4 py-3 text-slate-300">{user.id}</td>
@@ -263,12 +307,12 @@ function UsersManagement() {
                       <Trash2 size={16} />
                     </Button>
                   </td>
-                </tr>
+                </motion.tr>
               ))
             )}
           </tbody>
         </table>
-      </div>
+      </motion.div>
 
       {showModal && (
         <UserEditModal
@@ -303,7 +347,7 @@ function UsersManagement() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

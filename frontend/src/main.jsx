@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard/dashboard";
 import { DashboardEmpleados } from "@/pages/DashboardWorkers/dashboard-empleados";
 import SolicitarMateriales from "@/pages/DashboardWorkers/solicitar-materiales";
 import ProtectedRoute from "@/pages/routers/protectedRoute";
+import TaskList from "@/pages/DashboardWorkers/components/TaskList"; // Asegúrate de que la ruta de importación sea correcta
 
 import "./styles/global.css";
 
@@ -52,6 +53,11 @@ const router = createBrowserRouter([
         path: "solicitar-materiales",
         element: <SolicitarMateriales />,
         handle: { requiredRole: 3 }
+      },
+      {
+        path: "tasks/:zoneId",  // Quitar el slash inicial
+        element: <TaskList />,
+        handle: { requiredRole: [2, 3] }
       },
     ],
   },

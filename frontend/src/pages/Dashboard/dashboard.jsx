@@ -17,6 +17,7 @@ import {
     Clock,
     Loader2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -484,7 +485,49 @@ export default function Dashboard() {
     const renderMainContent = () => {
         switch (activeSection) {
             case "inventario":
-                return <Inventory />;
+                return (
+                    <motion.section 
+                        id="inventario"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <motion.h2 
+                            className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: {
+                                    duration: 0.3,
+                                    ease: "easeOut"
+                                }
+                            }}
+                        >
+                            Inventario de Materiales
+                        </motion.h2>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ 
+                                opacity: 1, 
+                                scale: 1,
+                                transition: {
+                                    delay: 0.1,
+                                    duration: 0.3
+                                }
+                            }}
+                        >
+                            <Inventory />
+                        </motion.div>
+                    </motion.section>
+                );
             case "solicitudes":
                 return (
                     <div className="grid gap-6">
@@ -493,290 +536,425 @@ export default function Dashboard() {
                     </div>
                 );
             case "reportes":
-                return <Reports />;
+                return (
+                    <motion.section 
+                        id="reportes"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: {
+                                    duration: 0.3,
+                                    ease: "easeOut"
+                                }
+                            }}
+                        >
+                            <Reports />
+                        </motion.div>
+                    </motion.section>
+                );
             case "asistencia":
                 return (
-                    <div className="grid gap-6">
-                        <Card className="bg-slate-800 border-slate-700 shadow-md">
-                            <CardHeader className="bg-slate-900 border-b border-slate-700">
-                                <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                                    <Clock className="h-6 w-6 text-orange-400" />
-                                    Gestión de Check-ins
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="p-4 flex flex-wrap items-center gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <label className="font-medium text-white">Filtrar por zona:</label>
-                                        <select
-                                            className="p-2 border rounded bg-slate-700 text-white border-slate-600"
-                                            onChange={(e) => setSelectedZoneFilter(e.target.value)}
-                                        >
-                                            <option value="">Todas</option>
-                                            {Object.keys(checkinsPorZona).map(zona => (
-                                                <option key={zona} value={zona}>{zona}</option>
-                                            ))}
-                                        </select>
+                    <motion.div 
+                        className="grid gap-6"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <div className="grid gap-6">
+                            <Card className="bg-slate-800 border-slate-700 shadow-md">
+                                <motion.div
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ 
+                                        opacity: 1, 
+                                        y: 0,
+                                        transition: {
+                                            delay: 0.2,
+                                            duration: 0.3
+                                        }
+                                    }}
+                                >
+                                    <CardHeader className="bg-slate-900 border-b border-slate-700">
+                                        <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                                            <Clock className="h-6 w-6 text-orange-400" />
+                                            Gestión de Check-ins
+                                        </CardTitle>
+                                    </CardHeader>
+                                </motion.div>
+                                <CardContent className="p-0">
+                                    {/* Mantener el contenido existente */}
+                                    <div className="p-4 flex flex-wrap items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <label className="font-medium text-white">Filtrar por zona:</label>
+                                            <select
+                                                className="p-2 border rounded bg-slate-700 text-white border-slate-600"
+                                                onChange={(e) => setSelectedZoneFilter(e.target.value)}
+                                            >
+                                                <option value="">Todas</option>
+                                                {Object.keys(checkinsPorZona).map(zona => (
+                                                    <option key={zona} value={zona}>{zona}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <label className="font-medium text-white">Buscar empleado:</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre de empleado..."
+                                                className="p-2 border rounded bg-slate-700 text-white border-slate-600"
+                                                value={searchEmployeeName}
+                                                onChange={(e) => setSearchEmployeeName(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-2">
-                                        <label className="font-medium text-white">Buscar empleado:</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre de empleado..."
-                                            className="p-2 border rounded bg-slate-700 text-white border-slate-600"
-                                            value={searchEmployeeName}
-                                            onChange={(e) => setSearchEmployeeName(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                
-                                {Object.keys(checkinsPorZona)
-                                    .filter(zona => !selectedZoneFilter || zona === selectedZoneFilter)
-                                    .map(zona => {
-                                        console.log(`Procesando zona: ${zona} con ${checkinsPorZona[zona]?.length || 0} check-ins`);
-                                        
-                                        // Filtrar por nombre de empleado si hay búsqueda
-                                        const filteredCheckins = searchEmployeeName
-                                            ? checkinsPorZona[zona].filter(checkin => 
-                                                checkin.employee_name && 
-                                                checkin.employee_name.toLowerCase().includes(searchEmployeeName.toLowerCase()))
-                                            : checkinsPorZona[zona];
-                                                
-                                        if (filteredCheckins.length === 0) return null;
-                                        
-                                        return (
-                                            <div key={zona} className="mb-6">
-                                                <h3 className="font-bold text-lg mb-2 px-4 text-orange-400">Zona: {zona}</h3>
-                                                <div className="overflow-x-auto">
-                                                    <table className="w-full">
-                                                        <thead>
-                                                            <tr className="border-b border-slate-700">
-                                                                <th className="text-left p-2 text-slate-300">Empleado</th>
-                                                                <th className="text-left p-2 text-slate-300">Zona</th>
-                                                                <th className="text-left p-2 text-slate-300">Fecha</th>
-                                                                <th className="text-left p-2 text-slate-300">Hora de Check-in</th>
-                                                                <th className="text-left p-2 text-slate-300">Estado</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {loadingCheckins ? (
-                                                                <tr>
-                                                                    <td colSpan="5" className="text-center p-4">
-                                                                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                                                    </td>
+                                    {Object.keys(checkinsPorZona)
+                                        .filter(zona => !selectedZoneFilter || zona === selectedZoneFilter)
+                                        .map(zona => {
+                                            console.log(`Procesando zona: ${zona} con ${checkinsPorZona[zona]?.length || 0} check-ins`);
+                                            
+                                            // Filtrar por nombre de empleado si hay búsqueda
+                                            const filteredCheckins = searchEmployeeName
+                                                ? checkinsPorZona[zona].filter(checkin => 
+                                                    checkin.employee_name && 
+                                                    checkin.employee_name.toLowerCase().includes(searchEmployeeName.toLowerCase()))
+                                                : checkinsPorZona[zona];
+                                                    
+                                            if (filteredCheckins.length === 0) return null;
+                                            
+                                            return (
+                                                <div key={zona} className="mb-6">
+                                                    <h3 className="font-bold text-lg mb-2 px-4 text-orange-400">Zona: {zona}</h3>
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full">
+                                                            <thead>
+                                                                <tr className="border-b border-slate-700">
+                                                                    <th className="text-left p-2 text-slate-300">Empleado</th>
+                                                                    <th className="text-left p-2 text-slate-300">Zona</th>
+                                                                    <th className="text-left p-2 text-slate-300">Fecha</th>
+                                                                    <th className="text-left p-2 text-slate-300">Hora de Check-in</th>
+                                                                    <th className="text-left p-2 text-slate-300">Estado</th>
                                                                 </tr>
-                                                            ) : filteredCheckins.length === 0 ? (
-                                                                <tr>
-                                                                    <td colSpan="5" className="text-center p-4 text-slate-400">
-                                                                        No hay check-ins que coincidan con los criterios de búsqueda
-                                                                    </td>
-                                                                </tr>
-                                                            ) : (
-                                                                filteredCheckins.map((checkin) => {
-                                                                    console.log("Renderizando check-in:", checkin);
-                                                                    
-                                                                    // Formatear fecha y hora
-                                                                    let fechaHora = null;
-                                                                    let fechaStr = "-";
-                                                                    let horaStr = "-";
-                                                                    
-                                                                    if (checkin.check_in_time) {
-                                                                        try {
-                                                                            // Intentar formatear según el formato que venga
-                                                                            if (checkin.check_in_time.includes('/')) {
-                                                                                // Ya está en formato DD/MM/YYYY
-                                                                                const partes = checkin.check_in_time.split(', ');
-                                                                                if (partes.length > 1) {
-                                                                                    fechaStr = partes[0];
-                                                                                    horaStr = partes[1];
+                                                            </thead>
+                                                            <tbody>
+                                                                {loadingCheckins ? (
+                                                                    <tr>
+                                                                        <td colSpan="5" className="text-center p-4">
+                                                                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                                                                        </td>
+                                                                    </tr>
+                                                                ) : filteredCheckins.length === 0 ? (
+                                                                    <tr>
+                                                                        <td colSpan="5" className="text-center p-4 text-slate-400">
+                                                                            No hay check-ins que coincidan con los criterios de búsqueda
+                                                                        </td>
+                                                                    </tr>
+                                                                ) : (
+                                                                    filteredCheckins.map((checkin) => {
+                                                                        console.log("Renderizando check-in:", checkin);
+                                                                        
+                                                                        // Formatear fecha y hora
+                                                                        let fechaHora = null;
+                                                                        let fechaStr = "-";
+                                                                        let horaStr = "-";
+                                                                        
+                                                                        if (checkin.check_in_time) {
+                                                                            try {
+                                                                                // Intentar formatear según el formato que venga
+                                                                                if (checkin.check_in_time.includes('/')) {
+                                                                                    // Ya está en formato DD/MM/YYYY
+                                                                                    const partes = checkin.check_in_time.split(', ');
+                                                                                    if (partes.length > 1) {
+                                                                                        fechaStr = partes[0];
+                                                                                        horaStr = partes[1];
+                                                                                    } else {
+                                                                                        fechaStr = checkin.check_in_time;
+                                                                                    }
                                                                                 } else {
-                                                                                    fechaStr = checkin.check_in_time;
+                                                                                    // Formato ISO o timestamp
+                                                                                    fechaHora = new Date(checkin.check_in_time);
+                                                                                    if (!isNaN(fechaHora.getTime())) {
+                                                                                        fechaStr = fechaHora.toLocaleDateString();
+                                                                                        horaStr = fechaHora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                                                                    }
                                                                                 }
-                                                                            } else {
-                                                                                // Formato ISO o timestamp
-                                                                                fechaHora = new Date(checkin.check_in_time);
-                                                                                if (!isNaN(fechaHora.getTime())) {
-                                                                                    fechaStr = fechaHora.toLocaleDateString();
-                                                                                    horaStr = fechaHora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                                                                }
+                                                                            } catch (error) {
+                                                                                console.error("Error formateando fecha:", error);
                                                                             }
-                                                                        } catch (error) {
-                                                                            console.error("Error formateando fecha:", error);
                                                                         }
-                                                                    }
-                                                                    
-                                                                    return (
-                                                                        <tr key={checkin.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                                                                            <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
-                                                                            <td className="p-2 text-white">
-                                                                                {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
-                                                                                    ? checkin.zone_name 
-                                                                                    : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || zona || '-')
-                                                                                }
-                                                                            </td>
-                                                                            <td className="p-2 text-white">{fechaStr}</td>
-                                                                            <td className="p-2 text-white">{horaStr}</td>
-                                                                            <td className="p-2">
-                                                                                <span className={`px-2 py-1 rounded text-sm ${
-                                                                                    !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                                                                                }`}>
-                                                                                    {!checkin.check_out_time ? 'Activo' : 'Terminado'}
-                                                                                </span>
-                                                                            </td>
-                                                                        </tr>
-                                                                    );
-                                                                })
-                                                            )}
-                                                        </tbody>
-                                                    </table>
+                                                                        
+                                                                        return (
+                                                                            <tr key={checkin.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                                                                                <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
+                                                                                <td className="p-2 text-white">
+                                                                                    {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
+                                                                                        ? checkin.zone_name 
+                                                                                        : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || zona || '-')
+                                                                                    }
+                                                                                </td>
+                                                                                <td className="p-2 text-white">{fechaStr}</td>
+                                                                                <td className="p-2 text-white">{horaStr}</td>
+                                                                                <td className="p-2">
+                                                                                    <span className={`px-2 py-1 rounded text-sm ${
+                                                                                        !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                                                                                    }`}>
+                                                                                        {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                                                                                    </span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                            </CardContent>
-                        </Card>
-                    </div>
+                                            );
+                                        })}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </motion.div>
                 );
             case "users-management":
-                return roleId === 4 ? <UsersManagement /> : (
-                    <div className="text-center py-8 text-slate-400">
+                return roleId === 4 ? (
+                    <motion.section 
+                        id="users-management"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: {
+                                    duration: 0.3,
+                                    ease: "easeOut"
+                                }
+                            }}
+                        >
+                            <UsersManagement />
+                        </motion.div>
+                    </motion.section>
+                ) : (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ 
+                            opacity: 1, 
+                            scale: 1,
+                            transition: {
+                                duration: 0.3
+                            }
+                        }}
+                        className="text-center py-8 text-slate-400"
+                    >
                         No tienes permisos para acceder a esta sección
-                    </div>
+                    </motion.div>
                 );
             case "resumen":
             default:
                 return (
-                    <div className="grid gap-6">
-                        {/* Overview cards */}
+                    <motion.div 
+                        className="grid gap-6"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        {/* Overview cards with staggered animation */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <MetricCard
-                                title="Obras Activas"
-                                value={metrics?.activeProjects || '0'}
-                                icon={Activity}
-                                color="cyan"
-                                detail={`${projects.length} en progreso`}
-                            />
-                            <MetricCard
-                                title="Trabajadores"
-                                value={workers?.length || '0'}
-                                icon={Users}
-                                color="purple"
-                                detail={`${Array.isArray(attendance) ? attendance.filter(a => a.status === 'PRESENT').length : 0} presentes`}
-                            />
-                            <MetricCard
-                                title="Tareas"
-                                value={`${metrics?.tasks || '0'}`}
-                                icon={ClipboardList}
-                                color="blue"
-                                detail={`${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`}
-                            />
+                            { [
+                                {
+                                    title: "Obras Activas",
+                                    value: metrics?.activeProjects || '0',
+                                    icon: Activity,
+                                    color: "cyan",
+                                    detail: `${projects.length} en progreso`
+                                },
+                                {
+                                    title: "Trabajadores",
+                                    value: workers?.length || '0',
+                                    icon: Users,
+                                    color: "purple",
+                                    detail: `${Array.isArray(attendance) ? attendance.filter(a => a.status === 'PRESENT').length : 0} presentes`
+                                },
+                                {
+                                    title: "Tareas",
+                                    value: `${metrics?.tasks || '0'}`,
+                                    icon: ClipboardList,
+                                    color: "blue",
+                                    detail: `${projects.reduce((acc, p) => acc + p.tasks, 0)} pendientes`
+                                }
+                            ].map((metric, index) => (
+                                <motion.div
+                                    key={metric.title}
+                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    animate={{ 
+                                        opacity: 1, 
+                                        scale: 1,
+                                        y: 0,
+                                        transition: {
+                                            delay: index * 0.1,
+                                            duration: 0.3,
+                                            type: "spring",
+                                            damping: 25,
+                                            stiffness: 300
+                                        }
+                                    }}
+                                >
+                                    <MetricCard {...metric} />
+                                </motion.div>
+                            )) }
                         </div>
 
-                        {/* Work Zone Map */}
-                        <WorkZoneMap workers={workers || []} />
+                        {/* Work Zone Map with animation */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: {
+                                    delay: 0.3,
+                                    duration: 0.5
+                                }
+                            }}
+                        >
+                            <WorkZoneMap workers={workers || []} />
+                        </motion.div>
 
-                        {/* Tabs section */}
-                        <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                            <Tabs defaultValue="overview" className="w-full">
-                                <CardHeader className="border-b border-slate-700/50 pb-3">
-                                    <TabsList className="bg-slate-800/50 p-1">
-                                        <TabsTrigger
-                                            value="overview"
-                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                        >
-                                            Resumen
-                                        </TabsTrigger>
-                                        <TabsTrigger
-                                            value="attendance"
-                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                        >
-                                            Asistencia
-                                        </TabsTrigger>
-                                        <TabsTrigger
-                                            value="materials"
-                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                        >
-                                            Inventario
-                                        </TabsTrigger>
-                                        <TabsTrigger
-                                            value="requests"
-                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                        >
-                                            Solicitudes
-                                        </TabsTrigger>
-                                    </TabsList>
-                                </CardHeader>
-                                <CardContent className="p-6">
-                                    <TabsContent value="overview">
-                                        <div className="space-y-4">
-                                            {projects.map(project => (
-                                                <WorkProgressCard
-                                                    key={project.id}
-                                                    title={project.title}
-                                                    progress={project.progress}
-                                                    workers={project.workers}
-                                                    tasks={project.tasks}
-                                                />
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="attendance">
-                                        <div className="space-y-4">
-                                            {attendance.map(record => (
-                                                <AttendanceCard
-                                                    key={record.id}
-                                                    name={record.name}
-                                                    role={record.role}
-                                                    status={record.status}
-                                                    time={record.time}
-                                                />
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="materials">
-                                        <div className="space-y-4">
-                                            {materials.map(material => (
-                                                <MaterialCard
-                                                    key={material.id}
-                                                    name={material.name}
-                                                    used={material.used || 0}
-                                                    total={material.quantity}
-                                                    unit={"Unidades"}
-                                                />
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="requests">
-                                        <div className="space-y-4">
-                                            <MaterialRequestsCard onRefresh={loadDashboardData} onActivityAdd={addActivity} />
-                                        </div>
-                                    </TabsContent>
-                                </CardContent>
-                            </Tabs>
-                        </Card>
-                    </div>
+                        {/* Tabs section with animation */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ 
+                                opacity: 1, 
+                                scale: 1,
+                                transition: {
+                                    delay: 0.4,
+                                    duration: 0.3
+                                }
+                            }}
+                        >
+                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
+                                <Tabs defaultValue="overview" className="w-full">
+                                    <CardHeader className="border-b border-slate-700/50 pb-3">
+                                        <TabsList className="bg-slate-800/50 p-1">
+                                            <TabsTrigger
+                                                value="overview"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Resumen
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="attendance"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Asistencia
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="materials"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Inventario
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="requests"
+                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                            >
+                                                Solicitudes
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <TabsContent value="overview">
+                                            <div className="space-y-4">
+                                                {projects.map(project => (
+                                                    <WorkProgressCard
+                                                        key={project.id}
+                                                        title={project.title}
+                                                        progress={project.progress}
+                                                        workers={project.workers}
+                                                        tasks={project.tasks}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="attendance">
+                                            <div className="space-y-4">
+                                                {attendance.map(record => (
+                                                    <AttendanceCard
+                                                        key={record.id}
+                                                        name={record.name}
+                                                        role={record.role}
+                                                        status={record.status}
+                                                        time={record.time}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="materials">
+                                            <div className="space-y-4">
+                                                {materials.map(material => (
+                                                    <MaterialCard
+                                                        key={material.id}
+                                                        name={material.name}
+                                                        used={material.used || 0}
+                                                        total={material.quantity}
+                                                        unit={"Unidades"}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="requests">
+                                            <div className="space-y-4">
+                                                <MaterialRequestsCard onRefresh={loadDashboardData} onActivityAdd={addActivity} />
+                                            </div>
+                                        </TabsContent>
+                                    </CardContent>
+                                </Tabs>
+                            </Card>
+                        </motion.div>
+                    </motion.div>
                 );
         }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-900 to-slate-900 text-slate-100 p-6">
-            {/* Loading overlay */}
-            {isLoading && (
-                <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
-                    <div className="flex flex-col items-center">
-                        <div className="relative w-24 h-24">
-                            <div className="absolute inset-0 border-4 border-orange-500/30 rounded-full animate-ping"></div>
-                            <div className="absolute inset-2 border-4 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <div className="mt-4 text-orange-500 font-mono text-sm tracking-wider">
-                            CARGANDO DASHBOARD
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Mostrar mensaje de estado de ubicación si existe */}
             {locationStatus && (
                 <div className="fixed top-4 right-4 z-50 bg-slate-800 border border-orange-500/50 text-white px-4 py-2 rounded-md shadow-lg">
@@ -948,8 +1126,8 @@ export default function Dashboard() {
                                                     type={activity.type}
                                                     status={activity.status}
                                                 />
-                                            ))
-                                        )}
+                                            )))
+                                        }
                                     </div>
                                 </CardContent>
                             </Card>

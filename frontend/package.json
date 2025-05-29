@@ -38,7 +38,7 @@
     "date-fns": "^3.6.0",
     "dom-to-image": "^2.6.0",
     "embla-carousel-react": "^8.5.2",
-    "framer-motion": "^12.11.0",
+    "framer-motion": "^12.15.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",

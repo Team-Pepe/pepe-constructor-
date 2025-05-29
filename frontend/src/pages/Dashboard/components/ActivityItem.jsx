@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from 'prop-types';
+import { motion } from "framer-motion";
 
 export function ActivityItem({ title, time, description, type, status }) {
     // Determinar el color del borde y título según el tipo y estado
@@ -56,7 +57,17 @@ export function ActivityItem({ title, time, description, type, status }) {
     const styles = getActivityStyles();
 
     return (
-        <div className={`bg-slate-800/50 rounded-lg border ${styles.border} p-4 hover:bg-slate-700/30 transition-colors`}>
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ 
+                opacity: 1, 
+                x: 0,
+                transition: {
+                    duration: 0.3
+                }
+            }}
+            className={`bg-slate-800/50 rounded-lg border ${styles.border} p-4 hover:bg-slate-700/30 transition-colors`}
+        >
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <span className="text-xs">{styles.icon}</span>
@@ -65,7 +76,7 @@ export function ActivityItem({ title, time, description, type, status }) {
                 <span className="text-sm text-slate-400">{time}</span>
             </div>
             <p className="text-sm text-slate-400">{description}</p>
-        </div>
+        </motion.div>
     );
 }
 
@@ -75,4 +86,4 @@ ActivityItem.propTypes = {
     description: PropTypes.string.isRequired,
     type: PropTypes.string,
     status: PropTypes.string
-}; 
+};

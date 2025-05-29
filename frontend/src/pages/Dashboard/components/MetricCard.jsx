@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from 'prop-types';
+import { motion } from "framer-motion";
 
 export function MetricCard({ title, value, icon: Icon, color, detail }) {
     const getColor = () => {
@@ -18,7 +19,17 @@ export function MetricCard({ title, value, icon: Icon, color, detail }) {
     };
 
     return (
-        <div
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 300
+                }
+            }}
             className={`bg-slate-800/50 rounded-lg border ${getColor()} p-4 relative overflow-hidden`}
         >
             <div className="flex items-center justify-between mb-2">
@@ -29,7 +40,7 @@ export function MetricCard({ title, value, icon: Icon, color, detail }) {
                 {value}
             </div>
             <div className="text-xs text-slate-500">{detail}</div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -39,4 +50,4 @@ MetricCard.propTypes = {
     icon: PropTypes.elementType.isRequired,
     color: PropTypes.string.isRequired,
     detail: PropTypes.string.isRequired
-}; 
+};

@@ -125,13 +125,13 @@ export const MaterialAssignmentModal = ({ isOpen, onClose, onAssign, materials =
               type="button" 
               variant="outline" 
               onClick={onClose}
-              className="border-slate-600 text-white hover:bg-slate-700"
+              className="bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
             >
               Cancelar
             </Button>
             <Button 
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
             >
               Asignar
             </Button>
@@ -158,4 +158,4 @@ MaterialAssignmentModal.propTypes = {
   zoneId: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
 };
 
-export default MaterialAssignmentModal; 
+export default MaterialAssignmentModal;
