@@ -816,7 +816,7 @@ export default function Dashboard() {
                             { [
                                 {
                                     title: "Obras Activas",
-                                    value: metrics?.activeProjects || '0',
+                                    value: `${projects.length}`,
                                     icon: Activity,
                                     color: "cyan",
                                     detail: `${projects.length} en progreso`
@@ -826,7 +826,7 @@ export default function Dashboard() {
                                     value: workers?.length || '0',
                                     icon: Users,
                                     color: "purple",
-                                    detail: `${Array.isArray(attendance) ? attendance.filter(a => a.status === 'PRESENT').length : 0} presentes`
+                                    detail: `${workers?.length} presentes`
                                 },
                                 {
                                     title: "Tareas",
