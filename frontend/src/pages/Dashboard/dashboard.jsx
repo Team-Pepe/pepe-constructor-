@@ -40,11 +40,12 @@ import {
 } from "./components";
 
 import WorkZoneMap from "@/components/ui/WorkZoneMap/WorkZoneMap";
-import { fetchAllDashboardData, updateUserLocation } from "@/services/dashboardService";
+import { fetchAllDashboardData, updateUserLocation, fetchWorkZones } from "@/services/dashboardService";
 import { useAuth } from "@/features/auth";
 import Inventory from "./inventory";
 import UsersManagement from "./UsersManagement";
 import Reports from "./reports"; // Importar el componente de Reportes
+import { ChatModal } from "@/components/chat/ChatModal";
 
 export default function Dashboard() {
     const { roleId } = useAuth();
@@ -65,6 +66,10 @@ export default function Dashboard() {
     const [checkinsPorZona, setCheckinsPorZona] = useState({});
     const [zonasDisponiblesMap, setZonasDisponiblesMap] = useState({});
     const [searchEmployeeName, setSearchEmployeeName] = useState("");
+
+    // Estados para el chat
+    const [showChatModal, setShowChatModal] = useState(false);
+    const [workZones, setWorkZones] = useState([]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -313,6 +318,16 @@ export default function Dashboard() {
         try {
             setIsLoading(true);
             const data = await fetchAllDashboardData();
+            
+            // Cargar zonas de trabajo para el chat
+            try {
+                const workZonesResponse = await fetchWorkZones();
+                if (workZonesResponse?.data) {
+                    setWorkZones(workZonesResponse.data);
+                }
+            } catch (error) {
+                console.error('Error al cargar zonas de trabajo para chat:', error);
+            }
             
             setMetrics(data.metrics);
             setProjects(data.projects || []);
@@ -967,7 +982,11 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold">Dashboard de Supervisión</h1>
                     <div className="flex items-center space-x-4">
-                        <Button variant="outline" className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50">
+                        <Button 
+                            variant="outline" 
+                            className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50"
+                            onClick={() => setShowChatModal(true)}
+                        >
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Mensajes
                         </Button>
@@ -1138,6 +1157,15 @@ export default function Dashboard() {
 
             {/* Renderizar el modal de ubicación */}
             {renderLocationModal()}
+
+            {/* Renderizar el modal de chat */}
+            {showChatModal && (
+                <ChatModal
+                    isOpen={showChatModal}
+                    onClose={() => setShowChatModal(false)}
+                    workZones={workZones}
+                />
+            )}
         </div>
     );
 }

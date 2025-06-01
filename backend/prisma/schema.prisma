@@ -22,6 +22,7 @@ model User {
   receivedMessages Message[]  @relation("ReceiverMessages")
   sentMessages     Message[]  @relation("SenderMessages")
   assignedTasks    Task[]     @relation("AssignedTasks")
+  chatMessages     ChatMessage[] @relation("ChatMessageSender")
   job              Job?       @relation(fields: [jobId], references: [id])
   role             Role       @relation(fields: [roleId], references: [id])
   supervisedZones  WorkZone[]
@@ -56,6 +57,7 @@ model WorkZone {
   materiales   ZonaMaterial[]
   metrics      Metric[]
   tasks        Task[]
+  chatMessages ChatMessage[]  @relation("ChatMessageZone")
   supervisor   User           @relation(fields: [supervisorId], references: [id])
 
   @@map("work_zones")
@@ -157,6 +159,18 @@ model CheckIn {
   workDate     DateTime? @map("work_date") @db.Date
 
   @@map("check_ins")
+}
+
+model ChatMessage {
+  id         Int       @id @default(autoincrement())
+  senderId   Int       @map("sender_id")
+  workZoneId Int?      @map("work_zone_id")
+  content    String
+  sentAt     DateTime  @default(now()) @map("sent_at")
+  sender     User      @relation("ChatMessageSender", fields: [senderId], references: [id])
+  workZone   WorkZone? @relation("ChatMessageZone", fields: [workZoneId], references: [id])
+
+  @@map("chat_messages")
 }
 
 model requests {

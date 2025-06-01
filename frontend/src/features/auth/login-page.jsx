@@ -63,9 +63,23 @@ export default function LoginPage() {
 
         // Guardar el token de autenticación
         if (response.data.token) {
-          document.cookie = `token=${response.data.token}; path=/`;
+          console.log('🔑 Token recibido del servidor:', response.data.token ? 'SÍ' : 'NO');
           
-          localStorage.setItem("authToken", response.data.token); // <-- Agrega esta línea
+          document.cookie = `token=${response.data.token}; path=/`;
+          console.log('🍪 Token guardado en cookies');
+          
+          localStorage.setItem("authToken", response.data.token);
+          console.log('💾 Token guardado en localStorage');
+          
+          // Verificar que se guardó correctamente
+          setTimeout(() => {
+            const cookieCheck = document.cookie.includes('token=');
+            const storageCheck = localStorage.getItem('authToken') !== null;
+            console.log('✅ Verificación - Cookie:', cookieCheck ? 'OK' : 'FALLO');
+            console.log('✅ Verificación - LocalStorage:', storageCheck ? 'OK' : 'FALLO');
+          }, 100);
+        } else {
+          console.log('❌ No se recibió token del servidor');
         }
 
         if (response.data.csrfToken) {

@@ -5,7 +5,8 @@ import {
   fetchRecentCheckIns,
   fetchUserById,
   fetchTodaysCheckins,
-  registerCheckOut
+  registerCheckOut,
+  fetchWorkZones
 } from "@/services/dashboardService";
 
 // Components
@@ -41,6 +42,7 @@ import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWork
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
 import { EmployeeCard } from "../Dashboard/components/EmployeeCard";
 import TaskList from "./components/TaskList";
+import { ChatModal } from "@/components/chat/ChatModal";
 
 import { motion } from "framer-motion";
 
@@ -52,6 +54,10 @@ export function DashboardEmpleados() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Estados para el chat
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [workZones, setWorkZones] = useState([]);
 
   // Role based permissions
   const canRequestMaterials = useMemo(() => Number(roleId) === 3, [roleId]);
@@ -185,7 +191,22 @@ export function DashboardEmpleados() {
     if (canRequestMaterials) {
       loadCheckins();
     }
+    
+    // Cargar zonas de trabajo para el chat
+    loadWorkZones();
   }, [loadRecentCheckIns, loadCheckins, canRequestMaterials]);
+
+  // Función para cargar zonas de trabajo
+  const loadWorkZones = async () => {
+    try {
+      const workZonesResponse = await fetchWorkZones();
+      if (workZonesResponse?.data) {
+        setWorkZones(workZonesResponse.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar zonas de trabajo para chat:', error);
+    }
+  };
 
   // Current worker location for the map
   const currentWorker = useMemo(() => {
@@ -545,6 +566,11 @@ export function DashboardEmpleados() {
     }
   };
   
+  // Función para abrir el chat
+  const handleChatClick = () => {
+    setShowChatModal(true);
+  };
+
   return (
     <div
       className="min-h-screen flex"
@@ -587,6 +613,7 @@ export function DashboardEmpleados() {
         navigate={navigate}
         logout={logout}
         renderUserCard={renderUserCard}
+        onChatClick={handleChatClick}
       />
 
       {/* Main content */}
@@ -597,6 +624,15 @@ export function DashboardEmpleados() {
       >
         {renderActiveSection()}
       </main>
+
+      {/* Chat Modal */}
+      {showChatModal && (
+        <ChatModal
+          isOpen={showChatModal}
+          onClose={() => setShowChatModal(false)}
+          workZones={workZones}
+        />
+      )}
     </div>
   );
 }

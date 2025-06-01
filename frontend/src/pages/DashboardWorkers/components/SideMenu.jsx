@@ -2,7 +2,7 @@ import React from "react";
 import { ConstructionWorkerCard } from "../../Dashboard/components/ConstructionWorkerCard";
 import { 
   Home, Calendar, Map, MapPin, MapPinned, Warehouse, Package, LogOut,
-  CreditCard
+  CreditCard, MessageSquare
 } from "lucide-react";
 
 export const SideMenu = ({
@@ -14,7 +14,8 @@ export const SideMenu = ({
   canRequestMaterials,
   navigate,
   logout,
-  renderUserCard
+  renderUserCard,
+  onChatClick
 }) => {
   return (
     <aside
@@ -122,6 +123,15 @@ export const SideMenu = ({
           >
             <Warehouse className="mr-2 h-4 w-4" />
             Inventario
+          </button>
+
+          {/* Botón de Chat */}
+          <button
+            onClick={onChatClick}
+            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center bg-orange-50 hover:bg-orange-100"
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Chat
           </button>
 
           {canRequestMaterials && (

@@ -84,15 +84,28 @@ export function AuthProvider({ children }) {
 
     // Función global de logout
     const logout = () => {
+        console.log('🚪 Cerrando sesión...');
         setIsAuthenticated(false);
         setRoleId(null);
         setUser(null);
         setCsrfToken(null);
+        
+        // Limpiar localStorage
         localStorage.removeItem("authToken");
         localStorage.removeItem("csrfToken");
         localStorage.removeItem("roleId");
         localStorage.removeItem("userId");
+        localStorage.removeItem("username");
+        localStorage.removeItem("name");
+        localStorage.removeItem("bloodType");
+        localStorage.removeItem("email");
+        localStorage.removeItem("role");
+        
+        // Limpiar todas las cookies
         document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        console.log('✅ Sesión cerrada y tokens eliminados');
     };
 
     // Función para procesar el login
