@@ -6,6 +6,7 @@ import { Loader2, Package, MapPin } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 function ZonasDeTrabajo({ onSelectZone }) {
   const [zonas, setZonas] = useState([]);
@@ -16,6 +17,7 @@ function ZonasDeTrabajo({ onSelectZone }) {
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [materialError, setMaterialError] = useState(null);
   const [showMaterialsDialog, setShowMaterialsDialog] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchZonas = async () => {
@@ -239,10 +241,13 @@ function ZonasDeTrabajo({ onSelectZone }) {
                         Ver detalles
                       </Button>
                       <Button
-                        onClick={() => onSelectZone(zona.nombre)}
+                        onClick={() => {
+                          // Redirige a TaskList pasando el id y nombre de la zona
+                          navigate(`/tasks/${zona.id}`, { state: { zoneId: zona.id, zoneName: zona.nombre } });
+                        }}
                         className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
                       >
-                        Seleccionar
+                        Tareas
                       </Button>
                     </div>
                   </CardContent>

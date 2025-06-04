@@ -1,7 +1,7 @@
 import React from "react";
 import { ConstructionWorkerCard } from "../../Dashboard/components/ConstructionWorkerCard";
 import { 
-  Home, Calendar, Map, MapPin, MapPinned, Warehouse, Package, LogOut,
+  Home, Calendar, Map, MapPin, Warehouse, Package, LogOut,
   CreditCard, MessageSquare
 } from "lucide-react";
 
@@ -97,19 +97,6 @@ export const SideMenu = ({
           >
             <MapPin className="mr-2 h-4 w-4" />
             Mi Ubicación
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveSection("zonas-guardadas");
-              setSelectedZone(null);
-            }}
-            className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
-              activeSection === "zonas-guardadas" ? "bg-gray-100" : ""
-            } flex items-center`}
-          >
-            <MapPinned className="mr-2 h-4 w-4" />
-            Zonas Guardadas
           </button>
 
           <button
