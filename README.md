@@ -305,8 +305,8 @@ erDiagram
 | **Sprint 1** | 19 Mar 2025 | 20%      | ✅ Completado | 
 | **Sprint 2** | 2 Abr 2025  | 40%      | ✅ Completado |
 | **Sprint 3** | 23 Abr 2025 | 60%      | ✅ Completado |
-| **Sprint 4** | 14 May 2025 | 80%      | 🟡 En curso |
-| **Sprint 5** |    NULL     | 100%     | ⏳ Pendiente|
+| **Sprint 4** | 14 May 2025 | 80%      | ✅ Completado|
+| **Sprint 5** | 4 Jun 2025  | 100%     | ✅ Completado|
 
 **Leyenda:**  
 ✅ Completado 🟡 En progreso ⏳ Pendiente
