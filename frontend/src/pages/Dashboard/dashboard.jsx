@@ -872,52 +872,42 @@ export default function Dashboard() {
                             <WorkZoneMap workers={workers || []} />
                         </motion.div>
 
-                        {/* Tabs section with animation */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ 
-                                opacity: 1, 
-                                scale: 1,
-                                transition: {
-                                    delay: 0.4,
-                                    duration: 0.3
-                                }
-                            }}
-                        >
-                            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                                <Tabs defaultValue="overview" className="w-full">
-                                    <CardHeader className="border-b border-slate-700/50 pb-3">
-                                        <TabsList className="bg-slate-800/50 p-1">
-                                            <TabsTrigger
-                                                value="overview"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Resumen
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="attendance"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Asistencia
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="materials"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Inventario
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="requests"
-                                                className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
-                                            >
-                                                Solicitudes
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </CardHeader>
-                                    <CardContent className="p-6">
-                                        <TabsContent value="overview">
-                                            <div className="space-y-4">
-                                                {projects.map(project => (
+                        {/* Tabs section */}
+                        <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
+                            <Tabs defaultValue="overview" className="w-full">
+                                <CardHeader className="border-b border-slate-700/50 pb-3">
+                                    <TabsList className="bg-slate-800/50 p-1">
+                                        <TabsTrigger
+                                            value="overview"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Resumen
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="attendance"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Asistencia
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="materials"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Inventario
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="requests"
+                                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
+                                        >
+                                            Solicitudes
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <TabsContent value="overview">
+                                        <div className="space-y-4">
+                                            {projects && projects.length > 0 ? (
+                                                projects.map(project => (
                                                     <WorkProgressCard
                                                         key={project.id}
                                                         title={project.title}
@@ -925,12 +915,18 @@ export default function Dashboard() {
                                                         workers={project.workers}
                                                         tasks={project.tasks}
                                                     />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="attendance">
-                                            <div className="space-y-4">
-                                                {attendance.map(record => (
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay proyectos activos
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="attendance">
+                                        <div className="space-y-4">
+                                            {attendance && attendance.length > 0 ? (
+                                                attendance.map(record => (
                                                     <AttendanceCard
                                                         key={record.id}
                                                         name={record.name}
@@ -938,12 +934,18 @@ export default function Dashboard() {
                                                         status={record.status}
                                                         time={record.time}
                                                     />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="materials">
-                                            <div className="space-y-4">
-                                                {materials.map(material => (
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay registros de asistencia
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="materials">
+                                        <div className="space-y-4">
+                                            {materials && materials.length > 0 ? (
+                                                materials.map(material => (
                                                     <MaterialCard
                                                         key={material.id}
                                                         name={material.name}
@@ -951,19 +953,23 @@ export default function Dashboard() {
                                                         total={material.quantity}
                                                         unit={"Unidades"}
                                                     />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="requests">
-                                            <div className="space-y-4">
-                                                <MaterialRequestsCard onRefresh={loadDashboardData} onActivityAdd={addActivity} />
-                                            </div>
-                                        </TabsContent>
-                                    </CardContent>
-                                </Tabs>
-                            </Card>
-                        </motion.div>
-                    </motion.div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-4 text-slate-400">
+                                                    No hay materiales disponibles
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="requests">
+                                        <div className="space-y-4">
+                                            <MaterialRequestsCard onRefresh={loadDashboardData} />
+                                        </div>
+                                    </TabsContent>
+                                </CardContent>
+                            </Tabs>
+                        </Card>
+                    </div>
                 );
         }
     };

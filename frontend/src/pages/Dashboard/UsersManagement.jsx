@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, Edit, Trash2, Loader2, UserPlus, Camera } from "lucide-react";
+import { 
+  apiClient, 
+  getAuthHeaders,
+  updateUserData 
+} from "@/services/dashboardService";
+import { 
+  Search, 
+  Edit, 
+  Trash2, 
+  Loader2 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClient, getAuthHeaders, updateUserData } from "@/services/dashboardService";
@@ -44,13 +53,8 @@ function UsersManagement() {
     try {
       console.log("Guardando usuario con datos:", form);
       
-      // Asegurarnos de que jobId sea null si no es un trabajador
-      if (form.roleId !== 2) {
-        form.jobId = null;
-      }
-      
       if (modalUser) {
-        // Actualizar usuario existente usando la nueva función 
+        // Actualizar usuario existente usando la nueva función
         await updateUserData(modalUser.id, form);
       } else {
         // Crear nuevo usuario
@@ -137,21 +141,16 @@ function UsersManagement() {
   );
 
   // Function to get job name from job ID
-  const getJobName = (jobId) => { 
-    if (!jobId) return "No asignado"; // Handle null/undefined 
+  // Simplificar la función getJobName para que devuelva un string vacío si no hay jobId
+  const getJobName = (jobId) => {
+    if (!jobId) return "No asignado"; // Handle null/undefined
       
-    switch (Number(jobId)) { 
-      case 1: return "Electricista"; 
+    switch (Number(jobId)) {
+      case 1: return "Electricista";
       case 2: return "Albañil"; 
-      case 3: return "Fontanero"; 
-      default: return "No asignado"; // Handle unknown values 
-    } 
-  }; 
-
-  const handleScanComplete = (barcode) => {
-    // Establecer el código escaneado como término de búsqueda
-    setSearchTerm(barcode);
-    setShowScanner(false);
+      case 3: return "Fontanero";
+      default: return "No asignado"; // Handle unknown values
+    }
   };
 
   return (
@@ -273,18 +272,19 @@ function UsersManagement() {
                        'Jefe de obra'}
                     </span>
                   </td>
-                  <td className="px-4 py-3"> 
-                    {user.roleId === 2 ? ( 
-                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap 
-                        ${user.job?.id === 1 ? 'bg-blue-500/20 text-blue-300' : 
-                          user.job?.id === 2 ? 'bg-orange-500/20 text-orange-300' : 
-                          user.job?.id === 3 ? 'bg-green-500/20 text-green-300' : 
-                          'bg-slate-500/20 text-slate-300'}`}> 
-                        {user.job?.name || "No asignado"} 
-                      </span> 
-                    ) : ( 
-                      <span className="text-slate-400 text-xs">—</span> 
-                    )} 
+                  <td className="px-4 py-3">
+                    {user.roleId === 2 ? (
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap bg-slate-700/30 backdrop-blur-sm ${  // Fondo traslúcido oscuro
+                        user.job?.id === 1 ? 'text-blue-300' :  // Azul suave
+                        user.job?.id === 2 ? 'text-orange-300' :  // Naranja suave
+                        user.job?.id === 3 ? 'text-green-300' :  // Verde suave
+                        'text-slate-300'  // Color por defecto más claro
+                      }`}>
+                        {user.job?.name || "No asignado"}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right sticky right-0 bg-slate-800">
                     <Button

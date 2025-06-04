@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from 'prop-types';
 import Barcode from 'react-barcode';
-
 import pepeJefeObra from "../../../assets/pepeJefeObra.png"; // Importa la imagen desde la ruta especificada
 
 export function EmployeeCard({ name, id, role, bloodType }) {
@@ -47,7 +46,7 @@ export function EmployeeCard({ name, id, role, bloodType }) {
                             height={40}
                             fontSize={12}
                             margin={0}
-                            displayValue={true} // Muestra el valor debajo del código
+                            displayValue={true}
                         />
                     </div>
                 </div>

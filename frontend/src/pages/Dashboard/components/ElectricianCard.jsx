@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from 'prop-types';
+import Barcode from 'react-barcode';
 import electricoPepe from "../../../assets/electricoPepe.png";
 import Barcode from 'react-barcode';
 export function ElectricianCard({ name, id, role, bloodType }) {
@@ -41,7 +42,7 @@ export function ElectricianCard({ name, id, role, bloodType }) {
                             height={40}
                             fontSize={12}
                             margin={0}
-                            displayValue={true} // Muestra el valor debajo del código
+                            displayValue={true}
                         />
                     </div>
                 </div>

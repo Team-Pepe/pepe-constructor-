@@ -15,13 +15,9 @@ import Inventario from "./inventario";
 import EmployeeMap from "@/components/ui/EmployeeMap/EmployeeMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-// Icons
-import {
-  MapPin, AlertTriangle, Menu, X, Calendar
-} from "lucide-react";
-
-// Background
+import { EmployeeCard } from "../Dashboard/components";
+import { MapPin, AlertTriangle, Loader2, Package, Home, Map, MapPinned, Warehouse, LogOut, Menu, X, Calendar, Check, Camera, Info, Clock } from "lucide-react";
+import axios from "axios";
 import fondo2 from "../../assets/fondo2.jpg";
 
 // Custom hooks
@@ -39,16 +35,14 @@ import { DashboardHome } from "./components/DashboardHome";
 import { MyCardSection } from "./components/MyCardSection";
 import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { ConstructionWorkerCard } from "../Dashboard/components/ConstructionWorkerCard";
+import { ElectricianCard } from "../Dashboard/components/ElectricianCard";
 import { PlumberCard } from "../Dashboard/components/PlumberCard";
-import { EmployeeCard } from "../Dashboard/components/EmployeeCard";
-import TaskList from "./components/TaskList";
-import { ChatModal } from "@/components/chat/ChatModal";
-
 import { motion } from "framer-motion";
 
 export function DashboardEmpleados() {
-  const { user: authUser, roleId, logout } = useAuth();
-  const [user, setUser] = useState(authUser);
+  const { user: authUser, roleId, logout } = useAuth(); // Renombramos user a authUser
+  const userRoleId = Number(roleId); // Añadir esta línea para definir userRoleId
+  const [user, setUser] = useState(authUser); // Añadimos el estado local
   const [activeSection, setActiveSection] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,39 +53,75 @@ export function DashboardEmpleados() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [workZones, setWorkZones] = useState([]);
 
-  // Role based permissions
-  const canRequestMaterials = useMemo(() => Number(roleId) === 3, [roleId]);
-
-  // Custom hooks
-  const { 
-    workerLocation, 
-    showLocationModal, 
-    setShowLocationModal,
-    locationStatus, 
-    locationPermissionDenied,
-    locationLoading,
-    requestLocationPermission
-  } = useLocationTracking();
-
-  const { savedZones, loading: zonesLoading } = useWorkZones();
+  // Estado para determinar si el usuario puede solicitar materiales
+  const [canRequestMaterials, setCanRequestMaterials] = useState(false);
   
-  const {
-    checkInStatus,
-    selectedCheckInZone, 
-    setSelectedCheckInZone,
-    showCamera,
-    setShowCamera,
-    cameraStream,
-    setCameraStream,
-    videoRef,
-    canvasRef,
-    handleCheckIn,
-    takePicture
-  } = useCheckInStatus({ workerLocation, savedZones });
+  // Función para renderizar la tarjeta correcta según el job_id y roleId
+  const renderUserCard = () => {
+    // Si el usuario tiene roleId 3, siempre mostrar EmployeeCard (jefe de obra)
+    if (userRoleId === 3) {
+      return (
+        <EmployeeCard 
+          name={user?.name || user?.username || "Usuario"}
+          id={user?.id || "000000"}
+          role="Jefe de Obra"
+          bloodType={user?.bloodType || "O+"}
+        />
+      );
+    }
+    
+    // Para otros roles, verificar el job_id
+    const jobId = user?.jobId || 2; // Valor por defecto si no hay jobId
+    
+    switch (Number(jobId)) {
+      case 1:
+        return (
+          <ElectricianCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Electricista"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      case 2:
+        return (
+          <ConstructionWorkerCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Constructor"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      case 3:
+        return (
+          <PlumberCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Fontanero"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+      default:
+        return (
+          <ConstructionWorkerCard 
+            name={user?.name || user?.username || "Usuario"}
+            id={user?.id || "000000"}
+            role="Constructor"
+            bloodType={user?.bloodType || "O+"}
+          />
+        );
+    }
+  };
+  
+  console.log("Dashboard empleados - Rol del usuario:", userRoleId, "- Puede solicitar materiales:", canRequestMaterials);
 
-  // Checkins data
-  const [checkins, setCheckins] = useState([]);
-  const [loadingCheckins, setLoadingCheckins] = useState(false);
+  // Estados para el modal de ubicación
+  const [showLocationModal, setShowLocationModal] = useState(true);
+  const [locationStatus, setLocationStatus] = useState(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // Estado para filtro de zona
   const [selectedZoneFilter, setSelectedZoneFilter] = useState("");
   const [zonasDisponiblesMap, setZonasDisponiblesMap] = useState({});
 
@@ -111,7 +141,7 @@ export function DashboardEmpleados() {
             name: response.data.username,
             bloodType: response.data.bloodType,
             roleId: response.data.roleId,
-            jobId: response.data.jobId
+            jobId: response.data.jobId || response.data.job_id // Añadir jobId
           }));
           
           // Guardar el jobId en el estado
@@ -186,57 +216,379 @@ export function DashboardEmpleados() {
 
   // Load initial data
   useEffect(() => {
-    loadRecentCheckIns();
-    
-    if (canRequestMaterials) {
-      loadCheckins();
-    }
-    
-    // Cargar zonas de trabajo para el chat
-    loadWorkZones();
-  }, [loadRecentCheckIns, loadCheckins, canRequestMaterials]);
+    // Usar las zonas que ya tenemos cargadas en savedZones
+    const mapaZonas = {};
+    savedZones.forEach(zona => {
+      mapaZonas[zona.id] = zona.name;
+    });
+    setZonasDisponiblesMap(mapaZonas);
+  }, [savedZones]);
 
-  // Función para cargar zonas de trabajo
-  const loadWorkZones = async () => {
-    try {
-      const workZonesResponse = await fetchWorkZones();
-      if (workZonesResponse?.data) {
-        setWorkZones(workZonesResponse.data);
-      }
-    } catch (error) {
-      console.error('Error al cargar zonas de trabajo para chat:', error);
-    }
+  // Renderizar la sección de checkouts para jefes de obra
+  const renderCheckouts = () => {
+    if (!canRequestMaterials) return null;
+
+    // Obtener todas las zonas únicas
+    const zonasUnicas = Object.keys(checkinsPorZona);
+    // Filtrar zonas si hay filtro
+    const zonasAMostrar = selectedZoneFilter ? [selectedZoneFilter] : zonasUnicas;
+
+    return (
+      <Card className="col-span-3">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Gestión de Check-outs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex items-center gap-4">
+            <label className="font-medium">Filtrar por zona:</label>
+            <select
+              value={selectedZoneFilter}
+              onChange={e => setSelectedZoneFilter(e.target.value)}
+              className="p-2 border rounded"
+            >
+              <option value="">Todas</option>
+              {zonasUnicas.map(zona => (
+                <option key={zona} value={zona}>{zona}</option>
+              ))}
+            </select>
+          </div>
+          {zonasAMostrar.map(zona => (
+            <div key={zona} className="mb-8">
+              <h3 className="font-bold text-lg mb-2">Zona: {zona}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left p-2">Empleado</th>
+                      <th className="text-left p-2">Zona</th>
+                      <th className="text-left p-2">Hora de Check-in</th>
+                      <th className="text-left p-2">Estado</th>
+                      <th className="text-left p-2">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingCheckins ? (
+                      <tr>
+                        <td colSpan="5" className="text-center p-4">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        </td>
+                      </tr>
+                    ) : checkinsPorZona[zona]?.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center p-4 text-slate-400">
+                          No hay check-ins activos para esta zona
+                        </td>
+                      </tr>
+                    ) : (
+                      checkinsPorZona[zona].map((checkin) => (
+                        <tr key={checkin.id} className="border-b border-slate-800">
+                          <td className="p-2">{checkin.employee_name}</td>
+                          <td className="p-2">
+                            {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
+                              ? checkin.zone_name 
+                              : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || '-')
+                            }
+                          </td>
+                          <td className="p-2">{checkin.check_in_time}</td>
+                          <td className="p-2">
+                            <span className={`px-2 py-1 rounded text-sm ${
+                              !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {!checkin.check_out_time ? 'Activo' : 'Terminado'}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {!checkin.check_out_time && (
+                              <Button
+                                onClick={() => handleCheckout(checkin.id)}
+                                size="sm"
+                                className="bg-orange-500 hover:bg-orange-600"
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Check-out
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
   };
 
-  // Current worker location for the map
-  const currentWorker = useMemo(() => {
-    if (!workerLocation) return [];
-    
-    return [{
-      id: "current",
-      name: user?.username || user?.name || "Mi ubicación",
-      location: workerLocation,
-      inZone: false,
-    }];
-  }, [workerLocation, user]);
+  function MiAsistencia() {
+    const { user } = useAuth();
+    const [asistencias, setAsistencias] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  // Render active section
-  const renderActiveSection = () => {
-    switch (activeSection) {
-      case "zonas-de-trabajo":
-        return (
-          <section id="zonas-de-trabajo">
-            <motion.h2 
-              className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 0.3,
-                  ease: "easeOut"
-                }
+    useEffect(() => {
+      const cargarAsistencias = async () => {
+        if (!user?.id) return;
+        
+        try {
+          setLoading(true);
+          // Aumentamos el límite para obtener más registros históricos
+          const result = await fetchRecentCheckIns(100);
+          
+          if (result.success && result.checkIns) {
+            console.log("Todos los check-ins recibidos:", result.checkIns);
+            console.log("ID de usuario actual:", user.id, "Nombre de usuario:", user.username);
+            
+            // Filtrar solo los check-ins del usuario actual
+            // Intentamos con diferentes formatos de ID (string, number)
+            const misCheckIns = result.checkIns.filter(checkin => {
+              const matchId = checkin.employee_id === user.id || 
+                             checkin.employee_id === parseInt(user.id) || 
+                             checkin.employee_id === String(user.id);
+              
+              const matchName = checkin.employee_name === user.username || 
+                               checkin.employee_name === user.name;
+              
+              return matchId || matchName;
+            }).map(checkin => {
+              // Intentar encontrar el nombre de zona real usando el mapa de zonas
+              let zoneId = checkin.zone_id;
+              if (!zoneId && checkin.zone && checkin.zone.id) {
+                zoneId = checkin.zone.id;
+              }
+
+              // Si tenemos un ID y existe en nuestro mapa, usar el nombre real
+              if (zoneId && zonasDisponiblesMap[zoneId]) {
+                return {
+                  ...checkin,
+                  zone_name: zonasDisponiblesMap[zoneId]
+                };
+              }
+
+              return checkin;
+            });
+            
+            console.log("Check-ins filtrados para el usuario:", misCheckIns);
+            setAsistencias(misCheckIns);
+          } else {
+            console.log("No se recibieron check-ins o hubo un error:", result);
+            setAsistencias([]);
+          }
+        } catch (error) {
+          console.error("Error al cargar asistencias:", error);
+          setAsistencias([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      cargarAsistencias();
+    }, [user?.id, user?.username, user?.name, zonasDisponiblesMap]);
+
+    // Función para formatear fechas de manera segura
+    const formatearFecha = (fechaStr) => {
+      if (!fechaStr) return "-";
+      
+      try {
+        // Si la fecha ya parece estar formateada como DD/MM/YYYY, la devolvemos directamente
+        if (typeof fechaStr === 'string' && fechaStr.includes('/')) {
+          // Si tiene formato DD/MM/YYYY, devolver solo la parte de la fecha
+          if (fechaStr.includes(',')) {
+            return fechaStr.split(',')[0].trim();
+          }
+          return fechaStr;
+        }
+        
+        // Si no, intentamos parsear la fecha ISO
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+          console.log("Fecha inválida:", fechaStr);
+          return "-"; // Si la fecha no es válida
+        }
+        return fecha.toLocaleDateString();
+      } catch (error) {
+        console.error("Error al formatear fecha:", fechaStr, error);
+        return "-";
+      }
+    };
+
+    // Función para formatear horas de manera segura
+    const formatearHora = (fechaStr) => {
+      if (!fechaStr) return "-";
+      
+      try {
+        // Si la fecha ya parece estar formateada como DD/MM/YYYY, HH:MM:SS, extraemos la hora
+        if (typeof fechaStr === 'string' && fechaStr.includes('/') && fechaStr.includes(',')) {
+          const partes = fechaStr.split(',');
+          if (partes.length > 1) {
+            const horaParte = partes[1].trim();
+            // Si tiene formato HH:MM:SS, devolver solo HH:MM
+            const horaMinutos = horaParte.split(':');
+            if (horaMinutos.length >= 2) {
+              return `${horaMinutos[0]}:${horaMinutos[1]}`;
+            }
+            return horaParte;
+          }
+        }
+        
+        // Si no, intentamos parsear la fecha ISO
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+          console.log("Hora inválida:", fechaStr);
+          return "-"; // Si la fecha no es válida
+        }
+        return fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      } catch (error) {
+        console.error("Error al formatear hora:", fechaStr, error);
+        return "-";
+      }
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-4xl mx-auto mt-10 bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-lg p-8 animate-fadeIn border border-slate-700/50"
+      >
+        <h2 className="text-2xl font-bold mb-6 text-white text-center flex items-center justify-center">
+          <Calendar className="mr-2 h-6 w-6 text-orange-400" />
+          Mi Historial de Asistencia
+        </h2>
+        
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <Loader2 className="animate-spin h-8 w-8 text-orange-500" />
+          </div>
+        ) : asistencias.length === 0 ? (
+          <div className="text-center text-slate-400 py-8 bg-slate-900/30 rounded-lg border border-slate-700/30">
+            No hay registros de asistencia disponibles.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full bg-slate-900/30 rounded-lg shadow border border-slate-700/30">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Fecha</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Zona</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Check-in</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Check-out</th>
+                  <th className="py-3 px-4 text-left font-semibold text-slate-300">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {asistencias.map(asistencia => (
+                  <tr key={asistencia.id} className="border-t border-slate-800 hover:bg-slate-800/50 transition">
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearFecha(asistencia.check_in_time)}
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {(asistencia.zone_name && !asistencia.zone_name.startsWith('Zona ')) 
+                        ? asistencia.zone_name 
+                        : asistencia.zoneName || asistencia.zone?.name || '-'
+                      }
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearHora(asistencia.check_in_time)}
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
+                      {formatearHora(asistencia.check_out_time)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        !asistencia.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                      }`}>
+                        {!asistencia.check_out_time ? 'Activo' : 'Completado'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
+  return (
+    <div
+      className="min-h-screen flex"
+      style={{
+        backgroundImage: `url(${fondo2})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        width: "100%",
+        height: "100vh",
+      }}
+    >
+      {/* Modal de ubicación */}
+      {renderLocationModal()}
+
+      {/* Botón para abrir/cerrar el menú */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="absolute top-2 left-4 z-50 bg-gray-800 text-white px-4 py-1 rounded-md shadow-md flex items-center"
+      >
+        {menuOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      {/* Menú lateral */}
+      <aside
+        className={`w-64 bg-white shadow-md flex flex-col justify-between overflow-y-auto transform ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-300 fixed h-full z-40`}
+      >
+        <div>
+          <div className="p-4 border-b">
+            <h1 className="text-xl font-bold text-gray-800"></h1>
+          </div>
+
+          {/* Carnet de empleado */}
+          <div className="p-4">
+            {renderUserCard()}
+          </div>
+
+          <nav className="p-4 space-y-2">
+            <button
+              onClick={() => {
+                setActiveSection(null);
+                setSelectedZone(null);
               }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === null && !selectedZone ? "bg-gray-100" : ""
+              } flex items-center`}
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Inicio
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("check-in");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "check-in" ? "bg-gray-100" : ""
+              } flex items-center`}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Check In
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSection("zonas-de-trabajo");
+                setSelectedZone(null);
+              }}
+              className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded ${
+                activeSection === "zonas-de-trabajo" ? "bg-gray-100" : ""
+              } flex items-center`}
             >
               Zonas de Trabajo
             </motion.h2>
