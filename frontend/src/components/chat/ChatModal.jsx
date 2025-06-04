@@ -7,23 +7,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Send, Users, Globe, Loader2, AlertCircle } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
-import { useAuth } from '@/features/auth';
 import axios from 'axios';
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:3000';
 
 export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
-  const { user } = useAuth();
   const {
     isConnected,
     error: socketError,
     joinZone,
-    leaveZone,
     sendMessage,
     onNewMessage,
-    offNewMessage,
-    onJoinedZone,
-    onLeftZone
+    offNewMessage
   } = useSocket();
 
   // Estados
@@ -185,26 +180,31 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
     }
 
     return messagesList.map((message) => (
-      <div key={message.id} className="mb-4">
+      <div key={message.id} className="mb-6">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
               {message.sender.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-white">
-                {message.sender.username || 'Usuario'}
-              </span>
-              <Badge variant="outline" className="text-xs">
-                {getRoleDisplay(message.sender.roleId)}
-              </Badge>
+            <div className="flex flex-col gap-1 mb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-white text-sm">
+                  {message.sender.username || 'Usuario'}
+                </span>
+                <Badge 
+                  variant="outline" 
+                  className="text-xs px-2 py-0.5 border-slate-500 text-slate-300 bg-slate-700/50"
+                >
+                  {getRoleDisplay(message.sender.roleId)}
+                </Badge>
+              </div>
               <span className="text-xs text-slate-400">
                 {formatTime(message.sentAt)}
               </span>
             </div>
-            <div className="bg-slate-700 rounded-lg px-3 py-2 text-white">
+            <div className="bg-slate-700/70 rounded-lg px-3 py-2 text-white text-sm border border-slate-600/50">
               {message.content}
             </div>
           </div>
@@ -215,12 +215,15 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[600px] bg-slate-800 border-slate-700">
-        <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+      <DialogContent className="max-w-5xl h-[700px] bg-slate-800 border-slate-700 shadow-2xl">
+        <DialogHeader className="border-b border-slate-700 pb-4">
+          <DialogTitle className="text-white flex items-center gap-3 text-xl">
+            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+              <Users className="h-5 w-5 text-white" />
+            </div>
             Wasap 2
             {isConnected ? (
-              <Badge className="bg-green-600">
+              <Badge className="bg-green-600 text-white border-0">
                 <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                 Conectado
               </Badge>
@@ -248,8 +251,11 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
         <div className="flex flex-col h-full">
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1">
-            <TabsList className="bg-slate-700 mb-4">
-              <TabsTrigger value="general" className="data-[state=active]:bg-orange-600">
+            <TabsList className="bg-slate-700/70 mb-4 p-1 rounded-lg">
+              <TabsTrigger 
+                value="general" 
+                className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-4 py-2 transition-all"
+              >
                 <Globe className="h-4 w-4 mr-2" />
                 Chat General
               </TabsTrigger>
@@ -257,7 +263,7 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
                 <TabsTrigger 
                   key={zone.id} 
                   value={zone.id.toString()}
-                  className="data-[state=active]:bg-orange-600"
+                  className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-4 py-2 transition-all"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   {zone.name}
@@ -268,7 +274,7 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
             {/* Chat General */}
             <TabsContent value="general" className="flex-1">
               <div className="flex flex-col h-full">
-                <ScrollArea className="flex-1 pr-4">
+                <ScrollArea className="flex-1 pr-4 max-h-[400px]">
                   {loading ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
@@ -285,7 +291,7 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
             {workZones.map((zone) => (
               <TabsContent key={zone.id} value={zone.id.toString()} className="flex-1">
                 <div className="flex flex-col h-full">
-                  <ScrollArea className="flex-1 pr-4">
+                  <ScrollArea className="flex-1 pr-4 max-h-[400px]">
                     {loading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
@@ -301,14 +307,14 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
           </Tabs>
 
           {/* Input de mensaje */}
-          <div className="border-t border-slate-600 pt-4 mt-4">
-            <div className="flex gap-2">
+          <div className="border-t border-slate-600/50 pt-4 mt-4 bg-slate-900/30 rounded-lg p-4">
+            <div className="flex gap-3">
               <Input
                 ref={inputRef}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder={`Escribe un mensaje en ${activeTab === 'general' ? 'Chat General' : workZones.find(z => z.id.toString() === activeTab)?.name || 'esta zona'}...`}
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 flex-1 rounded-lg px-4 py-2"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -321,13 +327,13 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
               <Button
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim() || !isConnected}
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg transition-colors"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
             {newMessage.length > 800 && (
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-2">
                 {1000 - newMessage.length} caracteres restantes
               </p>
             )}

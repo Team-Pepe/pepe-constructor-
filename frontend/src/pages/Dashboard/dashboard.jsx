@@ -580,6 +580,447 @@ export default function Dashboard() {
                         </motion.div>
                     </motion.section>
                 );
+            case "calendario":
+                return (
+                    <motion.section 
+                        id="calendario"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <div className="grid gap-6">
+                            <motion.h2 
+                                className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.3,
+                                        ease: "easeOut"
+                                    }
+                                }}
+                            >
+                                <Calendar className="inline mr-2 h-6 w-6" />
+                                Calendario de Trabajo
+                            </motion.h2>
+
+                            {/* Calendario principal */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    scale: 1,
+                                    transition: {
+                                        delay: 0.1,
+                                        duration: 0.3
+                                    }
+                                }}
+                            >
+                                <Card className="bg-slate-800 border-slate-700">
+                                    <CardHeader>
+                                        <CardTitle className="text-white flex items-center justify-between">
+                                            <span>Diciembre 2024</span>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="sm" className="border-slate-600">
+                                                    ← Anterior
+                                                </Button>
+                                                <Button variant="outline" size="sm" className="border-slate-600">
+                                                    Siguiente →
+                                                </Button>
+                                            </div>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {/* Mini calendario */}
+                                        <div className="grid grid-cols-7 gap-1 mb-4">
+                                            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+                                                <div key={day} className="text-center font-semibold text-slate-400 p-2">
+                                                    {day}
+                                                </div>
+                                            ))}
+                                            {/* Días del mes con eventos simulados */}
+                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                                                const hasEvent = [5, 12, 15, 18, 22, 25, 28].includes(day);
+                                                const isToday = day === 15;
+                                                return (
+                                                    <div 
+                                                        key={day} 
+                                                        className={`text-center p-2 rounded cursor-pointer transition-colors ${
+                                                            isToday 
+                                                                ? 'bg-orange-600 text-white font-bold' 
+                                                                : hasEvent 
+                                                                    ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/50' 
+                                                                    : 'text-slate-300 hover:bg-slate-700'
+                                                        }`}
+                                                    >
+                                                        {day}
+                                                        {hasEvent && <div className="w-1 h-1 bg-orange-400 rounded-full mx-auto mt-1"></div>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+
+                            {/* Eventos próximos */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    y: 0,
+                                    transition: {
+                                        delay: 0.2,
+                                        duration: 0.3
+                                    }
+                                }}
+                                className="grid md:grid-cols-2 gap-6"
+                            >
+                                <Card className="bg-slate-800 border-slate-700">
+                                    <CardHeader>
+                                        <CardTitle className="text-white flex items-center">
+                                            <Clock className="mr-2 h-5 w-5 text-orange-400" />
+                                            Próximos Eventos
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {[
+                                                {
+                                                    title: "Inspección de Seguridad",
+                                                    date: "Hoy - 14:00",
+                                                    location: "Zona A",
+                                                    type: "inspection",
+                                                    priority: "high"
+                                                },
+                                                {
+                                                    title: "Reunión de Avance",
+                                                    date: "Mañana - 09:00",
+                                                    location: "Oficina Central",
+                                                    type: "meeting",
+                                                    priority: "medium"
+                                                },
+                                                {
+                                                    title: "Entrega de Materiales",
+                                                    date: "18 Dic - 08:00",
+                                                    location: "Almacén Principal",
+                                                    type: "delivery",
+                                                    priority: "high"
+                                                },
+                                                {
+                                                    title: "Capacitación de Seguridad",
+                                                    date: "22 Dic - 10:00",
+                                                    location: "Sala de Conferencias",
+                                                    type: "training",
+                                                    priority: "low"
+                                                }
+                                            ].map((event) => (
+                                                <div key={event.title + event.date} className="flex items-start gap-3 p-3 bg-slate-900/50 rounded-lg">
+                                                    <div className={`w-3 h-3 rounded-full mt-1 ${
+                                                        event.priority === 'high' ? 'bg-red-500' :
+                                                        event.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                    }`}></div>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-medium text-white">{event.title}</h4>
+                                                        <p className="text-sm text-slate-400">{event.date}</p>
+                                                        <p className="text-xs text-orange-400">{event.location}</p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded text-xs ${
+                                                        event.type === 'inspection' ? 'bg-red-900/30 text-red-300' :
+                                                        event.type === 'meeting' ? 'bg-blue-900/30 text-blue-300' :
+                                                        event.type === 'delivery' ? 'bg-green-900/30 text-green-300' :
+                                                        'bg-purple-900/30 text-purple-300'
+                                                    }`}>
+                                                        {event.type === 'inspection' ? 'Inspección' :
+                                                         event.type === 'meeting' ? 'Reunión' :
+                                                         event.type === 'delivery' ? 'Entrega' : 'Capacitación'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-slate-800 border-slate-700">
+                                    <CardHeader>
+                                        <CardTitle className="text-white flex items-center">
+                                            <AlertTriangle className="mr-2 h-5 w-5 text-yellow-400" />
+                                            Recordatorios
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {[
+                                                {
+                                                    message: "Revisar reportes de seguridad pendientes",
+                                                    time: "En 2 horas",
+                                                    urgent: true
+                                                },
+                                                {
+                                                    message: "Aprobar solicitudes de materiales",
+                                                    time: "Fin del día",
+                                                    urgent: false
+                                                },
+                                                {
+                                                    message: "Actualizar cronograma del proyecto",
+                                                    time: "Mañana",
+                                                    urgent: false
+                                                },
+                                                {
+                                                    message: "Verificar asistencia de trabajadores",
+                                                    time: "Cada día",
+                                                    urgent: true
+                                                }
+                                            ].map((reminder) => (
+                                                <div key={reminder.message} className="flex items-start gap-3 p-3 bg-slate-900/30 rounded-lg border-l-4 border-orange-500">
+                                                    <div className={`w-2 h-2 rounded-full mt-2 ${reminder.urgent ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm text-white">{reminder.message}</p>
+                                                        <p className="text-xs text-slate-400">{reminder.time}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+                    </motion.section>
+                );
+            case "tareas":
+                return (
+                    <motion.section 
+                        id="tareas"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300
+                            }
+                        }}
+                    >
+                        <div className="grid gap-6">
+                            <motion.h2 
+                                className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.3,
+                                        ease: "easeOut"
+                                    }
+                                }}
+                            >
+                                <ClipboardList className="inline mr-2 h-6 w-6" />
+                                Gestión de Tareas
+                            </motion.h2>
+
+                            {/* Estadísticas de tareas */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    scale: 1,
+                                    transition: {
+                                        delay: 0.1,
+                                        duration: 0.3
+                                    }
+                                }}
+                                className="grid grid-cols-1 md:grid-cols-4 gap-4"
+                            >
+                                {[
+                                    { title: "Pendientes", count: 12, color: "yellow", icon: Clock },
+                                    { title: "En Progreso", count: 8, color: "blue", icon: Activity },
+                                    { title: "Completadas", count: 24, color: "green", icon: ClipboardList },
+                                    { title: "Atrasadas", count: 3, color: "red", icon: AlertTriangle }
+                                ].map((stat) => (
+                                    <Card key={stat.title} className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-slate-400 text-sm">{stat.title}</p>
+                                                    <p className="text-2xl font-bold text-white">{stat.count}</p>
+                                                </div>
+                                                <stat.icon className={`h-8 w-8 ${
+                                                    stat.color === 'yellow' ? 'text-yellow-400' :
+                                                    stat.color === 'blue' ? 'text-blue-400' :
+                                                    stat.color === 'green' ? 'text-green-400' : 'text-red-400'
+                                                }`} />
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </motion.div>
+
+                            {/* Panel de tareas */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    y: 0,
+                                    transition: {
+                                        delay: 0.2,
+                                        duration: 0.3
+                                    }
+                                }}
+                            >
+                                <Card className="bg-slate-800 border-slate-700">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-white">Lista de Tareas</CardTitle>
+                                            <div className="flex gap-2">
+                                                <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                                                    + Nueva Tarea
+                                                </Button>
+                                                <select className="bg-slate-700 border-slate-600 text-white rounded px-3 py-1 text-sm">
+                                                    <option>Todas las tareas</option>
+                                                    <option>Pendientes</option>
+                                                    <option>En progreso</option>
+                                                    <option>Completadas</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {[
+                                                {
+                                                    id: 1,
+                                                    title: "Inspección de equipos de seguridad",
+                                                    description: "Revisar cascos, arneses y equipo de protección en Zona A",
+                                                    assignee: "Carlos Mendoza",
+                                                    priority: "alta",
+                                                    status: "pendiente",
+                                                    dueDate: "Hoy",
+                                                    project: "Construcción Edificio A"
+                                                },
+                                                {
+                                                    id: 2,
+                                                    title: "Verificación de materiales",
+                                                    description: "Contar inventario de cemento y varillas en almacén",
+                                                    assignee: "Ana García",
+                                                    priority: "media",
+                                                    status: "en-progreso",
+                                                    dueDate: "Mañana",
+                                                    project: "Inventario General"
+                                                },
+                                                {
+                                                    id: 3,
+                                                    title: "Limpieza de área de trabajo",
+                                                    description: "Limpiar y organizar herramientas en Zona B",
+                                                    assignee: "Luis Torres",
+                                                    priority: "baja",
+                                                    status: "completada",
+                                                    dueDate: "Ayer",
+                                                    project: "Mantenimiento"
+                                                },
+                                                {
+                                                    id: 4,
+                                                    title: "Instalación de andamios",
+                                                    description: "Montar andamios para trabajos en altura en fachada norte",
+                                                    assignee: "Roberto Silva",
+                                                    priority: "alta",
+                                                    status: "en-progreso",
+                                                    dueDate: "Hoy",
+                                                    project: "Construcción Edificio A"
+                                                },
+                                                {
+                                                    id: 5,
+                                                    title: "Capacitación sobre nuevos procedimientos",
+                                                    description: "Entrenar al equipo en los nuevos protocolos de seguridad",
+                                                    assignee: "María López",
+                                                    priority: "media",
+                                                    status: "pendiente",
+                                                    dueDate: "22 Dic",
+                                                    project: "Capacitación"
+                                                },
+                                                {
+                                                    id: 6,
+                                                    title: "Revisión de planos estructurales",
+                                                    description: "Verificar medidas y especificaciones del proyecto",
+                                                    assignee: "Ing. Pedro Ramírez",
+                                                    priority: "alta",
+                                                    status: "atrasada",
+                                                    dueDate: "Hace 2 días",
+                                                    project: "Construcción Edificio A"
+                                                }
+                                            ].map((task) => (
+                                                <div key={task.id} className="border border-slate-700 rounded-lg p-4 bg-slate-900/30">
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-2">
+                                                                <h3 className="font-medium text-white">{task.title}</h3>
+                                                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                                    task.priority === 'alta' ? 'bg-red-900/30 text-red-300' :
+                                                                    task.priority === 'media' ? 'bg-yellow-900/30 text-yellow-300' :
+                                                                    'bg-green-900/30 text-green-300'
+                                                                }`}>
+                                                                    {task.priority.toUpperCase()}
+                                                                </span>
+                                                                <span className={`px-2 py-1 rounded text-xs ${
+                                                                    task.status === 'completada' ? 'bg-green-600 text-white' :
+                                                                    task.status === 'en-progreso' ? 'bg-blue-600 text-white' :
+                                                                    task.status === 'atrasada' ? 'bg-red-600 text-white' :
+                                                                    'bg-slate-600 text-slate-200'
+                                                                }`}>
+                                                                    {task.status === 'completada' ? 'Completada' :
+                                                                     task.status === 'en-progreso' ? 'En Progreso' :
+                                                                     task.status === 'atrasada' ? 'Atrasada' : 'Pendiente'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-slate-400 mb-2">{task.description}</p>
+                                                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                                                                <span>👤 {task.assignee}</span>
+                                                                <span>📅 {task.dueDate}</span>
+                                                                <span>📂 {task.project}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                                                                Ver
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                                                                Editar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Barra de progreso para tareas en progreso */}
+                                                    {task.status === 'en-progreso' && (
+                                                        <div className="mt-3">
+                                                            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                                                                <span>Progreso</span>
+                                                                <span>{task.id === 2 ? '65%' : '30%'}</span>
+                                                            </div>
+                                                            <div className="w-full bg-slate-700 rounded-full h-2">
+                                                                <div 
+                                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                                                    style={{ width: task.id === 2 ? '65%' : '30%' }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+                    </motion.section>
+                );
             case "asistencia":
                 return (
                     <motion.div 
