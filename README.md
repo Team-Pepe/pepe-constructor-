@@ -408,3 +408,86 @@ Puedes consultar el historial completo de cambios realizados en las ramas a trav
 Puedes consultar la documentación detallada del código fuente, estructuras, funcionalidades y módulos del proyecto en el siguiente enlace:
 
 🔗 [Ver documentación del código](https://github.com/Team-Pepe/pepe-constructor-/blob/main/document/DOCUMENTATION.md)
+
+---
+
+## 🚦 Instalación y Ejecución del Proyecto
+
+### 1. Clona el repositorio
+
+```bash
+git clone https://github.com/Team-Pepe/pepe-constructor-.git
+cd pepe-constructor-
+```
+
+### 2. Instalación de dependencias
+
+#### Backend
+
+```bash
+cd backend
+npm install
+```
+
+#### Frontend
+
+```bash
+cd ../frontend
+npm install
+```
+
+### 3. Configuración del archivo `.env` para el backend
+
+Debes crear un archivo llamado `.env` dentro de la carpeta `backend`. Puedes basarte en el archivo `.env-example` incluido en el repositorio.  
+**Ejemplo de estructura mínima:**
+
+```env
+DB_PASSWORD=your_db_password
+DATABASE_URL="postgresql://your_user:${DB_PASSWORD}@your_host:your_port/your_db?pgbouncer=true"
+DIRECT_URL="postgresql://your_user:${DB_PASSWORD}@your_host:your_port/your_db?sslmode=require"
+
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=1d
+JWT_REFRESH_SECRET=your_jwt_refresh_secret
+JWT_REFRESH_EXPIRES_IN=7d
+
+CSRF_SECRET=your_csrf_secret
+
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_KEY="your_supabase_key"
+SUPABASE_BUCKET="images"
+
+PORT=3000
+
+EMAIL_USER=your_email@example.com
+EMAIL_PASS=your_email_password
+FRONTEND_URL=http://localhost:5173
+```
+
+> **Importante:** No compartas tu archivo `.env` real. Usa `.env-example` como plantilla para otros desarrolladores.
+
+### 4. Ejecución del backend
+
+```bash
+cd backend
+npm run dev
+```
+
+### 5. Ejecución del frontend
+
+```bash
+cd ../frontend
+npm run dev
+```
+
+El frontend estará disponible en [http://localhost:5173](http://localhost:5173) y el backend en [http://localhost:3000](http://localhost:3000) (o el puerto que definas).
+
+---
+
+## 🛠️ Notas adicionales
+
+- Asegúrate de tener una base de datos PostgreSQL accesible y configurada.
+- Si usas Supabase, configura correctamente las variables `SUPABASE_URL` y `SUPABASE_KEY`.
+- Para desarrollo local, puedes modificar los puertos en el `.env` según tus necesidades.
+
+---
