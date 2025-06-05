@@ -180,31 +180,31 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
     }
 
     return messagesList.map((message) => (
-      <div key={message.id} className="mb-6">
-        <div className="flex items-start gap-3">
+      <div key={message.id} className="mb-4 sm:mb-6">
+        <div className="flex items-start gap-2 sm:gap-3">
           <div className="flex-shrink-0">
-            <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
               {message.sender.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col gap-1 mb-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-white text-sm">
+            <div className="flex flex-col gap-1 mb-1.5 sm:mb-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="font-medium text-white text-xs sm:text-sm">
                   {message.sender.username || 'Usuario'}
                 </span>
                 <Badge 
                   variant="outline" 
-                  className="text-xs px-2 py-0.5 border-slate-500 text-slate-300 bg-slate-700/50"
+                  className="text-xs px-1.5 sm:px-2 py-0.5 border-slate-500 text-slate-300 bg-slate-700/50"
                 >
                   {getRoleDisplay(message.sender.roleId)}
                 </Badge>
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-[10px] sm:text-xs text-slate-400">
                 {formatTime(message.sentAt)}
               </span>
             </div>
-            <div className="bg-slate-700/70 rounded-lg px-3 py-2 text-white text-sm border border-slate-600/50">
+            <div className="bg-slate-700/70 rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 text-white text-xs sm:text-sm border border-slate-600/50">
               {message.content}
             </div>
           </div>
@@ -215,11 +215,11 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[700px] bg-slate-800 border-slate-700 shadow-2xl">
+      <DialogContent className="w-[95vw] max-w-5xl h-[90vh] max-h-[700px] p-4 sm:p-6 bg-slate-800 border-slate-700 shadow-2xl">
         <DialogHeader className="border-b border-slate-700 pb-4">
-          <DialogTitle className="text-white flex items-center gap-3 text-xl">
-            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
-              <Users className="h-5 w-5 text-white" />
+          <DialogTitle className="text-white flex flex-wrap items-center gap-3 text-base sm:text-xl">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
             Wasap 2
             {isConnected ? (
@@ -251,21 +251,21 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
         <div className="flex flex-col h-full">
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1">
-            <TabsList className="bg-slate-700/70 mb-4 p-1 rounded-lg">
+            <TabsList className="bg-slate-700/70 mb-4 p-1 rounded-lg overflow-x-auto flex-wrap gap-2">
               <TabsTrigger 
                 value="general" 
-                className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-4 py-2 transition-all"
+                className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-3 sm:px-4 py-1.5 sm:py-2 transition-all text-sm sm:text-base"
               >
-                <Globe className="h-4 w-4 mr-2" />
+                <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Chat General
               </TabsTrigger>
               {workZones.map((zone) => (
                 <TabsTrigger 
                   key={zone.id} 
                   value={zone.id.toString()}
-                  className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-4 py-2 transition-all"
+                  className="data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-md px-3 sm:px-4 py-1.5 sm:py-2 transition-all text-sm sm:text-base"
                 >
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   {zone.name}
                 </TabsTrigger>
               ))}
@@ -274,7 +274,7 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
             {/* Chat General */}
             <TabsContent value="general" className="flex-1">
               <div className="flex flex-col h-full">
-                <ScrollArea className="flex-1 pr-4 max-h-[400px]">
+                <ScrollArea className="flex-1 pr-2 sm:pr-4 max-h-[calc(90vh-250px)] sm:max-h-[400px]">
                   {loading ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
@@ -291,7 +291,7 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
             {workZones.map((zone) => (
               <TabsContent key={zone.id} value={zone.id.toString()} className="flex-1">
                 <div className="flex flex-col h-full">
-                  <ScrollArea className="flex-1 pr-4 max-h-[400px]">
+                  <ScrollArea className="flex-1 pr-2 sm:pr-4 max-h-[calc(90vh-250px)] sm:max-h-[400px]">
                     {loading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
@@ -307,14 +307,14 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
           </Tabs>
 
           {/* Input de mensaje */}
-          <div className="border-t border-slate-600/50 pt-4 mt-4 bg-slate-900/30 rounded-lg p-4">
-            <div className="flex gap-3">
+          <div className="border-t border-slate-600/50 pt-3 sm:pt-4 mt-3 sm:mt-4 bg-slate-900/30 rounded-lg p-3 sm:p-4">
+            <div className="flex gap-2 sm:gap-3">
               <Input
                 ref={inputRef}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder={`Escribe un mensaje en ${activeTab === 'general' ? 'Chat General' : workZones.find(z => z.id.toString() === activeTab)?.name || 'esta zona'}...`}
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 flex-1 rounded-lg px-4 py-2"
+                className="bg-slate-700 border-slate-600 text-white text-sm placeholder:text-slate-400 flex-1 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -327,9 +327,9 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
               <Button
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim() || !isConnected}
-                className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg transition-colors"
+                className="bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
             {newMessage.length > 800 && (
@@ -342,4 +342,4 @@ export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
       </DialogContent>
     </Dialog>
   );
-}; 
+};
