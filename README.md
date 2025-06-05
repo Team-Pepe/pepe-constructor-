@@ -53,7 +53,7 @@
 
 ## 📌 Seguimiento del Proyecto
 
-[![Project Progress](https://img.shields.io/badge/Progress-70%25-orange?logo=progress&style=for-the-badge)](https://github.com/orgs/Team-Pepe/projects/5/views/1)
+[![Project Progress](https://img.shields.io/badge/Progress-100%25-orange?logo=progress&style=for-the-badge)](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
 [📊 Tablero completo de actividades](https://github.com/orgs/Team-Pepe/projects/5/views/1)
 
