@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Obtener las credenciales de Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://deveoqcczffdpsjopgwg.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldmVvcWNjemZmZHBzam9wZ3dnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NDk3MjcsImV4cCI6MjA1NzMyNTcyN30.D7J00n-iaoz2WMgTQCylEPfC7dySFdYtAiBeTxCGepw";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://fklgqyxbxtiodmpjuvuz.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrbGdxeXhieHRpb2RtcGp1dnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NjA3MjYsImV4cCI6MjA3NjEzNjcyNn0.7Twi5o11XaL5CS7Vcg_s9clKbLDSvPraL7IYrhWmIok";
 const BUCKET_NAME = import.meta.env.VITE_SUPABASE_BUCKET || "images";
 const FOLDER_NAME = "materials";
 
