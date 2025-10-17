@@ -480,7 +480,7 @@ cd ../frontend
 npm run dev
 ```
 
-El frontend estará disponible en [http://localhost:5173](http://localhost:5173) y el backend en [http://localhost:3000](http://localhost:3000) (o el puerto que definas).
+El frontend estará disponible en [http://localhost:3000](http://localhost:3000) y el backend en [http://localhost:5000](http://localhost:5000).
 
 ---
 

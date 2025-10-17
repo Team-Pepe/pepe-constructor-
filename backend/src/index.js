@@ -37,7 +37,7 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Documentación de la API para el sistema de gestión de construcción',
     },
-    servers: [{ url: process.env.API_ENDPOINT || 'http://localhost:3000' }],
+    servers: [{ url: process.env.API_ENDPOINT || 'http://localhost:5000' }],  // Backend siempre en puerto 5000
     components: {
       securitySchemes: {
         cookieAuth: {
@@ -72,7 +72,8 @@ app.use(express.urlencoded({ extended: true }));
 const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF y Socket.io
 const allowedOrigins = [
-  'http://localhost:5173',
+  'http://localhost:3000',  // Frontend en desarrollo
+  'http://localhost:5173',  // Puerto alternativo de Vite
   frontendUrl
 ];
 
@@ -165,7 +166,7 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 async function startServer() {
   const isConnected = await testDatabaseConnection();
   if (isConnected) {

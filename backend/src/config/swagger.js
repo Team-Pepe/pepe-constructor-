@@ -15,7 +15,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'http://localhost:5000',
         description: 'Servidor de desarrollo',
       },
     ],
@@ -128,7 +128,7 @@ const specs = swaggerJsdoc(options);
 // Función para configurar Swagger en la aplicación Express
 function setupSwagger(app) {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs, { explorer: true }));
-  console.log('Swagger UI disponible en: http://localhost:3000/docs');
+  console.log('Swagger UI disponible en: http://localhost:5000/docs');
 }
 
 module.exports = { setupSwagger }; 
