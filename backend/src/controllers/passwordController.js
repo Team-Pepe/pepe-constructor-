@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { prisma } = require('../config/db');
 

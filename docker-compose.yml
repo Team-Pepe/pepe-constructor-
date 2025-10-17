@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      # Variables de entorno explícitas con valores directos
+      - DATABASE_URL=postgresql://postgres.fklgqyxbxtiodmpjuvuz:${DB_PASSWORD}@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+      - DIRECT_URL=postgresql://postgres.fklgqyxbxtiodmpjuvuz:${DB_PASSWORD}@aws-1-us-east-1.pooler.supabase.com:5432/postgres
+    networks:
+      - app-network
+    command: >
+      sh -c "
+        npm install &&
+        npm run prisma:generate &&
+        npm run dev"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
