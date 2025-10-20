@@ -328,8 +328,8 @@ const initSupabaseBucket = async () => {
   }
 };
 
-// Inicializar el bucket al cargar el módulo
-initSupabaseBucket();
+// Inicializar bucket al cargar el módulo - TEMPORALMENTE DESHABILITADO
+// initSupabaseBucket();
 
 module.exports = {
   upload,

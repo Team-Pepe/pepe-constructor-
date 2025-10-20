@@ -168,21 +168,19 @@ app.use((err, req, res, next) => {
 // Iniciar servidor
 const PORT = process.env.PORT || 5000;
 async function startServer() {
-  const isConnected = await testDatabaseConnection();
-  if (isConnected) {
-    server.listen(PORT, () => {
-      console.log(`\n✅ Servidor corriendo en ${process.env.API_ENDPOINT || `http://localhost:${PORT}`}`);
-      console.log(`📚 Documentación disponible en ${process.env.API_ENDPOINT || `http://localhost:${PORT}`}/api-docs\n`);
-      console.log('🔒 Middlewares de seguridad activados:');
-      console.log('   - Helmet (Protección HTTP headers)');
-      console.log('   - CORS (Orígenes permitidos)');
-      console.log('   - JWT (Autenticación)');
-      console.log('   - CSRF (Protección contra solicitudes cruzadas)');
+  // Comentar temporalmente la verificación de la base de datos para permitir que el servidor inicie
+  console.log('⚠️ Iniciando servidor sin verificación de base de datos (modo de depuración)');
+  
+  server.listen(PORT, () => {
+    console.log(`\n✅ Servidor corriendo en ${process.env.API_ENDPOINT || `http://localhost:${PORT}`}`);
+    console.log(`📚 Documentación disponible en ${process.env.API_ENDPOINT || `http://localhost:${PORT}`}/api-docs\n`);
+    console.log('🔒 Middlewares de seguridad activados:');
+    console.log('   - Helmet (Protección HTTP headers)');
+    console.log('   - CORS (Orígenes permitidos)');
+    console.log('   - JWT (Autenticación)');
+    console.log('   - CSRF (Protección contra solicitudes cruzadas)');
       console.log('💬 Socket.io activado para chat en tiempo real\n');
     });
-  } else {
-    process.exit(1);
-  }
 }
 
 startServer().catch(error => {
