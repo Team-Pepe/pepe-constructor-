@@ -1,5 +1,6 @@
 services:
   frontend:
+    container_name: pepe-constructor-frontend-temp
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev

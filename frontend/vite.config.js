@@ -17,6 +17,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['pepe-constructor.proyecto-progracioniii.uk']
+    allowedHosts: ['pepe-constructor.proyecto-progracioniii.uk'],
+    proxy: {
+      '/api': {
+        target: 'https://server-pepe-constructor.proyecto-progracioniii.uk',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 })

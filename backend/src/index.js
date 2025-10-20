@@ -72,8 +72,10 @@ app.use(express.urlencoded({ extended: true }));
 const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF y Socket.io
 const allowedOrigins = [
-  'http://localhost:3000',  // Frontend en desarrollo
-  'http://localhost:5173',  // Puerto alternativo de Vite
+  'http://localhost:3000',  // Frontend en desarrollo local
+  'http://localhost:5173',  // Vite dev server
+  'https://pepe-constructor.proyecto-progracioniii.uk',
+  'https://server-pepe-constructor.proyecto-progracioniii.uk',  // Frontend en producción
   frontendUrl
 ];
 
