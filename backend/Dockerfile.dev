@@ -9,15 +9,15 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm install
 
-# Copiar prisma y generar cliente
-COPY prisma ./prisma/
-RUN npx prisma generate --schema=./prisma/schema.prisma
-
 # Copiar el resto del código
 COPY . .
+
+# Generar el cliente Prisma durante el inicio
+RUN npm install -g prisma
+RUN npx prisma generate
 
 # Exponer puerto
 EXPOSE 5000
 
-# Comando para iniciar en modo desarrollo
-CMD ["npm", "run", "dev"]
+# Script para inicializar y ejecutar la aplicación
+CMD ["sh", "-c", "npx prisma generate && npx prisma db pull && npm run dev"]

@@ -25,12 +25,17 @@ services:
       - "5000:5000"
     volumes:
       - ./backend/src:/app/src
-      - ./backend/prisma:/app/prisma
-      - ./backend/.env:/app/.env
+      - /app/node_modules
     env_file:
       - ./backend/.env
     environment:
       - NODE_ENV=development
+      # Usar la conexión directa en lugar del pooler para desarrollo
+      - DATABASE_URL=postgresql://postgres.fklgqyxbxtiodmpjuvuz:TZEI28U9DIRRDlQ9@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require
+      - DIRECT_URL=postgresql://postgres.fklgqyxbxtiodmpjuvuz:TZEI28U9DIRRDlQ9@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     networks:
       - app-network
 

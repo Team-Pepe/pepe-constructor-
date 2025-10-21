@@ -43,8 +43,9 @@ exports.login = async (req, res) => {
         // Configurar cookie segura
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            secure: true,
+            sameSite: "none",
+            domain: process.env.COOKIE_DOMAIN || ".proyecto-progracioniii.uk",
             maxAge: 24 * 60 * 60 * 1000, // 1 día
         });
 

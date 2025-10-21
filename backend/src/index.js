@@ -72,18 +72,25 @@ app.use(express.urlencoded({ extended: true }));
 const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF y Socket.io
 const allowedOrigins = [
-  'http://localhost:3000',  // Frontend en desarrollo local
-  'http://localhost:5173',  // Vite dev server
-  'https://pepe-constructor.proyecto-progracioniii.uk',
-  'https://server-pepe-constructor.proyecto-progracioniii.uk',  // Frontend en producción
+  'http://localhost:3000',  // Frontend en desarrollo
+  'http://localhost:5173',  // Puerto alternativo de Vite
+  'https://pepe-constructor.proyecto-progracioniii.uk',  // Frontend en Cloudflare
+  'https://server-pepe-constructor.proyecto-progracioniii.uk',  // Backend en Cloudflare
   frontendUrl
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir solicitudes sin origen (como aplicaciones móviles o Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Permitir cualquier subdominio de proyecto-progracioniii.uk
+    if (origin.endsWith('.proyecto-progracioniii.uk') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn('Origen bloqueado por CORS:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -94,16 +101,46 @@ app.use(cors({
     'Authorization', 
     'X-CSRF-Token', 
     'Cookie',
-    'X-Requested-With'
-  ]
+    'X-Requested-With',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Credentials'
+  ],
+  exposedHeaders: ['Set-Cookie', 'Date', 'ETag'],
 }));
+
+// Middleware para debugging de solicitudes
+app.use((req, res, next) => {
+  console.log('Solicitud recibida:', {
+    method: req.method,
+    path: req.path,
+    origin: req.headers.origin,
+    headers: req.headers
+  });
+  next();
+});
 
 // Configurar Socket.io con CORS
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      if (!origin || origin.endsWith('.proyecto-progracioniii.uk') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn('Socket.IO - Origen bloqueado:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    exposedHeaders: ['X-CSRF-Token']
+  },
+  cookie: {
+    name: "io",
+    path: "/",
+    httpOnly: true,
+    sameSite: "none",
+    secure: true
   }
 });
 
