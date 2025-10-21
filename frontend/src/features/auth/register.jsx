@@ -41,7 +41,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/auth/register", {
+      await axios.post(`${import.meta.env.VITE_API_ENDPOINT}/api/auth/registersi`, {
         id: parseInt(document), // Documento como id (Int)
         email,
         password,
