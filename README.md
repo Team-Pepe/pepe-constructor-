@@ -419,24 +419,7 @@ Puedes consultar la documentación detallada del código fuente, estructuras, fu
 git clone https://github.com/Team-Pepe/pepe-constructor-.git
 cd pepe-constructor-
 ```
-
-### 2. Instalación de dependencias
-
-#### Backend
-
-```bash
-cd backend
-npm install
-```
-
-#### Frontend
-
-```bash
-cd ../frontend
-npm install
-```
-
-### 3. Configuración del archivo `.env` para el backend
+### 2. Configuración del archivo `.env` para el backend
 
 Debes crear un archivo llamado `.env` dentro de la carpeta `backend`. Puedes basarte en el archivo `.env-example` incluido en el repositorio.  
 **Ejemplo de estructura mínima:**
@@ -466,14 +449,44 @@ FRONTEND_URL=http://localhost:5173
 
 > **Importante:** No compartas tu archivo `.env` real. Usa `.env-example` como plantilla para otros desarrolladores.
 
-### 4. Ejecución del backend
+### 3. Configuración del archivo `.env` para el frontend
+
+Debes crear un archivo llamado `.env` dentro de la carpeta `frontend`.   
+**Ejemplo de estructura mínima:**
+
+```env
+VITE_API_ENDPOINT="http://localhost:3000"
+NEXT_PUBLIC_API_URL="http://localhost:3000"  
+```
+
+> **Importante:** No compartas tu archivo `.env` real.
+
+
+### 4. Instalación de dependencias
+
+#### Backend
+
+```bash
+cd backend
+npm install
+npx prisma generate
+```
+
+#### Frontend
+
+```bash
+cd ../frontend
+npm install
+```
+
+### 5. Ejecución del backend
 
 ```bash
 cd backend
 npm run dev
 ```
 
-### 5. Ejecución del frontend
+### 6. Ejecución del frontend
 
 ```bash
 cd ../frontend
