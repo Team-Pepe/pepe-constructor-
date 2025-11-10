@@ -8,7 +8,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.4-38B2AC)
 
 **Plataforma digital para optimizar la administración de obras, control de asistencia, gestión de materiales y cálculo de pagos.**  
-*Desarrollado por estudiantes de la Universidad Tecnológica de Pereira para la materia TS683 Administracion Y Planeacion De Proyectos Software Gr. 401.*
+*Desarrollado por estudiantes de la Universidad Tecnológica de Pereira, proyecto propuesto por la materia TS683 Administracion Y Planeacion De Proyectos Software Gr. 401. 2025-01, y reutilizado para la materia de TS5C4 Programacion Web Gr. 401 2025-02 con implementacion de docker y despligue en servidor casero utilizando tunnel de claudflare*
 
 ---
 
