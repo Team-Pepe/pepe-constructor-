@@ -10,6 +10,8 @@
     "dev:all": "concurrently \"npm run dev\" \"cd ../frontend && npm run dev\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "postinstall": "prisma generate",
+    "deploy:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
     "test:supabase": "node src/scripts/testSupabase.js"
