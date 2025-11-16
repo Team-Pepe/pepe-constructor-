@@ -484,6 +484,52 @@ El frontend estará disponible en [http://localhost:5173](http://localhost:5173)
 
 ---
 
+## 🚀 Despliegue en Render
+
+### Configuración del Backend en Render
+
+1. **Crear un nuevo servicio Web en Render:**
+   - Ve a tu dashboard de Render
+   - Haz clic en "New +" y selecciona "Web Service"
+   - Conecta tu repositorio de GitHub
+
+2. **Configuración del servicio:**
+   - **Name:** `pepe-constructor-backend` (o el nombre que prefieras)
+   - **Environment:** `Node`
+   - **Build Command:** `cd backend && npm install`
+   - **Start Command:** `cd backend && npm start`
+   - **Root Directory:** `backend` (⚠️ **IMPORTANTE:** Debe estar configurado como `backend`)
+
+3. **Variables de entorno:**
+   Agrega todas las variables de entorno necesarias en la sección "Environment Variables" de Render:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
+   - `JWT_SECRET`
+   - `JWT_EXPIRES_IN`
+   - `JWT_REFRESH_SECRET`
+   - `JWT_REFRESH_EXPIRES_IN`
+   - `CSRF_SECRET`
+   - `SUPABASE_URL`
+   - `SUPABASE_KEY`
+   - `SUPABASE_BUCKET`
+   - `PORT` (Render lo proporciona automáticamente, pero puedes configurarlo)
+   - `EMAIL_USER`
+   - `EMAIL_PASS`
+   - `FRONTEND_URL`
+   - `NODE_ENV=production`
+
+4. **Health Check Path:** `/health`
+
+5. **Después del despliegue:**
+   - Ejecuta las migraciones de Prisma: En la sección "Shell" de Render, ejecuta:
+     ```bash
+     cd backend && npx prisma migrate deploy
+     ```
+
+> **Nota:** El archivo `render.yaml` en la raíz del proyecto contiene la configuración base, pero asegúrate de configurar manualmente el **Root Directory** como `backend` en el dashboard de Render, ya que es crítico para que el servicio funcione correctamente.
+
+---
+
 ## 🛠️ Notas adicionales
 
 - Asegúrate de tener una base de datos PostgreSQL accesible y configurada.

@@ -73,7 +73,7 @@ const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF y Socket.io
 const allowedOrigins = [
   'http://localhost:5173',
-  frontendUrl
+  'https://pepe-constructor.vercel.app'
 ];
 
 app.use(cors({
