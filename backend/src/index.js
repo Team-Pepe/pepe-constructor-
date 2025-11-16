@@ -72,10 +72,11 @@ app.use(express.urlencoded({ extended: true }));
 const frontendUrl= process.env.FRONTEND_URL
 // Actualizar configuración CORS para incluir headers CSRF y Socket.io
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://pepe-constructor.vercel.app'
+  "http://localhost:5173",
+  "https://pepe-constructor.vercel.app",
+  "https://pepe-constructor-git-master-aiskiubs-projects.vercel.app",
+  "https://pepe-constructor-ns7k8krfp-aiskiubs-projects.vercel.app"
 ];
-
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
