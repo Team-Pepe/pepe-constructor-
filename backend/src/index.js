@@ -63,25 +63,44 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Middlewares esenciales
-app.use(helmet());
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-const frontendUrl= process.env.FRONTEND_URL
-// Actualizar configuración CORS para incluir headers CSRF y Socket.io
+// Configuración de orígenes permitidos
 const allowedOrigins = [
   "http://localhost:5173",
   "https://pepe-constructor.vercel.app",
   "https://pepe-constructor-git-master-aiskiubs-projects.vercel.app",
   "https://pepe-constructor-ns7k8krfp-aiskiubs-projects.vercel.app"
 ];
+
+// Función para verificar si un origen está permitido
+function isOriginAllowed(origin) {
+  // Permitir localhost en desarrollo
+  if (origin && origin.includes('localhost')) {
+    return true;
+  }
+  
+  // Permitir todos los subdominios de vercel.app
+  if (origin && origin.includes('.vercel.app')) {
+    return true;
+  }
+  
+  // Verificar lista exacta de orígenes permitidos
+  return allowedOrigins.includes(origin);
+}
+
+// Configurar CORS ANTES de otros middlewares
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir peticiones sin origen (mobile apps, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Verificar si el origen está permitido
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
+      // Log para debugging
+      console.log('⚠️ Origen no permitido por CORS:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -92,14 +111,44 @@ app.use(cors({
     'Authorization', 
     'X-CSRF-Token', 
     'Cookie',
-    'X-Requested-With'
-  ]
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: ['X-CSRF-Token'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Configurar Helmet para que no bloquee CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+
+// Middlewares esenciales
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Configurar Socket.io con CORS
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      if (!origin || isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -108,7 +157,7 @@ const io = new Server(server, {
 // Configurar Socket.io
 setupSocketIO(io);
 
-// Añadir middleware CSRF antes de las rutas protegidas
+// Añadir middleware para exponer headers personalizados
 app.use((req, res, next) => {
   res.header('Access-Control-Expose-Headers', 'X-CSRF-Token');
   next();
@@ -158,6 +207,16 @@ app.use('/api/geo', authenticateToken, geoRoutes);
 
 // Manejador de errores global
 app.use((err, req, res, next) => {
+  // Manejar errores de CORS
+  if (err.message === 'Not allowed by CORS') {
+    console.log('⚠️ Error CORS - Origen no permitido:', req.headers.origin);
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'El origen no está permitido',
+      origin: req.headers.origin
+    });
+  }
+  
   console.error('❌ Error global:', err.stack);
   res.status(500).json({ 
     message: 'Algo salió mal!',
