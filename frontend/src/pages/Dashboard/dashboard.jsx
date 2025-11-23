@@ -97,11 +97,11 @@ export default function Dashboard() {
                     status: "pending"
                 },
                 {
-                    id: "ejemplo-2", 
+                    id: "ejemplo-2",
                     title: "Solicitud de Material",
                     description: "Mordecai solicitó 323 unidades de frisby",
                     created_at: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), // Hace 15 minutos
-                    type: "material_request", 
+                    type: "material_request",
                     status: "pending"
                 }
             ];
@@ -186,26 +186,26 @@ export default function Dashboard() {
         }
 
         setLocationStatus('Solicitando acceso a ubicación...');
-        
+
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 try {
                     const { latitude, longitude } = position.coords;
                     console.log('Ubicación obtenida:', { latitude, longitude });
-                    
+
                     await updateUserLocation({ latitude, longitude });
                     setLocationStatus('Ubicación actualizada correctamente');
                     setShowLocationModal(false);
-                    
+
                     // Actualizar la lista de trabajadores después de enviar la ubicación
                     loadDashboardData();
-                    
+
                     // Configurar intervalo para actualizar la ubicación cada 5 minutos
                     const locationInterval = setInterval(() => updateLocation(), 5 * 60 * 1000);
-                    
+
                     // Limpiar el mensaje después de 3 segundos
                     setTimeout(() => setLocationStatus(null), 3000);
-                    
+
                     // Devolver la función para limpiar el intervalo
                     return () => clearInterval(locationInterval);
                 } catch (error) {
@@ -216,12 +216,12 @@ export default function Dashboard() {
             },
             (error) => {
                 console.error('Error al obtener ubicación:', error);
-                
+
                 // Marcar que el permiso fue denegado
                 if (error.code === error.PERMISSION_DENIED) {
                     setLocationPermissionDenied(true);
                 }
-                
+
                 // Mensajes personalizados según el error
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
@@ -236,7 +236,7 @@ export default function Dashboard() {
                     default:
                         setLocationStatus('Error desconocido al obtener ubicación');
                 }
-                
+
                 // Mantener el mensaje de error por 5 segundos
                 setTimeout(() => setLocationStatus(null), 5000);
             },
@@ -247,21 +247,21 @@ export default function Dashboard() {
     // Función para actualizar la ubicación
     const updateLocation = () => {
         if (!navigator.geolocation || locationPermissionDenied) return;
-        
+
         setLocationStatus('Actualizando ubicación...');
-        
+
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 try {
                     const { latitude, longitude } = position.coords;
                     console.log('Ubicación obtenida:', { latitude, longitude });
-                    
+
                     await updateUserLocation({ latitude, longitude });
                     setLocationStatus('Ubicación actualizada');
-                    
+
                     // Actualizar la lista de trabajadores después de enviar la ubicación
                     loadDashboardData();
-                    
+
                     // Limpiar el mensaje después de 2 segundos
                     setTimeout(() => setLocationStatus(null), 2000);
                 } catch (error) {
@@ -299,14 +299,14 @@ export default function Dashboard() {
         };
 
         console.log("🆕 Agregando nueva actividad:", activityWithDefaults);
-        
+
         // Agregar la nueva actividad al principio de la lista
         setActivities(prevActivities => [activityWithDefaults, ...(prevActivities || [])]);
-        
+
         // Limpiar actividades temporales después de 5 minutos
         setTimeout(() => {
-            setActivities(prevActivities => 
-                (prevActivities || []).filter(activity => 
+            setActivities(prevActivities =>
+                (prevActivities || []).filter(activity =>
                     !activity.isTemporary || (Date.now() - activity.timestamp) < 5 * 60 * 1000
                 )
             );
@@ -318,7 +318,7 @@ export default function Dashboard() {
         try {
             setIsLoading(true);
             const data = await fetchAllDashboardData();
-            
+
             // Cargar zonas de trabajo para el chat
             try {
                 const workZonesResponse = await fetchWorkZones();
@@ -328,14 +328,14 @@ export default function Dashboard() {
             } catch (error) {
                 console.error('Error al cargar zonas de trabajo para chat:', error);
             }
-            
+
             setMetrics(data.metrics);
             setProjects(data.projects || []);
             setAttendance(data.attendance || []);
             setMaterials(data.materials || []);
             // Procesar actividades y asegurar que tengan fechas formateadas
             console.log("🔍 Datos originales de actividades:", data.activities);
-            
+
             // Si no hay actividades del endpoint, crear actividades basadas en solicitudes de materiales
             let activitiesToProcess = data.activities || [];
             if ((!activitiesToProcess || activitiesToProcess.length === 0) && data.materialRequests && data.materialRequests.length > 0) {
@@ -350,38 +350,38 @@ export default function Dashboard() {
                     original_request: request
                 }));
             }
-            
+
             const processedActivities = processActivities(activitiesToProcess);
             console.log("✅ Actividades procesadas:", processedActivities);
-            
+
             // Conservar actividades temporales locales (recientes)
             setActivities(prevActivities => {
-                const temporaryActivities = (prevActivities || []).filter(activity => 
+                const temporaryActivities = (prevActivities || []).filter(activity =>
                     activity.isTemporary && (Date.now() - activity.timestamp) < 2 * 60 * 1000 // Últimos 2 minutos
                 );
-                
+
                 // Combinar actividades temporales con las nuevas del servidor
                 const combinedActivities = [...temporaryActivities, ...processedActivities];
-                
+
                 console.log("🔄 Combinando actividades:", {
                     temporales: temporaryActivities.length,
                     servidor: processedActivities.length,
                     total: combinedActivities.length
                 });
-                
+
                 // Limitar a 15 actividades máximo y eliminar duplicados por descripción
                 const uniqueActivities = combinedActivities
-                    .filter((activity, index, self) => 
+                    .filter((activity, index, self) =>
                         index === self.findIndex(a => a.description === activity.description)
                     )
                     .slice(0, 15);
-                
+
                 return uniqueActivities;
             });
             setWorkers(data.workers || []);
-            
+
             console.log("Actualizando datos de check-ins en dashboard. Zonas disponibles:", Object.keys(data.checkinsPorZona || {}));
-            
+
             // Actualizar el estado de check-ins
             if (data.checkinsPorZona && Object.keys(data.checkinsPorZona).length > 0) {
                 setCheckinsPorZona(data.checkinsPorZona);
@@ -400,19 +400,19 @@ export default function Dashboard() {
                     ]
                 });
             }
-            
+
             setZonasDisponiblesMap(data.zonasDisponiblesMap || {});
 
             // Actualizar el estado de carga de check-ins
             setLoadingCheckins(false);
-            
+
             console.log("Solicitudes de materiales cargadas:", data.materialRequests);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
-            
+
             // Incluso si hay error, terminar la carga
             setLoadingCheckins(false);
-            
+
             // Usar datos de muestra si hay error
             if (Object.keys(checkinsPorZona).length === 0) {
                 setCheckinsPorZona({
@@ -434,7 +434,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         loadDashboardData();
-        
+
         // Actualizar datos cada 2 minutos para tener ubicaciones más recientes
         const interval = setInterval(loadDashboardData, 2 * 60 * 1000);
         return () => clearInterval(interval);
@@ -443,9 +443,9 @@ export default function Dashboard() {
     // Renderizar el modal de ubicación
     const renderLocationModal = () => {
         if (!showLocationModal) return null;
-        
+
         console.log("Renderizando modal de ubicación");
-        
+
         return (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80">
                 <div className="bg-slate-800 border-2 border-orange-500 p-6 rounded-lg max-w-md w-full shadow-xl">
@@ -456,10 +456,10 @@ export default function Dashboard() {
                         Acceso a ubicación requerido
                     </h2>
                     <p className="text-slate-300 mb-6 text-center">
-                        Para poder utilizar el sistema correctamente, necesitamos acceder a tu ubicación. 
+                        Para poder utilizar el sistema correctamente, necesitamos acceder a tu ubicación.
                         Esto nos permite ubicarte en el mapa de trabajo y gestionar la asignación de tareas.
                     </p>
-                    
+
                     {locationPermissionDenied && (
                         <div className="bg-red-900/50 border border-red-500 rounded-md p-4 mb-4">
                             <div className="flex items-start">
@@ -470,9 +470,9 @@ export default function Dashboard() {
                             </div>
                         </div>
                     )}
-                    
+
                     <div className="flex flex-col space-y-4">
-                        <Button 
+                        <Button
                             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3"
                             onClick={requestLocationPermission}
                             disabled={locationPermissionDenied}
@@ -481,7 +481,7 @@ export default function Dashboard() {
                             <MapPin className="mr-2 h-5 w-5" />
                             Permitir acceso a ubicación
                         </Button>
-                        
+
                         {locationPermissionDenied && (
                             <Button
                                 variant="outline"
@@ -501,24 +501,24 @@ export default function Dashboard() {
         switch (activeSection) {
             case "inventario":
                 return (
-                    <motion.section 
+                    <motion.section
                         id="inventario"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
                             }
                         }}
                     >
-                        <motion.h2 
+                        <motion.h2
                             className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
                             initial={{ opacity: 0, y: -20 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 y: 0,
                                 transition: {
                                     duration: 0.3,
@@ -530,8 +530,8 @@ export default function Dashboard() {
                         </motion.h2>
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 scale: 1,
                                 transition: {
                                     delay: 0.1,
@@ -552,13 +552,13 @@ export default function Dashboard() {
                 );
             case "reportes":
                 return (
-                    <motion.section 
+                    <motion.section
                         id="reportes"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -567,8 +567,8 @@ export default function Dashboard() {
                     >
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 y: 0,
                                 transition: {
                                     duration: 0.3,
@@ -582,13 +582,13 @@ export default function Dashboard() {
                 );
             case "calendario":
                 return (
-                    <motion.section 
+                    <motion.section
                         id="calendario"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -596,11 +596,11 @@ export default function Dashboard() {
                         }}
                     >
                         <div className="grid gap-6">
-                            <motion.h2 
+                            <motion.h2
                                 className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
                                 initial={{ opacity: 0, y: -20 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     y: 0,
                                     transition: {
                                         duration: 0.3,
@@ -609,14 +609,14 @@ export default function Dashboard() {
                                 }}
                             >
                                 <Calendar className="inline mr-2 h-6 w-6" />
-                                Calendario de Trabajo
+                                Calendario de Trabajo(concepto)
                             </motion.h2>
 
                             {/* Calendario principal */}
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     scale: 1,
                                     transition: {
                                         delay: 0.1,
@@ -651,15 +651,14 @@ export default function Dashboard() {
                                                 const hasEvent = [5, 12, 15, 18, 22, 25, 28].includes(day);
                                                 const isToday = day === 15;
                                                 return (
-                                                    <div 
-                                                        key={day} 
-                                                        className={`text-center p-2 rounded cursor-pointer transition-colors ${
-                                                            isToday 
-                                                                ? 'bg-orange-600 text-white font-bold' 
-                                                                : hasEvent 
-                                                                    ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/50' 
-                                                                    : 'text-slate-300 hover:bg-slate-700'
-                                                        }`}
+                                                    <div
+                                                        key={day}
+                                                        className={`text-center p-2 rounded cursor-pointer transition-colors ${isToday
+                                                            ? 'bg-orange-600 text-white font-bold'
+                                                            : hasEvent
+                                                                ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/50'
+                                                                : 'text-slate-300 hover:bg-slate-700'
+                                                            }`}
                                                     >
                                                         {day}
                                                         {hasEvent && <div className="w-1 h-1 bg-orange-400 rounded-full mx-auto mt-1"></div>}
@@ -674,8 +673,8 @@ export default function Dashboard() {
                             {/* Eventos próximos */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     y: 0,
                                     transition: {
                                         delay: 0.2,
@@ -724,24 +723,22 @@ export default function Dashboard() {
                                                 }
                                             ].map((event) => (
                                                 <div key={event.title + event.date} className="flex items-start gap-3 p-3 bg-slate-900/50 rounded-lg">
-                                                    <div className={`w-3 h-3 rounded-full mt-1 ${
-                                                        event.priority === 'high' ? 'bg-red-500' :
+                                                    <div className={`w-3 h-3 rounded-full mt-1 ${event.priority === 'high' ? 'bg-red-500' :
                                                         event.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                                    }`}></div>
+                                                        }`}></div>
                                                     <div className="flex-1">
                                                         <h4 className="font-medium text-white">{event.title}</h4>
                                                         <p className="text-sm text-slate-400">{event.date}</p>
                                                         <p className="text-xs text-orange-400">{event.location}</p>
                                                     </div>
-                                                    <span className={`px-2 py-1 rounded text-xs ${
-                                                        event.type === 'inspection' ? 'bg-red-900/30 text-red-300' :
+                                                    <span className={`px-2 py-1 rounded text-xs ${event.type === 'inspection' ? 'bg-red-900/30 text-red-300' :
                                                         event.type === 'meeting' ? 'bg-blue-900/30 text-blue-300' :
-                                                        event.type === 'delivery' ? 'bg-green-900/30 text-green-300' :
-                                                        'bg-purple-900/30 text-purple-300'
-                                                    }`}>
+                                                            event.type === 'delivery' ? 'bg-green-900/30 text-green-300' :
+                                                                'bg-purple-900/30 text-purple-300'
+                                                        }`}>
                                                         {event.type === 'inspection' ? 'Inspección' :
-                                                         event.type === 'meeting' ? 'Reunión' :
-                                                         event.type === 'delivery' ? 'Entrega' : 'Capacitación'}
+                                                            event.type === 'meeting' ? 'Reunión' :
+                                                                event.type === 'delivery' ? 'Entrega' : 'Capacitación'}
                                                     </span>
                                                 </div>
                                             ))}
@@ -797,13 +794,13 @@ export default function Dashboard() {
                 );
             case "tareas":
                 return (
-                    <motion.section 
+                    <motion.section
                         id="tareas"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -811,11 +808,11 @@ export default function Dashboard() {
                         }}
                     >
                         <div className="grid gap-6">
-                            <motion.h2 
+                            <motion.h2
                                 className="text-2xl font-bold mb-4 px-4 py-2 bg-slate-800/90 rounded-lg text-white inline-block"
                                 initial={{ opacity: 0, y: -20 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     y: 0,
                                     transition: {
                                         duration: 0.3,
@@ -830,8 +827,8 @@ export default function Dashboard() {
                             {/* Estadísticas de tareas */}
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     scale: 1,
                                     transition: {
                                         delay: 0.1,
@@ -853,11 +850,10 @@ export default function Dashboard() {
                                                     <p className="text-slate-400 text-sm">{stat.title}</p>
                                                     <p className="text-2xl font-bold text-white">{stat.count}</p>
                                                 </div>
-                                                <stat.icon className={`h-8 w-8 ${
-                                                    stat.color === 'yellow' ? 'text-yellow-400' :
+                                                <stat.icon className={`h-8 w-8 ${stat.color === 'yellow' ? 'text-yellow-400' :
                                                     stat.color === 'blue' ? 'text-blue-400' :
-                                                    stat.color === 'green' ? 'text-green-400' : 'text-red-400'
-                                                }`} />
+                                                        stat.color === 'green' ? 'text-green-400' : 'text-red-400'
+                                                    }`} />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -867,8 +863,8 @@ export default function Dashboard() {
                             {/* Panel de tareas */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
-                                animate={{ 
-                                    opacity: 1, 
+                                animate={{
+                                    opacity: 1,
                                     y: 0,
                                     transition: {
                                         delay: 0.2,
@@ -882,7 +878,7 @@ export default function Dashboard() {
                                             <CardTitle className="text-white">Lista de Tareas</CardTitle>
                                             <div className="flex gap-2">
                                                 <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                                                    + Nueva Tarea
+                                                    + Nueva Tarea(concepto)
                                                 </Button>
                                                 <select className="bg-slate-700 border-slate-600 text-white rounded px-3 py-1 text-sm">
                                                     <option>Todas las tareas</option>
@@ -962,22 +958,20 @@ export default function Dashboard() {
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2">
                                                                 <h3 className="font-medium text-white">{task.title}</h3>
-                                                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                                    task.priority === 'alta' ? 'bg-red-900/30 text-red-300' :
+                                                                <span className={`px-2 py-1 rounded text-xs font-medium ${task.priority === 'alta' ? 'bg-red-900/30 text-red-300' :
                                                                     task.priority === 'media' ? 'bg-yellow-900/30 text-yellow-300' :
-                                                                    'bg-green-900/30 text-green-300'
-                                                                }`}>
+                                                                        'bg-green-900/30 text-green-300'
+                                                                    }`}>
                                                                     {task.priority.toUpperCase()}
                                                                 </span>
-                                                                <span className={`px-2 py-1 rounded text-xs ${
-                                                                    task.status === 'completada' ? 'bg-green-600 text-white' :
+                                                                <span className={`px-2 py-1 rounded text-xs ${task.status === 'completada' ? 'bg-green-600 text-white' :
                                                                     task.status === 'en-progreso' ? 'bg-blue-600 text-white' :
-                                                                    task.status === 'atrasada' ? 'bg-red-600 text-white' :
-                                                                    'bg-slate-600 text-slate-200'
-                                                                }`}>
+                                                                        task.status === 'atrasada' ? 'bg-red-600 text-white' :
+                                                                            'bg-slate-600 text-slate-200'
+                                                                    }`}>
                                                                     {task.status === 'completada' ? 'Completada' :
-                                                                     task.status === 'en-progreso' ? 'En Progreso' :
-                                                                     task.status === 'atrasada' ? 'Atrasada' : 'Pendiente'}
+                                                                        task.status === 'en-progreso' ? 'En Progreso' :
+                                                                            task.status === 'atrasada' ? 'Atrasada' : 'Pendiente'}
                                                                 </span>
                                                             </div>
                                                             <p className="text-sm text-slate-400 mb-2">{task.description}</p>
@@ -989,14 +983,14 @@ export default function Dashboard() {
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
-                                                                Ver
+                                                                Ver(concepto)
                                                             </Button>
                                                             <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
-                                                                Editar
+                                                                Editar(concepto)
                                                             </Button>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {/* Barra de progreso para tareas en progreso */}
                                                     {task.status === 'en-progreso' && (
                                                         <div className="mt-3">
@@ -1005,8 +999,8 @@ export default function Dashboard() {
                                                                 <span>{task.id === 2 ? '65%' : '30%'}</span>
                                                             </div>
                                                             <div className="w-full bg-slate-700 rounded-full h-2">
-                                                                <div 
-                                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                                                <div
+                                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                                                     style={{ width: task.id === 2 ? '65%' : '30%' }}
                                                                 ></div>
                                                             </div>
@@ -1023,13 +1017,13 @@ export default function Dashboard() {
                 );
             case "asistencia":
                 return (
-                    <motion.div 
+                    <motion.div
                         className="grid gap-6"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -1040,8 +1034,8 @@ export default function Dashboard() {
                             <Card className="bg-slate-800 border-slate-700 shadow-md">
                                 <motion.div
                                     initial={{ opacity: 0, y: -20 }}
-                                    animate={{ 
-                                        opacity: 1, 
+                                    animate={{
+                                        opacity: 1,
                                         y: 0,
                                         transition: {
                                             delay: 0.2,
@@ -1071,7 +1065,7 @@ export default function Dashboard() {
                                                 ))}
                                             </select>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-2">
                                             <label className="font-medium text-white">Buscar empleado:</label>
                                             <input
@@ -1083,21 +1077,21 @@ export default function Dashboard() {
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     {Object.keys(checkinsPorZona)
                                         .filter(zona => !selectedZoneFilter || zona === selectedZoneFilter)
                                         .map(zona => {
                                             console.log(`Procesando zona: ${zona} con ${checkinsPorZona[zona]?.length || 0} check-ins`);
-                                            
+
                                             // Filtrar por nombre de empleado si hay búsqueda
                                             const filteredCheckins = searchEmployeeName
-                                                ? checkinsPorZona[zona].filter(checkin => 
-                                                    checkin.employee_name && 
+                                                ? checkinsPorZona[zona].filter(checkin =>
+                                                    checkin.employee_name &&
                                                     checkin.employee_name.toLowerCase().includes(searchEmployeeName.toLowerCase()))
                                                 : checkinsPorZona[zona];
-                                                    
+
                                             if (filteredCheckins.length === 0) return null;
-                                            
+
                                             return (
                                                 <div key={zona} className="mb-6">
                                                     <h3 className="font-bold text-lg mb-2 px-4 text-orange-400">Zona: {zona}</h3>
@@ -1128,12 +1122,12 @@ export default function Dashboard() {
                                                                 ) : (
                                                                     filteredCheckins.map((checkin) => {
                                                                         console.log("Renderizando check-in:", checkin);
-                                                                        
+
                                                                         // Formatear fecha y hora
                                                                         let fechaHora = null;
                                                                         let fechaStr = "-";
                                                                         let horaStr = "-";
-                                                                        
+
                                                                         if (checkin.check_in_time) {
                                                                             try {
                                                                                 // Intentar formatear según el formato que venga
@@ -1151,29 +1145,28 @@ export default function Dashboard() {
                                                                                     fechaHora = new Date(checkin.check_in_time);
                                                                                     if (!isNaN(fechaHora.getTime())) {
                                                                                         fechaStr = fechaHora.toLocaleDateString();
-                                                                                        horaStr = fechaHora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                                                                        horaStr = fechaHora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                                                                     }
                                                                                 }
                                                                             } catch (error) {
                                                                                 console.error("Error formateando fecha:", error);
                                                                             }
                                                                         }
-                                                                        
+
                                                                         return (
                                                                             <tr key={checkin.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                                                                                 <td className="p-2 text-white">{checkin.employee_name || "Sin nombre"}</td>
                                                                                 <td className="p-2 text-white">
-                                                                                    {(checkin.zone_name && !checkin.zone_name.startsWith('Zona ')) 
-                                                                                        ? checkin.zone_name 
+                                                                                    {(checkin.zone_name && !checkin.zone_name.startsWith('Zona '))
+                                                                                        ? checkin.zone_name
                                                                                         : (zonasDisponiblesMap[checkin.zone_id] || checkin.zoneName || checkin.zone?.name || zona || '-')
                                                                                     }
                                                                                 </td>
                                                                                 <td className="p-2 text-white">{fechaStr}</td>
                                                                                 <td className="p-2 text-white">{horaStr}</td>
                                                                                 <td className="p-2">
-                                                                                    <span className={`px-2 py-1 rounded text-sm ${
-                                                                                        !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                                                                                    }`}>
+                                                                                    <span className={`px-2 py-1 rounded text-sm ${!checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                                                                                        }`}>
                                                                                         {!checkin.check_out_time ? 'Activo' : 'Terminado'}
                                                                                     </span>
                                                                                 </td>
@@ -1194,13 +1187,13 @@ export default function Dashboard() {
                 );
             case "users-management":
                 return roleId === 4 ? (
-                    <motion.section 
+                    <motion.section
                         id="users-management"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -1209,8 +1202,8 @@ export default function Dashboard() {
                     >
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 y: 0,
                                 transition: {
                                     duration: 0.3,
@@ -1222,10 +1215,10 @@ export default function Dashboard() {
                         </motion.div>
                     </motion.section>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             scale: 1,
                             transition: {
                                 duration: 0.3
@@ -1239,13 +1232,13 @@ export default function Dashboard() {
             case "resumen":
             default:
                 return (
-                    <motion.div 
+                    <motion.div
                         className="grid gap-6"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                            opacity: 1, 
+                        animate={{
+                            opacity: 1,
                             y: 0,
-                            transition: { 
+                            transition: {
                                 type: "spring",
                                 damping: 25,
                                 stiffness: 300
@@ -1254,7 +1247,7 @@ export default function Dashboard() {
                     >
                         {/* Overview cards with staggered animation */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            { [
+                            {[
                                 {
                                     title: "Obras Activas",
                                     value: `${projects.length}`,
@@ -1280,8 +1273,8 @@ export default function Dashboard() {
                                 <motion.div
                                     key={metric.title}
                                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                    animate={{ 
-                                        opacity: 1, 
+                                    animate={{
+                                        opacity: 1,
                                         scale: 1,
                                         y: 0,
                                         transition: {
@@ -1295,14 +1288,14 @@ export default function Dashboard() {
                                 >
                                     <MetricCard {...metric} />
                                 </motion.div>
-                            )) }
+                            ))}
                         </div>
 
                         {/* Work Zone Map with animation */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 y: 0,
                                 transition: {
                                     delay: 0.3,
@@ -1316,8 +1309,8 @@ export default function Dashboard() {
                         {/* Tabs section with animation */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ 
-                                opacity: 1, 
+                            animate={{
+                                opacity: 1,
                                 scale: 1,
                                 transition: {
                                     delay: 0.4,
@@ -1423,8 +1416,8 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold">Dashboard de Supervisión</h1>
                     <div className="flex items-center space-x-4">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50"
                             onClick={() => setShowChatModal(true)}
                         >
@@ -1433,7 +1426,7 @@ export default function Dashboard() {
                         </Button>
                         <Button variant="outline" className="text-white border-white/30 bg-transparent hover:bg-white/10 hover:text-orange-400 hover:border-orange-500/50">
                             <Settings className="mr-2 h-4 w-4" />
-                            Configuración
+                            Configuración(concepto)
                         </Button>
                     </div>
                 </div>
@@ -1446,49 +1439,49 @@ export default function Dashboard() {
                             <CardContent className="p-4">
                                 <nav className="flex flex-col h-full justify-between">
                                     <div className="space-y-2">
-                                        <NavItem 
-                                            icon={Activity} 
-                                            label="Resumen" 
+                                        <NavItem
+                                            icon={Activity}
+                                            label="Resumen"
                                             active={activeSection === "resumen"}
                                             onClick={() => setActiveSection("resumen")}
                                         />
-                                        <NavItem 
-                                            icon={Users} 
+                                        <NavItem
+                                            icon={Users}
                                             label="Asistencia"
                                             active={activeSection === "asistencia"}
                                             onClick={() => setActiveSection("asistencia")}
                                         />
-                                        <NavItem 
-                                            icon={HardDrive} 
+                                        <NavItem
+                                            icon={HardDrive}
                                             label="Inventario"
                                             active={activeSection === "inventario"}
                                             onClick={() => setActiveSection("inventario")}
                                         />
-                                        <NavItem 
-                                            icon={PackageOpen} 
+                                        <NavItem
+                                            icon={PackageOpen}
                                             label="Solicitudes"
                                             active={activeSection === "solicitudes"}
                                             onClick={() => setActiveSection("solicitudes")}
                                         />
-                                        <NavItem 
-                                            icon={ClipboardList} 
+                                        <NavItem
+                                            icon={ClipboardList}
                                             label="Tareas"
                                             active={activeSection === "tareas"}
                                             onClick={() => setActiveSection("tareas")}
                                         />
-                                        <NavItem 
-                                            icon={Calendar} 
+                                        <NavItem
+                                            icon={Calendar}
                                             label="Calendario"
                                             active={activeSection === "calendario"}
                                             onClick={() => setActiveSection("calendario")}
                                         />
-                                        <NavItem 
-                                            icon={FileText} 
+                                        <NavItem
+                                            icon={FileText}
                                             label="Reportes"
                                             active={activeSection === "reportes"}
                                             onClick={() => setActiveSection("reportes")}
                                         />
-                                        <NavItem 
+                                        <NavItem
                                             icon={UserCog}
                                             label="Gestión Usuarios"
                                             active={activeSection === "users-management"}
@@ -1496,11 +1489,11 @@ export default function Dashboard() {
                                             className={roleId === 4 ? "block" : "hidden"} // Solo visible para admin
                                         />
                                     </div>
-                                    
+
                                     {/* Botón de Cerrar Sesión */}
                                     <div className="pt-4 mt-4 border-t border-slate-700/50">
-                                        <NavItem 
-                                            icon={LogOut} 
+                                        <NavItem
+                                            icon={LogOut}
                                             label="Cerrar Sesión"
                                             onClick={handleLogout}
                                             className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
@@ -1528,12 +1521,12 @@ export default function Dashboard() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <ActionButton icon={ClipboardList} label="Nueva Tarea" />
-                                        <ActionButton icon={FileText} label="Generar Reporte" />
-                                        <ActionButton icon={Users} label="Registrar Asistencia" />
-                                        <ActionButton 
-                                            icon={HardDrive} 
-                                            label="Gestionar Inventario" 
+                                        <ActionButton icon={ClipboardList} label="Nueva Tarea(concepto)" />
+                                        <ActionButton icon={FileText} label="Generar Reporte(concepto)" />
+                                        <ActionButton icon={Users} label="Registrar Asistencia(concepto)" />
+                                        <ActionButton
+                                            icon={HardDrive}
+                                            label="Gestionar Inventario"
                                             onClick={() => setActiveSection("inventario")}
                                         />
                                     </div>
@@ -1546,8 +1539,8 @@ export default function Dashboard() {
                                     <CardTitle className="text-slate-100 text-base">
                                         Actividades Recientes
                                     </CardTitle>
-                                    <Button 
-                                        variant="ghost" 
+                                    <Button
+                                        variant="ghost"
                                         size="sm"
                                         onClick={loadDashboardData}
                                         className="text-slate-400 hover:text-white hover:bg-slate-700 p-2"
@@ -1566,9 +1559,9 @@ export default function Dashboard() {
                                             <div className="text-center text-slate-400 py-4">
                                                 <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                                 <p className="text-sm">No hay actividades recientes</p>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
                                                     onClick={loadDashboardData}
                                                     className="mt-2 border-slate-600 text-slate-300 hover:bg-slate-700"
                                                     disabled={isLoading}
