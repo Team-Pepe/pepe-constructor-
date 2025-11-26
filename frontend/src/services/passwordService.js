@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/auth';
+const API_URL = 'https://pepe-constructor-md61.onrender.com/api/auth';
 
 export const requestPasswordReset = async (email) => {
   try {

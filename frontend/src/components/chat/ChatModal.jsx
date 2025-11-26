@@ -9,7 +9,7 @@ import { Send, Users, Globe, Loader2, AlertCircle } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
 import axios from 'axios';
 
-const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:3000';
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'https://pepe-constructor-md61.onrender.com';
 
 export const ChatModal = ({ isOpen, onClose, workZones = [] }) => {
   const {

@@ -37,7 +37,7 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Documentación de la API para el sistema de gestión de construcción',
     },
-    servers: [{ url: process.env.API_ENDPOINT || 'http://localhost:3000' }],
+    servers: [{ url: process.env.API_ENDPOINT || 'https://pepe-constructor-md61.onrender.com' }],
     components: {
       securitySchemes: {
         cookieAuth: {

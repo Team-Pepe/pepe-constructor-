@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/auth/reset-password", {
+      await axios.post("https://pepe-constructor-md61.onrender.com/api/auth/reset-password", {
         token,
         newPassword: password
       });

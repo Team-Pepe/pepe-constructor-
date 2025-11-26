@@ -41,7 +41,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/auth/register", {
+      await axios.post("https://pepe-constructor-md61.onrender.com/api/auth/register", {
         id: parseInt(document), // Documento como id (Int)
         email,
         password,

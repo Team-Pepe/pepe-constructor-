@@ -6,7 +6,7 @@ export const useWorkZones = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
+    const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "https://pepe-constructor-md61.onrender.com";
     
     const fetchSavedZones = async () => {
       setLoading(true);

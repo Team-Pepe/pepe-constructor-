@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { getAuthToken } from '@/utils/cookies';
 
-const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:3000';
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'https://pepe-constructor-md61.onrender.com';
 
 export const useSocket = () => {
   const socketRef = useRef(null);
