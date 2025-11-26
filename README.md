@@ -342,6 +342,7 @@ Estas ramas permiten que cada desarrollador trabaje de forma independiente sin a
 - `dev01` – 👤 [Jean Schnneider Arias Suarez](https://github.com/schnneider-utp)
 - `dev02` – 👤 [Juan Esteban Jaramillo Cano](https://github.com/JuanesUTP)
 - `dev03` – 👤 [Daniel Santiago Lopez Quiceno](https://github.com/Aiskiub)
+- `dev04` – 👤 [Wilson Andres Henao Soto](https://github.com/wolsybl)
 
 **Uso:** Cada desarrollador trabaja sus funcionalidades y correcciones en su respectiva rama antes de hacer un _pull request_ hacia `development`.
 

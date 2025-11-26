@@ -84,10 +84,10 @@ const TaskList = () => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         y: 0,
-        transition: { 
+        transition: {
           type: "spring",
           damping: 25,
           stiffness: 300
@@ -105,11 +105,11 @@ const TaskList = () => {
     >
       {/* Contenedor principal con fondo semitransparente */}
       <div className="max-w-7xl mx-auto">
-        <motion.div 
+        <motion.div
           className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6"
           initial={{ opacity: 0, y: 20 }}
-          animate={{ 
-            opacity: 1, 
+          animate={{
+            opacity: 1,
             y: 0,
             transition: {
               delay: 0.1,
@@ -121,16 +121,16 @@ const TaskList = () => {
             {/* Header Section */}
             <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
               <div className="flex items-center gap-4">
-                <Button 
+                <Button
                   onClick={() => {
-                    navigate('/dashboard-empleados', { 
+                    navigate('/dashboard-empleados', {
                       replace: true,
-                      state: { 
+                      state: {
                         activeSection: 'zonas-guardadas'
-                      } 
+                      }
                     });
                   }}
-                  variant="outline" 
+                  variant="outline"
                   className="bg-slate-800/80 border-orange-500 text-orange-500 hover:bg-orange-500/20 hover:text-orange-400"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -163,7 +163,7 @@ const TaskList = () => {
                         <input
                           type="text"
                           value={newTask.title}
-                          onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                          onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                           className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-700/50 text-white"
                           required
                         />
@@ -174,7 +174,7 @@ const TaskList = () => {
                         </label>
                         <select
                           value={newTask.status}
-                          onChange={(e) => setNewTask({...newTask, status: e.target.value})}
+                          onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
                           className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-700/50 text-white"
                         >
                           <option value="assigned">Asignada</option>
@@ -189,7 +189,7 @@ const TaskList = () => {
                       </label>
                       <textarea
                         value={newTask.description}
-                        onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                         className="w-full px-3 py-2 rounded-md bg-slate-900/50 border border-slate-700/50 text-white h-24"
                         required
                       />
@@ -242,8 +242,8 @@ const TaskList = () => {
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: 1, 
+                  animate={{
+                    opacity: 1,
                     y: 0,
                     transition: {
                       delay: 0.1,
@@ -254,11 +254,10 @@ const TaskList = () => {
                   <Card className="bg-slate-800/50 border-slate-600/50 backdrop-blur-sm hover:border-orange-500/30 transition-colors">
                     <div className="p-6">
                       <div className="flex items-start gap-4">
-                        <div className={`p-2 rounded-full ${
-                          task.status === 'completed' ? 'bg-green-500/20' :
-                          task.status === 'in-progress' ? 'bg-orange-500/20' :
-                          'bg-blue-500/20'
-                        }`}>
+                        <div className={`p-2 rounded-full ${task.status === 'completed' ? 'bg-green-500/20' :
+                            task.status === 'in-progress' ? 'bg-orange-500/20' :
+                              'bg-blue-500/20'
+                          }`}>
                           {getStatusIcon(task.status)}
                         </div>
                         <div className="flex-1">
@@ -273,7 +272,7 @@ const TaskList = () => {
                               size="sm"
                               className="bg-slate-800/50 border-slate-600 hover:bg-slate-700 text-slate-300"
                             >
-                              Actualizar Estado
+                              Actualizar Estado (concepto)
                             </Button>
                           </div>
                         </div>

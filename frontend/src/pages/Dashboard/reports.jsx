@@ -62,11 +62,11 @@ const Reports = () => {
       const todayResponse = await fetchTodaysCheckins();
       console.log('🚀 Llamando fetchRecentCheckIns...');
       const generalResponse = await fetchRecentCheckIns(1000);
-      
+
       console.log('===== REPORTS.JSX DEBUG =====');
       console.log('todayResponse from fetchTodaysCheckins:', todayResponse);
       console.log('generalResponse from fetchRecentCheckIns:', generalResponse);
-      
+
       // Process today's check-ins
       if (Array.isArray(todayResponse)) {
         todayCheckIns = todayResponse;
@@ -76,7 +76,7 @@ const Reports = () => {
         todayCheckIns = Array.isArray(todayResponse?.data) ? todayResponse?.data : [];
       }
       setCheckIns(todayCheckIns); // Set state for 'Check-ins del Día' tab
-      
+
       // Process recent check-ins
       if (Array.isArray(generalResponse)) {
         recentCheckIns = generalResponse;
@@ -84,7 +84,7 @@ const Reports = () => {
         recentCheckIns = generalResponse.checkIns;
       }
       setGeneralCheckIns(recentCheckIns); // Set state for 'Check-ins Generales' tab
-      
+
       // Log the processed data before filtering for payments
       console.log('todayCheckIns after processing:', todayCheckIns.map(item => ({
         id: item.id,
@@ -93,7 +93,7 @@ const Reports = () => {
         job: item.job,
         jobRaw: item.job
       })));
-      
+
       console.log('recentCheckIns after processing:', recentCheckIns.map(item => ({
         id: item.id,
         employee_name: item.employee_name,
@@ -101,7 +101,7 @@ const Reports = () => {
         job: item.job,
         jobRaw: item.job
       })));
-      
+
       // Filter data for 'Pagos' tab based on selected filter
       if (dateFilter === 'today') {
         setPaymentsCheckIns(todayCheckIns); // Use today's check-ins for 'Hoy'
@@ -121,11 +121,11 @@ const Reports = () => {
 
   const calculateHoursWorked = (checkInTime, checkOutTime) => {
     if (!checkInTime || !checkOutTime) return 0;
-    
+
     // Robust date parsing function
     const parseDate = (dateString) => {
       if (!dateString) return null;
-      
+
       // Attempt to parse DD/MM/YYYY, HH:MM:SS format
       const parts = dateString.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/);
       if (parts) {
@@ -133,7 +133,7 @@ const Reports = () => {
         // Month is 0-indexed in Date constructor
         return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5], parts[6]);
       }
-      
+
       // Fallback to standard Date parsing
       const date = new Date(dateString);
       return isNaN(date.getTime()) ? null : date;
@@ -141,7 +141,7 @@ const Reports = () => {
 
     const start = parseDate(checkInTime);
     const end = parseDate(checkOutTime);
-    
+
     console.log('calculateHoursWorked inputs and parsed dates:', {
       checkInTime: checkInTime,
       checkOutTime: checkOutTime,
@@ -153,12 +153,12 @@ const Reports = () => {
       console.warn('Failed to parse dates for hours calculation:', { checkInTime, checkOutTime });
       return 0;
     }
-    
+
     const diffMs = end.getTime() - start.getTime();
-    
+
     if (diffMs < 0) { // Handle cases where check-out is before check-in (shouldn't happen but as a safeguard)
-        console.warn('Check-out time is before check-in time:', { checkInTime, checkOutTime });
-        return 0;
+      console.warn('Check-out time is before check-in time:', { checkInTime, checkOutTime });
+      return 0;
     }
 
     const diffHours = diffMs / (1000 * 60 * 60);
@@ -168,10 +168,10 @@ const Reports = () => {
   const calculatePayment = (hours, jobType) => {
     // Ensure jobType is a string before calling toLowerCase
     const safeJobType = typeof jobType === 'string' ? jobType.toLowerCase().trim() : 'mason';
-    
+
     // Intentar obtener la tarifa por tipo de trabajo
     let rate = hourlyRates[safeJobType];
-    
+
     // Si no se encuentra, intentar con fallbacks
     if (!rate) {
       // Fallbacks para mapeos inglés-español
@@ -183,15 +183,15 @@ const Reports = () => {
         'fontanero': hourlyRates.fontanero || hourlyRates.plumber,
         'albañil': hourlyRates['albañil'] || hourlyRates.mason
       };
-      
+
       rate = fallbackMap[safeJobType];
     }
-    
+
     // Fallback final a albañil/mason
     if (!rate) {
       rate = hourlyRates['albañil'] || hourlyRates.mason || 10;
     }
-    
+
     return Math.round(hours * rate * 100) / 100;
   };
 
@@ -222,8 +222,8 @@ const Reports = () => {
     const doc = new jsPDF();
     const today = new Date();
     const dateStr = today.toLocaleDateString('es-ES');
-    
-    switch(type) {
+
+    switch (type) {
       case 'checkins':
         generateCheckInsPDF(doc, dateStr, checkIns);
         break;
@@ -255,7 +255,7 @@ const Reports = () => {
 
     // Guardar el PDF
     doc.save(`reporte-${type}-${dateStr.replace(/\//g, '-')}.pdf`);
-    
+
     setGenerating(false);
   };
 
@@ -313,15 +313,15 @@ const Reports = () => {
           jobType: typeof checkin.job,
           jobName: checkin.job?.name
         });
-        
+
         const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
         // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
         const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
-        
+
         // Calcular tarifa por hora
         const safeJobType = jobType.toLowerCase().trim();
         let hourlyRate = hourlyRates[safeJobType];
-        
+
         if (!hourlyRate) {
           const fallbackMap = {
             'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
@@ -333,14 +333,14 @@ const Reports = () => {
           };
           hourlyRate = fallbackMap[safeJobType];
         }
-        
+
         if (!hourlyRate) {
           hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
         }
-        
+
         // Calcular pago total
         const payment = calculatePayment(hours, jobType);
-        
+
         console.log('Payment calculation details:', {
           employee: checkin.employee_name,
           jobType: jobType,
@@ -377,12 +377,12 @@ const Reports = () => {
   // Función auxiliar para formatear fechas
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    
+
     try {
       if (dateString.includes(',')) {
         return dateString.split(',')[0].trim();
       }
-      
+
       const date = new Date(dateString);
       if (!isNaN(date.getTime())) {
         return date.toLocaleDateString('es-ES');
@@ -396,7 +396,7 @@ const Reports = () => {
   // Función auxiliar para formatear horas
   const formatTime = (dateString) => {
     if (!dateString) return "-";
-    
+
     try {
       if (dateString.includes(',')) {
         const parts = dateString.split(',');
@@ -404,7 +404,7 @@ const Reports = () => {
           return parts[1].trim();
         }
       }
-      
+
       const date = new Date(dateString);
       if (!isNaN(date.getTime())) {
         return date.toLocaleTimeString('es-ES', {
@@ -441,9 +441,8 @@ const Reports = () => {
                 <td className="p-2 text-white">{formatTime(checkin.check_in_time)}</td>
                 <td className="p-2 text-white">{checkin.check_out_time ? formatTime(checkin.check_out_time) : "-"}</td>
                 <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-sm ${
-                    !checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                  }`}>
+                  <span className={`px-2 py-1 rounded text-sm ${!checkin.check_out_time ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                    }`}>
                     {!checkin.check_out_time ? 'Activo' : 'Finalizado'}
                   </span>
                 </td>
@@ -458,15 +457,15 @@ const Reports = () => {
   return (
     <motion.div className="grid gap-6">
       <div className="flex justify-between items-center">
-        <motion.h2 
+        <motion.h2
           className="text-xl font-bold flex items-center"
           initial={{ opacity: 0, x: -20 }}
-          animate={{ 
-              opacity: 1, 
-              x: 0,
-              transition: {
-                  duration: 0.3
-              }
+          animate={{
+            opacity: 1,
+            x: 0,
+            transition: {
+              duration: 0.3
+            }
           }}
         >
           <FileText className="h-5 w-5 mr-2 text-orange-400" />
@@ -474,7 +473,7 @@ const Reports = () => {
         </motion.h2>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
+            <Button
               disabled={loading || generating || checkIns.length === 0}
               className="bg-orange-600 hover:bg-orange-700 text-white"
             >
@@ -483,7 +482,7 @@ const Reports = () => {
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
-              Generar PDF
+              Generar PDF(concepto)
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -528,13 +527,13 @@ const Reports = () => {
         <TabsContent value="checkins">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ 
-                opacity: 1, 
-                scale: 1,
-                transition: {
-                    delay: 0.1,
-                    duration: 0.3
-                }
+            animate={{
+              opacity: 1,
+              scale: 1,
+              transition: {
+                delay: 0.1,
+                duration: 0.3
+              }
             }}
           >
             <Card className="bg-slate-800 border-slate-700 shadow-md">
@@ -564,13 +563,13 @@ const Reports = () => {
         <TabsContent value="general">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ 
-                opacity: 1, 
-                scale: 1,
-                transition: {
-                    delay: 0.1,
-                    duration: 0.3
-                }
+            animate={{
+              opacity: 1,
+              scale: 1,
+              transition: {
+                delay: 0.1,
+                duration: 0.3
+              }
             }}
           >
             <Card className="bg-slate-800 border-slate-700 shadow-md">
@@ -600,13 +599,13 @@ const Reports = () => {
         <TabsContent value="payments">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ 
-                opacity: 1, 
-                scale: 1,
-                transition: {
-                    delay: 0.1,
-                    duration: 0.3
-                }
+            animate={{
+              opacity: 1,
+              scale: 1,
+              transition: {
+                delay: 0.1,
+                duration: 0.3
+              }
             }}
           >
             <Card className="bg-slate-800 border-slate-700 shadow-md">
@@ -670,7 +669,7 @@ const Reports = () => {
                       <Label htmlFor="fontanero" className="text-white">Fontanero ($/hora)</Label>
                       <Input
                         id="fontanero"
-                        type="number"   
+                        type="number"
                         value={hourlyRates.fontanero}
                         onChange={(e) => setHourlyRates(prev => ({
                           ...prev,
@@ -726,15 +725,15 @@ const Reports = () => {
                                 jobType: typeof checkin.job,
                                 jobName: checkin.job?.name
                               });
-                              
+
                               const hours = calculateHoursWorked(checkin.check_in_time, checkin.check_out_time);
                               // Ensure jobType is a string, defaulting to 'mason' if null, undefined, or not a string
                               const jobType = typeof checkin.job_type === 'string' && checkin.job_type ? checkin.job_type : 'mason';
-                              
+
                               // Calcular tarifa por hora
                               const safeJobType = jobType.toLowerCase().trim();
                               let hourlyRate = hourlyRates[safeJobType];
-                              
+
                               if (!hourlyRate) {
                                 const fallbackMap = {
                                   'electrician': hourlyRates['eléctrico'] || hourlyRates.electrician,
@@ -746,14 +745,14 @@ const Reports = () => {
                                 };
                                 hourlyRate = fallbackMap[safeJobType];
                               }
-                              
+
                               if (!hourlyRate) {
                                 hourlyRate = hourlyRates['albañil'] || hourlyRates.mason || 10;
                               }
-                              
+
                               // Calcular pago total
                               const payment = calculatePayment(hours, jobType);
-                              
+
                               console.log('Payment calculation details:', {
                                 employee: checkin.employee_name,
                                 jobType: jobType,
